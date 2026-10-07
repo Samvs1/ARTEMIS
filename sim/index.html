@@ -1,0 +1,1295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Milo Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Fredoka:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout idea: the stage is the hero. On a phone the controls stack underneath it;
+   on a wide screen they sit in a column beside it. One blue (Milo's eye colour)
+   marks everything you can press. */
+:root{
+  --bg:#edf0f4; --panel:#ffffff; --ink:#141a23; --muted:#556074; --line:#d4dae3;
+  --accent:#1a63e0; --accent-ink:#ffffff; --chip:#e5eaf1; --stage-bd:#cfd6e0;
+  --font-display:'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
+  --font-body:'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0c1017; --panel:#141a24; --ink:#e8ecf3; --muted:#97a2b6; --line:#263042;
+    --accent:#6aa8ff; --accent-ink:#06101f; --chip:#1c2433; --stage-bd:#263042;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0c1017; --panel:#141a24; --ink:#e8ecf3; --muted:#97a2b6; --line:#263042;
+  --accent:#6aa8ff; --accent-ink:#06101f; --chip:#1c2433; --stage-bd:#263042;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--font-body);padding:20px 16px 36px}
+.app{max-width:1120px;margin:0 auto;display:grid;gap:18px}
+h1{font:600 clamp(2.1rem,7vw,3rem)/1 var(--font-display);margin:0;letter-spacing:-.01em}
+header p{margin:8px 0 0;color:var(--muted);max-width:58ch}
+h2,summary{margin:0 0 10px;font:600 12px/1 var(--font-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+
+.layout{display:block}
+@media (min-width:920px){
+  .layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr);gap:28px;align-items:start}
+  .stage-col{position:sticky;top:16px}
+}
+/* On a phone the stage stays pinned at the top, so Milo is always in view while you press buttons. */
+@media (max-width:919px){
+  .stage-col{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:6px 0 8px}
+  .stage-wrap{width:min(100%,calc(40vh * 1.263));margin-inline:auto}
+  .controls{margin-top:10px}
+  .stage-col::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:10px;background:linear-gradient(var(--bg),transparent);pointer-events:none}
+}
+@supports (height:1svh){
+  @media (max-width:919px){ .stage-wrap{width:min(100%,calc(40svh * 1.263))} }
+}
+@media (max-width:919px) and (max-height:520px){ .stage-col{position:static} .stage-wrap{width:100%} }
+
+.stage-wrap{position:relative;border-radius:22px;border:1px solid var(--stage-bd);overflow:hidden;background:#0d1322}
+#stage{display:block;width:100%;aspect-ratio:480/380;touch-action:manipulation;cursor:pointer}
+.subtitle{position:absolute;left:12px;right:12px;bottom:12px;padding:9px 14px;border-radius:14px;background:rgba(8,12,22,.84);color:#f2f6ff;font-size:15px;line-height:1.35;text-align:center}
+.readout{margin:8px 2px 0;font:400 12px/1.5 var(--font-mono);color:var(--muted);min-height:1.5em;overflow-wrap:anywhere}
+
+.group{padding-block:16px;border-top:1px solid var(--line)}
+.controls .group:first-child{border-top:0;padding-top:0}
+.hint{margin:10px 0 0;color:var(--muted);font-size:13px;max-width:52ch}
+
+button{font:500 14px/1 var(--font-body);color:var(--ink);background:var(--chip);border:1px solid var(--line);border-radius:999px;padding:11px 16px;min-height:42px;cursor:pointer}
+button:hover{border-color:var(--muted)}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.toggle{display:inline-flex;align-items:center;gap:8px}
+.toggle::before{content:"";width:10px;height:10px;border-radius:50%;border:2px solid var(--muted);flex:none}
+.toggle[aria-pressed="true"]{border-color:var(--accent);background:var(--panel)}
+.toggle[aria-pressed="true"]::before{background:var(--accent);border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+.row + .row{margin-top:8px}
+
+.feelings{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px}
+.tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 6px 9px;border-radius:16px;border:2px solid transparent;background:var(--chip);min-height:0}
+.tile canvas{display:block;width:100%;aspect-ratio:156/100;border-radius:11px;background:#04060c}
+.tile span{font-size:13px;font-weight:500}
+.tile[aria-pressed="true"]{border-color:var(--accent);background:var(--panel)}
+
+.shell{display:inline-flex;align-items:center;gap:8px}
+.shell .sw{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.25)}
+.shell[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent) inset;background:var(--panel)}
+
+.slider{display:grid;grid-template-columns:1fr auto;gap:4px 12px;margin-top:14px}
+.slider label{font-weight:500}
+.slider output{font:400 12px var(--font-mono);color:var(--muted)}
+.slider input{grid-column:1/-1;width:100%;margin:0;accent-color:var(--accent)}
+#rHue{-webkit-appearance:none;appearance:none;height:12px;border-radius:99px;
+  background:linear-gradient(90deg,hsl(0,90%,60%),hsl(60,90%,55%),hsl(120,70%,50%),hsl(180,90%,50%),hsl(240,90%,65%),hsl(300,80%,60%),hsl(360,90%,60%))}
+#rHue::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid #141a23;cursor:pointer}
+#rHue::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:3px solid #141a23;cursor:pointer}
+.look{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.look input{flex:1 1 220px;min-width:0;font:400 12px var(--font-mono);padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+#copyNote{margin:6px 2px 0;font-size:13px;color:var(--muted);min-height:1.3em}
+
+details summary{cursor:pointer;list-style:none;margin-bottom:0}
+details summary::-webkit-details-marker{display:none}
+details summary::after{content:"  +";letter-spacing:0}
+details[open] summary::after{content:"  \2212"}
+details[open] summary{margin-bottom:12px}
+.meters{display:grid;gap:10px;margin:12px 0 14px}
+.meter{display:grid;grid-template-columns:7.2rem minmax(0,1fr) 2.6rem;align-items:center;gap:8px;font-size:13px}
+.meter b{font:400 12px var(--font-mono);color:var(--muted);text-align:right}
+.bar{height:8px;border-radius:99px;background:var(--chip);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:99px;background:var(--accent);transition:width .35s}
+.log{list-style:none;margin:0;padding:0;display:grid;gap:5px;font:400 12px/1.45 var(--font-mono)}
+.log li{display:grid;grid-template-columns:5.2rem minmax(0,1fr);gap:8px}
+.log b{font-weight:500;color:var(--accent)}
+.log .mind{color:var(--ink)}
+
+footer{color:var(--muted);font-size:13px}
+@media (prefers-reduced-motion: reduce){ .bar i{transition:none} }
+</style>
+</head>
+<body>
+<main class="app">
+  <header>
+    <h1>Milo</h1>
+    <p>A simulator for Milo's face, ears, glow and life layer. Poke it, talk to it, turn the lights off.</p>
+  </header>
+
+  <div class="layout">
+    <section class="stage-col" aria-label="Milo's room">
+      <div class="stage-wrap">
+        <canvas id="stage" role="img" aria-label="Milo, a small robot, looking calm"></canvas>
+        <div id="subtitle" class="subtitle" aria-live="polite" hidden></div>
+      </div>
+      <p id="readout" class="readout"></p>
+    </section>
+
+    <section class="controls" aria-label="Controls">
+      <div class="group">
+        <h2>Feelings</h2>
+        <div id="feelings" class="feelings"></div>
+      </div>
+
+      <div class="group">
+        <h2>Try it</h2>
+        <div class="row">
+          <button id="btnHey" class="primary" type="button">Say "Hey Milo"</button>
+          <button id="btnPoke" type="button">Poke</button>
+          <button id="tLights" class="toggle" type="button" aria-pressed="true">Lights on</button>
+          <button id="tPrivacy" class="toggle" type="button" aria-pressed="false">Privacy off</button>
+        </div>
+        <div class="row">
+          <button id="tLife" class="toggle" type="button" aria-pressed="true">Life layer on</button>
+          <button id="tFollow" class="toggle" type="button" aria-pressed="true">Follow pointer on</button>
+          <button id="tSound" class="toggle" type="button" aria-pressed="true">Sound on</button>
+        </div>
+        <p class="hint">"Hey Milo" plays out the shape of a real conversation (hear, think, speak) with no AI behind it yet. Tap Milo's face, ears or body to see how it reacts.</p>
+      </div>
+
+      <div class="group">
+        <h2>Make it yours</h2>
+        <div id="shells" class="row" role="group" aria-label="Shell"></div>
+        <div class="slider">
+          <label for="rHue">Eye and glow colour</label><output id="oHue"></output>
+          <input id="rHue" type="range" min="0" max="360" step="1">
+        </div>
+        <div class="slider">
+          <label for="rSize">Eye size</label><output id="oSize"></output>
+          <input id="rSize" type="range" min="0.8" max="1.3" step="0.01">
+        </div>
+        <div class="slider">
+          <label for="rGap">Eye spacing</label><output id="oGap"></output>
+          <input id="rGap" type="range" min="0.8" max="1.25" step="0.01">
+        </div>
+        <div class="look">
+          <input id="lookText" type="text" readonly aria-label="Your look as text">
+          <button id="btnCopy" type="button">Copy my look</button>
+        </div>
+        <p id="copyNote" aria-live="polite"></p>
+      </div>
+
+      <details class="group" id="hood">
+        <summary>Under the hood</summary>
+        <p class="hint" style="margin-top:0">Everything here runs on the robot side: blinks, glances, sleepiness, chirps and what Milo does when it gets bored. The remote mind is not connected yet. The "mind" lines in the log show where it will plug in.</p>
+        <div class="meters" id="meters"></div>
+        <ol class="log" id="log" aria-label="What Milo is doing"></ol>
+      </details>
+    </section>
+  </div>
+
+  <footer>Runs entirely in your browser. Source: sim/index.html in the LIGMA repository.</footer>
+</main>
+
+<script>
+(() => {
+'use strict';
+
+/* ======================================================================
+   1. HELPERS
+   Small tools used everywhere else.
+   ====================================================================== */
+const $ = (id) => document.getElementById(id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = (list) => list[Math.floor(Math.random() * list.length)];
+const rad = (deg) => deg * Math.PI / 180;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const MOTION = reduceMotion ? 0.35 : 1;   // scales the big body movements
+
+// A rounded-rectangle path that works in every browser.
+function rr(g, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+function hexToRgb(hex) { const n = parseInt(hex.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+// Blend two #rrggbb colours. t = 0 gives the first, t = 1 gives the second.
+function mix(hexA, hexB, t) {
+  const a = hexToRgb(hexA), b = hexToRgb(hexB);
+  return 'rgb(' + a.map((v, i) => Math.round(lerp(v, b[i], t))).join(',') + ')';
+}
+
+/* ======================================================================
+   2. SETTINGS
+   Remembered in your browser, so reloading keeps your look.
+   ====================================================================== */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('milo.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('milo.' + k, JSON.stringify(v)); } catch (e) { /* storage can be blocked */ } }
+};
+
+// The four shells from the concept. Same hardware, different looks.
+const SHELLS = {
+  classic:  { name: 'Classic',  light: '#f6f3ee', dark: '#d6d0c5', ear: 'paddle',  hue: 205 },
+  minimal:  { name: 'Minimal',  light: '#eceff2', dark: '#c0c7d0', ear: 'paddle',  hue: 200 },
+  retro:    { name: 'Retro',    light: '#9bb8a1', dark: '#678570', ear: 'antenna', hue: 168 },
+  creature: { name: 'Creature', light: '#e3bc90', dark: '#b98a5e', ear: 'round',   hue: 205 }
+};
+const settings = {
+  shell:   store.get('shell', 'classic'),
+  hue:     store.get('hue', 205),
+  eyeSize: store.get('eyeSize', 1),
+  eyeGap:  store.get('eyeGap', 1),
+  sound:   store.get('sound', true),
+  follow:  store.get('follow', true),
+  life:    store.get('life', true)
+};
+if (!SHELLS[settings.shell]) settings.shell = 'classic';
+
+/* ======================================================================
+   3. SHAPES AND POSES
+   An eye is a thick curved line: it starts at A, ends at B and bends
+   toward C. "th" is how thick the line is. A round eye is a short, thick
+   line. A happy eye is a long, thin line that bends upward.
+   Every feeling is a set of numbers. Milo glides between them.
+   ====================================================================== */
+const W = 480, H = 380;            // the stage is 480 x 380 units
+const CX = 240, FLOOR = 336;       // robot centre line and floor level
+const BODY   = { w: 134, h: 96, r: 46 };
+const NECK   = { x: CX, y: 218 };               // the head tilts around this point
+const HEAD   = { w: 200, h: 148, r: 58, cy: -80 };
+const BEZEL  = { w: 174, h: 118, r: 36, dy: 3 };
+const SCREEN = { w: 156, h: 100, r: 27 };
+const FW = SCREEN.w, FH = SCREEN.h;             // size of the face drawing
+const WHEEL  = { dx: 76, w: 24, h: 66 };
+
+const eye = (o) => Object.assign({ ax: 0, ay: -8, bx: 0, by: 8, cx: 0, cy: 0, th: 30, lidT: 0, lidTA: 0, lidB: 0, pup: 9 }, o);
+const mirrorEye = (e) => Object.assign({}, e, { ax: -e.ax, bx: -e.bx, cx: -e.cx, lidTA: -e.lidTA });
+
+// mouth: w = half width, q = smile (+) or frown (-), t = thickness, o = how open, r = round "o" size
+// head: roll tilts sideways, pitch nods. ears: a = angle outward in degrees, l = length
+// gx, gy = where the feeling makes Milo look. hue = glow colour shift. glow = glow strength.
+const POSES = {
+  calm: {
+    L: eye({}),
+    mouth: { w: 9, q: 5, t: 3.5, o: 0, r: 0, x: 0, y: 31 },
+    gx: 0, gy: 0, roll: 0, pitch: 0, earL: { a: 14, l: 1 }, earR: { a: 14, l: 1 }, hue: 0, glow: 0.38
+  },
+  happy: {
+    L: eye({ ax: -13, ay: 3, bx: 13, by: 3, cx: 0, cy: -22, th: 8, pup: 0 }),
+    mouth: { w: 12, q: 8, t: 4, o: 0, r: 0, x: 0, y: 30 },
+    gx: 0, gy: 0, roll: 0, pitch: -4, earL: { a: 6, l: 1.08 }, earR: { a: 6, l: 1.08 }, hue: -40, glow: 0.62
+  },
+  curious: {
+    L: eye({ th: 35, pup: 11, ay: -9, by: 9 }),
+    R: eye({ th: 26, pup: 8, lidT: 0.1, ay: -7, by: 7 }),
+    mouth: { w: 6, q: 3, t: 3.5, o: 0, r: 0, x: 5, y: 32 },
+    gx: 0.35, gy: -0.3, roll: -9, pitch: -3, earL: { a: 0, l: 1.15 }, earR: { a: 42, l: 0.95 }, hue: 25, glow: 0.48
+  },
+  surprised: {
+    L: eye({ ay: -3, by: 3, th: 38, pup: 8 }),
+    mouth: { w: 0, q: 0, t: 3, o: 0, r: 5, x: 0, y: 34 },
+    gx: 0, gy: -0.1, roll: 0, pitch: -7, earL: { a: -2, l: 1.25 }, earR: { a: -2, l: 1.25 }, hue: 0, glow: 0.85
+  },
+  thinking: {
+    L: eye({ th: 28, pup: 8.5 }),
+    R: eye({ th: 28, pup: 8.5, lidT: 0.3, lidTA: -8 }),
+    mouth: { w: 7, q: 0.8, t: 3.5, o: 0, r: 0, x: 8, y: 33 },
+    gx: 0.65, gy: -0.7, roll: 7, pitch: -4, earL: { a: -12, l: 1 }, earR: { a: 30, l: 1.05 }, hue: 60, glow: 0.5
+  },
+  excited: {
+    L: eye({ ax: -15, ay: 5, bx: 15, by: 5, cx: 0, cy: -28, th: 9, pup: 0 }),
+    mouth: { w: 15, q: 11, t: 4, o: 0.35, r: 0, x: 0, y: 29 },
+    gx: 0, gy: 0, roll: 0, pitch: -6, earL: { a: 6, l: 1.15 }, earR: { a: 6, l: 1.15 }, hue: -170, glow: 0.88
+  },
+  sleepy: {
+    L: eye({ ax: -12, ay: 0, bx: 12, by: 0, cx: 0, cy: 14, th: 5.5, pup: 0 }),
+    mouth: { w: 5, q: 0.5, t: 3, o: 0, r: 0, x: 0, y: 33 },
+    gx: 0, gy: 0.3, roll: 3, pitch: 12, earL: { a: 68, l: 0.85 }, earR: { a: 68, l: 0.85 }, hue: 40, glow: 0.12
+  },
+  // Not a feeling but a mode: the camera shutter is closed and the microphone is cut.
+  privacy: {
+    L: eye({ ax: -12, ay: 0, bx: 12, by: 0, cx: 0, cy: 14, th: 5.5, pup: 0 }),
+    mouth: { w: 6, q: 0, t: 3, o: 0, r: 0, x: 0, y: 34 },
+    gx: 0, gy: 0.5, roll: 0, pitch: 16, earL: { a: 70, l: 0.82 }, earR: { a: 70, l: 0.82 }, hue: 0, glow: 0.5
+  }
+};
+const EMOTIONS = [['calm', 'Calm'], ['happy', 'Happy'], ['curious', 'Curious'], ['surprised', 'Surprised'],
+                  ['thinking', 'Thinking'], ['excited', 'Excited'], ['sleepy', 'Sleepy']];
+
+// Turn a pose into one flat list of numbers, so each number can glide on its own.
+function flatten(p) {
+  const L = p.L, R = p.R || mirrorEye(p.L), f = {};
+  for (const k in L) f['L_' + k] = L[k];
+  for (const k in R) f['R_' + k] = R[k];
+  const m = p.mouth;
+  Object.assign(f, { mw: m.w, mq: m.q, mt: m.t, mo: m.o, mr: m.r, mx: m.x, my: m.y,
+    gx: p.gx, gy: p.gy, roll: p.roll, pitch: p.pitch,
+    eLa: p.earL.a, eLl: p.earL.l, eRa: p.earR.a, eRl: p.earR.l, hue: p.hue, glow: p.glow });
+  return f;
+}
+const TARGETS = {};
+for (const k in POSES) TARGETS[k] = flatten(POSES[k]);
+
+/* ======================================================================
+   4. SPRINGS
+   Each number chases its target like a small spring. Eyes are firm,
+   ears are bouncy, the head is in between, and the glow is slow.
+   ====================================================================== */
+const cur = Object.assign({}, TARGETS.calm);
+const tgt = Object.assign({}, TARGETS.calm);
+const vel = {};
+const GRP = {};
+for (const k in cur) {
+  vel[k] = 0;
+  GRP[k] = (k === 'eLa' || k === 'eLl' || k === 'eRa' || k === 'eRl') ? [200, 13]
+         : (k === 'roll' || k === 'pitch') ? [130, 15]
+         : (k === 'hue' || k === 'glow') ? [30, 9]
+         : [300, 28];
+}
+function stepSprings(h) {
+  for (const k in tgt) {
+    const g = GRP[k];
+    vel[k] += (tgt[k] - cur[k]) * g[0] * h;
+    vel[k] *= Math.exp(-g[1] * h);
+    cur[k] += vel[k] * h;
+  }
+}
+
+/* ======================================================================
+   5. DRAWING THE FACE
+   The face is drawn on its own small canvas, then copied onto Milo's
+   screen with a soft glow around it.
+   ====================================================================== */
+class FaceRenderer {
+  constructor(scale) {
+    this.S = scale;
+    this.w = Math.max(2, Math.round(FW * scale));
+    this.h = Math.max(2, Math.round(FH * scale));
+    this.fc = document.createElement('canvas'); this.fc.width = this.w; this.fc.height = this.h;
+    this.bc = document.createElement('canvas'); this.bc.width = this.w; this.bc.height = this.h;
+    this.f = this.fc.getContext('2d');
+    this.b = this.bc.getContext('2d');
+  }
+  render(P, M) {
+    const f = this.f, b = this.b, S = this.S;
+    f.setTransform(1, 0, 0, 1, 0, 0); f.clearRect(0, 0, this.w, this.h);
+    f.setTransform(S, 0, 0, S, this.w / 2, this.h / 2);       // origin = middle of the screen
+    paintFace(f, P, M);
+    // glow: draw the face again, off to the side, and let its blurred shadow land in place
+    b.setTransform(1, 0, 0, 1, 0, 0); b.clearRect(0, 0, this.w, this.h);
+    const off = this.w + 80;
+    b.shadowColor = 'hsla(' + settings.hue + ',100%,62%,0.9)';
+    b.shadowOffsetX = off;
+    b.shadowBlur = 16 * S; b.drawImage(this.fc, -off, 0);
+    b.shadowBlur = 6 * S;  b.drawImage(this.fc, -off, 0);
+    b.shadowColor = 'transparent'; b.shadowBlur = 0; b.shadowOffsetX = 0;
+    b.drawImage(this.fc, 0, 0);
+    return this.bc;
+  }
+}
+
+function paintFace(f, P, M) {
+  const gap = 38 * settings.eyeGap;
+  const gx = M.gx + P.gx, gy = M.gy + P.gy;
+  paintEye(f, P, 'L', -gap + gx * 5, -6 + gy * 3.5, M);
+  paintEye(f, P, 'R',  gap + gx * 5, -6 + gy * 3.5, M);
+  paintMouth(f, P, M);
+  paintOverlays(f, M);
+}
+
+function paintEye(f, P, side, ex, ey, M) {
+  const sz = settings.eyeSize, hue = settings.hue;
+  const p = (k) => P[side + '_' + k];
+  const ax = p('ax') * sz, ay = p('ay') * sz, bx = p('bx') * sz, by = p('by') * sz, cx = p('cx') * sz, cy = p('cy') * sz;
+  const th = Math.max(1, p('th') * sz);
+  // How far the thick line reaches. Used for the lids and the glow colour.
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (let i = 0; i <= 8; i++) {
+    const t = i / 8, u = 1 - t;
+    const x = u * u * ax + 2 * u * t * cx + t * t * bx, y = u * u * ay + 2 * u * t * cy + t * t * by;
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+  }
+  x0 -= th / 2; x1 += th / 2; y0 -= th / 2; y1 += th / 2;
+  // Blinking only closes round eyes. The happy and sleepy lines are already thin.
+  const round = clamp((th - 12) / 10, 0, 1);
+  const lidT = Math.min(0.94, p('lidT') + (1 - p('lidT')) * M.blink * round);
+  const lidB = p('lidB');
+  f.save();
+  f.translate(ex, ey);
+  if (lidT > 0.004 || lidB > 0.004) {            // eyelids cut the eye with a straight line
+    const m = Math.tan(rad(p('lidTA')));
+    const yTop = y0 + lidT * (y1 - y0), yBot = y1 - lidB * (y1 - y0);
+    f.beginPath();
+    f.moveTo(-90, yTop - 90 * m); f.lineTo(90, yTop + 90 * m); f.lineTo(90, yBot); f.lineTo(-90, yBot);
+    f.closePath(); f.clip();
+  }
+  const R = Math.max(6, 0.5 * Math.max(x1 - x0, y1 - y0));
+  const gr = f.createRadialGradient(0, 0, 0, 0, 0, R);
+  gr.addColorStop(0, '#ffffff');
+  gr.addColorStop(0.55, 'hsl(' + hue + ',100%,90%)');
+  gr.addColorStop(1, 'hsl(' + hue + ',100%,68%)');
+  f.strokeStyle = gr; f.lineWidth = th; f.lineCap = 'round';
+  f.beginPath(); f.moveTo(ax, ay); f.quadraticCurveTo(cx, cy, bx, by); f.stroke();
+  const pr = p('pup') * sz;                       // pupil and two little catchlights
+  if (pr > 0.8) {
+    const mx = 0.25 * ax + 0.5 * cx + 0.25 * bx, my = 0.25 * ay + 0.5 * cy + 0.25 * by;
+    const gx = clamp(M.gx + P.gx, -1.4, 1.4), gy = clamp(M.gy + P.gy, -1.4, 1.4);
+    const px = mx + gx * Math.max(2, th * 0.2), py = my + gy * Math.max(2, th * 0.2 + 3);
+    f.fillStyle = '#060a15'; f.beginPath(); f.arc(px, py, pr, 0, Math.PI * 2); f.fill();
+    f.fillStyle = 'rgba(255,255,255,0.95)'; f.beginPath(); f.arc(px - pr * 0.34, py - pr * 0.38, pr * 0.3, 0, Math.PI * 2); f.fill();
+    f.fillStyle = 'rgba(255,255,255,0.6)'; f.beginPath(); f.arc(px + pr * 0.38, py + pr * 0.36, pr * 0.14, 0, Math.PI * 2); f.fill();
+  }
+  f.restore();
+}
+
+function paintMouth(f, P, M) {
+  const x = P.mx, y = P.my + (M.gy + P.gy);
+  const open = clamp(P.mo + M.speak * 0.9, 0, 1.4);
+  const w = P.mw + M.speak * 1.5, q = P.mq - M.speak * 2;
+  const col = 'hsl(' + settings.hue + ',100%,74%)';
+  f.strokeStyle = col; f.fillStyle = col; f.lineWidth = Math.max(1, P.mt); f.lineCap = 'round'; f.lineJoin = 'round';
+  if (w > 0.4) {
+    f.beginPath(); f.moveTo(x - w, y); f.quadraticCurveTo(x, y + 2 * q, x + w, y);
+    if (open > 0.03) {
+      f.quadraticCurveTo(x, y + 2 * (q + open * 11), x - w, y); f.closePath();
+      f.globalAlpha = 0.92; f.fill(); f.globalAlpha = 1;
+    }
+    f.stroke();
+  }
+  if (P.mr > 0.3) {                               // the round "o" of surprise
+    f.beginPath(); f.ellipse(x, y, P.mr, P.mr * 1.25, 0, 0, Math.PI * 2); f.fill();
+  }
+}
+
+function sparkle(f, x, y, r) {                    // a four-point star
+  f.beginPath(); f.moveTo(x, y - r);
+  f.quadraticCurveTo(x, y, x + r, y); f.quadraticCurveTo(x, y, x, y + r);
+  f.quadraticCurveTo(x, y, x - r, y); f.quadraticCurveTo(x, y, x, y - r); f.fill();
+}
+function zed(f, x, y, s) {                        // a small "z"
+  f.beginPath(); f.moveTo(x - s, y - s); f.lineTo(x + s, y - s); f.lineTo(x - s, y + s); f.lineTo(x + s, y + s); f.stroke();
+}
+function paintOverlays(f, M) {
+  const hue = settings.hue, t = M.t;
+  if (M.sparkle > 0.02) {
+    f.fillStyle = 'hsl(' + hue + ',100%,92%)';
+    [[-62, -30], [60, -28], [48, 8]].forEach((s, i) => sparkle(f, s[0], s[1], 7 * M.sparkle * (0.55 + 0.45 * Math.sin(t * 8 + i * 2))));
+  }
+  if (M.dots > 0.02) {
+    f.fillStyle = 'hsl(' + hue + ',100%,85%)';
+    for (let i = 0; i < 3; i++) {
+      f.globalAlpha = M.dots * (0.3 + 0.7 * Math.max(0, Math.sin(t * 4 - i * 0.9)));
+      f.beginPath(); f.arc(38 + i * 9, -38, 2.3, 0, Math.PI * 2); f.fill();
+    }
+    f.globalAlpha = 1;
+  }
+  if (M.zzz > 0.02) {
+    f.strokeStyle = 'hsl(' + hue + ',100%,86%)'; f.lineWidth = 1.8; f.lineCap = 'round'; f.lineJoin = 'round';
+    for (let i = 0; i < 3; i++) {
+      const ph = (t * 0.32 + i / 3) % 1;
+      f.globalAlpha = M.zzz * (1 - ph) * Math.min(1, ph * 5);
+      zed(f, 60 + ph * 10, -22 - ph * 26, 3 + i * 1.2);
+    }
+    f.globalAlpha = 1;
+  }
+}
+
+/* ======================================================================
+   6. DRAWING THE ROOM AND THE ROBOT
+   ====================================================================== */
+const canvas = $('stage');
+const ctx = canvas.getContext('2d');
+let S = 1;                 // device pixels per stage unit
+let face = null;           // the face renderer for the big stage
+const room = { on: null, off: null };
+
+function drawRoom(g, lights) {
+  const wall = g.createLinearGradient(0, 0, 0, 296);
+  wall.addColorStop(0, lights ? '#d9e0e7' : '#0e1424');
+  wall.addColorStop(1, lights ? '#c6cfd9' : '#0a0f1d');
+  g.fillStyle = wall; g.fillRect(0, 0, W, 296);
+
+  // window
+  g.save();
+  rr(g, 352, 44, 92, 120, 8); g.fillStyle = lights ? '#f1f4f7' : '#232b45'; g.fill();
+  rr(g, 359, 51, 78, 106, 4);
+  const sky = g.createLinearGradient(0, 51, 0, 157);
+  sky.addColorStop(0, lights ? '#8ec5f5' : '#0a1230'); sky.addColorStop(1, lights ? '#d6ecfb' : '#1b2756');
+  g.fillStyle = sky; g.fill(); g.clip();
+  if (!lights) {
+    g.fillStyle = '#e9efff'; g.beginPath(); g.arc(412, 82, 9, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#0c1535'; g.beginPath(); g.arc(416, 79, 8, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(233,239,255,0.9)';
+    [[372, 70], [386, 98], [428, 116], [374, 128], [404, 140], [392, 66]].forEach((s) => g.fillRect(s[0], s[1], 1.6, 1.6));
+  } else {
+    g.fillStyle = 'rgba(255,255,255,0.72)';
+    g.beginPath(); g.ellipse(386, 84, 20, 7, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(401, 80, 14, 6, 0, 0, Math.PI * 2); g.fill();
+  }
+  g.restore();
+  g.fillStyle = lights ? '#f1f4f7' : '#232b45';
+  g.fillRect(396, 51, 3, 106); g.fillRect(359, 102, 78, 3);
+
+  // floor and baseboard
+  const fl = g.createLinearGradient(0, 296, 0, H);
+  fl.addColorStop(0, lights ? '#c9a77b' : '#1a2033'); fl.addColorStop(1, lights ? '#b08a60' : '#111726');
+  g.fillStyle = fl; g.fillRect(0, 296, W, H - 296);
+  g.strokeStyle = lights ? 'rgba(90,60,30,0.2)' : 'rgba(0,0,0,0.35)'; g.lineWidth = 1;
+  for (let y = 314; y < H; y += 22) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke(); }
+  g.fillStyle = lights ? '#eef1f4' : '#1b2336'; g.fillRect(0, 290, W, 8);
+
+  // a plant
+  const px = 62;
+  g.fillStyle = lights ? '#b5654a' : '#3b2430';
+  g.beginPath(); g.moveTo(px - 22, 298); g.lineTo(px + 22, 298); g.lineTo(px + 17, 336); g.lineTo(px - 17, 336); g.closePath(); g.fill();
+  g.fillStyle = lights ? '#4f8c66' : '#17302a';
+  [[-14, -24, 9, 26, -0.5], [0, -34, 9, 30, 0], [14, -24, 9, 26, 0.5], [-6, -14, 8, 20, -0.25], [7, -14, 8, 20, 0.28]]
+    .forEach((l) => { g.beginPath(); g.ellipse(px + l[0], 298 + l[1], l[2], l[3], l[4], 0, Math.PI * 2); g.fill(); });
+}
+
+function buildRoom() {
+  ['on', 'off'].forEach((key) => {
+    const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height;
+    const g = c.getContext('2d'); g.setTransform(S, 0, 0, S, 0, 0);
+    drawRoom(g, key === 'on');
+    room[key] = c;
+  });
+}
+
+function resize() {
+  const cssW = canvas.clientWidth || 480;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const pw = Math.round(cssW * dpr), ph = Math.round(cssW * dpr * H / W);
+  if (face && canvas.width === pw && canvas.height === ph) return;
+  canvas.width = pw; canvas.height = ph;
+  S = pw / W;
+  face = new FaceRenderer(S);
+  buildRoom();
+}
+
+// The colour of the mood glow: the eye colour shifted by the feeling.
+// While Milo listens it pulses white, and while it thinks it pulses violet.
+function glowColour(P) {
+  let h = settings.hue + P.hue, s = 95, l = 60, a = P.glow;
+  if (L.pulse.type && clock < L.pulse.until) {
+    const ph = clock - L.pulse.start;
+    if (L.pulse.type === 'listening') { s = 30; l = 90; a = 0.6 + 0.35 * Math.sin(ph * 8); }
+    if (L.pulse.type === 'thinking') { h = settings.hue + 70; a = 0.55 + 0.35 * Math.sin(ph * 4.5); }
+  }
+  return { h: Math.round(h), s, l, a: clamp(a, 0, 1) };
+}
+const hsla = (c, a) => 'hsla(' + c.h + ',' + c.s + '%,' + c.l + '%,' + a + ')';
+const NIGHT = '#101a38';   // the colour shells fade toward when the room is dark
+
+function drawEar(g, side, a, len, shell, c, k) {
+  const sx = side === 'L' ? -1 : 1;
+  g.save();
+  g.translate(sx * 64, -62);
+  g.rotate(sx * rad(a));
+  const Ln = 38 * len;
+  const c1 = mix(shell.light, NIGHT, k), c2 = mix(shell.dark, NIGHT, k);
+  const grad = g.createLinearGradient(-10, 0, 10, 0); grad.addColorStop(0, c1); grad.addColorStop(1, c2);
+  if (shell.ear === 'paddle') {
+    rr(g, -9, -Ln, 18, Ln + 10, 9); g.fillStyle = grad; g.fill();
+    rr(g, -5, -Ln + 4, 10, 4, 2);
+    g.shadowColor = hsla(c, 1); g.shadowBlur = 8 * S; g.fillStyle = hsla(c, 0.95); g.fill();
+    g.shadowBlur = 0; g.shadowColor = 'transparent';
+  } else if (shell.ear === 'antenna') {
+    g.strokeStyle = c2; g.lineWidth = 3.2; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(0, 6); g.lineTo(0, -Ln * 1.08); g.stroke();
+    g.beginPath(); g.arc(0, -Ln * 1.08, 6.5, 0, Math.PI * 2);
+    g.shadowColor = hsla(c, 1); g.shadowBlur = 10 * S; g.fillStyle = hsla(c, 0.95); g.fill();
+    g.shadowBlur = 0; g.shadowColor = 'transparent';
+  } else {                                        // round, bear-like ears
+    const r = 20 * Math.sqrt(len);
+    g.beginPath(); g.arc(0, -Ln * 0.45, r, 0, Math.PI * 2); g.fillStyle = grad; g.fill();
+    g.beginPath(); g.arc(0, -Ln * 0.45, r * 0.55, 0, Math.PI * 2); g.fillStyle = mix(shell.dark, '#3a2314', 0.45 + k * 0.2); g.fill();
+  }
+  g.restore();
+}
+
+function drawRobot(g, P, M, lights) {
+  const shell = SHELLS[settings.shell];
+  const k = lights ? 0 : 0.62;                     // how much the room light is missing
+  const c = glowColour(P);
+  const c1 = mix(shell.light, NIGHT, k), c2 = mix(shell.dark, NIGHT, k);
+
+  // glow on the floor and the soft shadow under Milo
+  g.save();
+  g.translate(CX, FLOOR + 2);
+  g.scale(1, 0.2);
+  const pool = g.createRadialGradient(0, 0, 0, 0, 0, 175);
+  pool.addColorStop(0, hsla(c, c.a * (lights ? 0.34 : 0.85))); pool.addColorStop(1, hsla(c, 0));
+  g.fillStyle = pool; g.beginPath(); g.arc(0, 0, 175, 0, Math.PI * 2); g.fill();
+  g.restore();
+  g.save();
+  g.translate(CX, FLOOR + 3);
+  g.scale(1, 0.12);
+  const lift = clamp(-M.bob / 30, 0, 0.4);
+  g.fillStyle = 'rgba(0,0,0,' + ((lights ? 0.22 : 0.42) * (1 - lift)) + ')';
+  g.beginPath(); g.arc(0, 0, 100 * (1 - lift * 0.4), 0, Math.PI * 2); g.fill();
+  g.restore();
+
+  g.save();
+  g.translate(M.sway, M.bob);
+
+  // neck
+  rr(g, CX - 19, NECK.y - 6, 38, 34, 9); g.fillStyle = lights ? '#2b2e35' : '#14161c'; g.fill();
+
+  // body
+  const bTop = FLOOR - 12 - BODY.h, bx = CX - BODY.w / 2;
+  const bg = g.createLinearGradient(bx, bTop, bx + BODY.w, bTop + BODY.h);
+  bg.addColorStop(0, c1); bg.addColorStop(1, c2);
+  rr(g, bx, bTop, BODY.w, BODY.h, BODY.r); g.fillStyle = bg; g.fill();
+  rr(g, bx + 3, bTop + 3, BODY.w - 6, BODY.h - 6, BODY.r - 3);
+  g.strokeStyle = 'rgba(255,255,255,' + (lights ? 0.5 : 0.1) + ')'; g.lineWidth = 1.5; g.stroke();
+  // the glow strip under the belly
+  g.beginPath(); g.ellipse(CX, FLOOR - 21, 46, 9, 0, 0.14 * Math.PI, 0.86 * Math.PI);
+  g.shadowColor = hsla(c, 1); g.shadowBlur = 12 * S;
+  g.strokeStyle = hsla(c, 0.35 + c.a * 0.65); g.lineWidth = 3.4; g.lineCap = 'round'; g.stroke();
+  g.shadowBlur = 0; g.shadowColor = 'transparent';
+
+  // wheels, seen from the front: the tread stripes scroll as they turn
+  for (const sx of [-1, 1]) {
+    const x = CX + sx * WHEEL.dx - WHEEL.w / 2, y = FLOOR - WHEEL.h;
+    g.save();
+    rr(g, x, y, WHEEL.w, WHEEL.h, 11); g.fillStyle = lights ? '#1b1c20' : '#0d0e11'; g.fill(); g.clip();
+    g.fillStyle = 'rgba(255,255,255,0.08)';
+    const step = 10, off = ((M.wheel % step) + step) % step;
+    for (let yy = y - step + off; yy < y + WHEEL.h; yy += step) g.fillRect(x, yy, WHEEL.w, 3);
+    g.fillStyle = 'rgba(255,255,255,0.1)'; g.fillRect(x + (sx < 0 ? 2 : WHEEL.w - 5), y, 3, WHEEL.h);
+    g.restore();
+  }
+
+  // head: it tilts sideways (roll) around the neck
+  g.save();
+  g.translate(NECK.x + M.gx * 3, NECK.y);
+  g.rotate(rad(P.roll + M.roll));
+  g.translate(0, HEAD.cy + M.headBob);
+  const eLa = P.eLa + 16 * M.wig * Math.sin(clock * 11) * MOTION - 20 * L.tw.L;
+  const eRa = P.eRa + 16 * M.wig * Math.sin(clock * 11 + 1.3) * MOTION - 20 * L.tw.R;
+  drawEar(g, 'L', eLa, P.eLl, shell, c, k);
+  drawEar(g, 'R', eRa, P.eRl, shell, c, k);
+  const hg = g.createLinearGradient(-HEAD.w / 2, -HEAD.h / 2, HEAD.w / 2, HEAD.h / 2);
+  hg.addColorStop(0, c1); hg.addColorStop(1, c2);
+  rr(g, -HEAD.w / 2, -HEAD.h / 2, HEAD.w, HEAD.h, HEAD.r); g.fillStyle = hg; g.fill();
+  rr(g, -HEAD.w / 2 + 5, -HEAD.h / 2 + 5, HEAD.w - 10, HEAD.h - 10, HEAD.r - 5);
+  g.strokeStyle = 'rgba(255,255,255,' + (lights ? 0.55 : 0.1) + ')'; g.lineWidth = 1.5; g.stroke();
+  // soft glow from the screen onto the shell
+  rr(g, -HEAD.w / 2, -HEAD.h / 2, HEAD.w, HEAD.h, HEAD.r);
+  g.strokeStyle = hsla(c, 0.1 + c.a * 0.22); g.lineWidth = 3; g.stroke();
+
+  // the face panel nods with the pitch
+  const pitch = clamp(P.pitch + M.nod, -30, 30);
+  g.save();
+  g.translate(0, BEZEL.dy - pitch * 0.5);
+  g.scale(1, Math.cos(rad(pitch)));
+  rr(g, -BEZEL.w / 2, -BEZEL.h / 2, BEZEL.w, BEZEL.h, BEZEL.r); g.fillStyle = '#101218'; g.fill();
+  rr(g, -SCREEN.w / 2, -SCREEN.h / 2, SCREEN.w, SCREEN.h, SCREEN.r);
+  g.fillStyle = '#04060c'; g.fill();
+  g.save();
+  g.clip();
+  g.drawImage(face.render(P, M), -FW / 2, -FH / 2, FW, FH);
+  const sheen = g.createLinearGradient(-60, -50, 30, 50);
+  sheen.addColorStop(0, 'rgba(255,255,255,0)'); sheen.addColorStop(0.45, 'rgba(255,255,255,0.06)'); sheen.addColorStop(0.6, 'rgba(255,255,255,0)');
+  g.fillStyle = sheen; g.fillRect(-SCREEN.w / 2, -SCREEN.h / 2, SCREEN.w, SCREEN.h);
+  g.restore();
+  // camera lens (with a red light while the shutter is closed)
+  g.beginPath(); g.arc(0, -BEZEL.h / 2 + 5.5, 2.6, 0, Math.PI * 2); g.fillStyle = '#1b2440'; g.fill();
+  g.beginPath(); g.arc(-0.7, -BEZEL.h / 2 + 4.8, 0.9, 0, Math.PI * 2); g.fillStyle = 'rgba(180,210,255,0.7)'; g.fill();
+  if (L.privacy) {
+    g.beginPath(); g.arc(9, -BEZEL.h / 2 + 5.5, 1.9, 0, Math.PI * 2); g.fillStyle = '#ff4a4a';
+    g.shadowColor = '#ff4a4a'; g.shadowBlur = 8 * S; g.fill(); g.shadowBlur = 0; g.shadowColor = 'transparent';
+  }
+  g.restore();
+  g.restore();   // head
+  g.restore();   // robot
+}
+
+function render() {
+  const lights = L.lights;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(room[lights ? 'on' : 'off'], 0, 0);
+  ctx.setTransform(S, 0, 0, S, 0, 0);
+  drawRobot(ctx, cur, M, lights);
+}
+
+/* ======================================================================
+   7. SOUND
+   Soft, short chirps made in the browser. They are quiet on purpose:
+   a sound you hear fifty times a day has to stay pleasant.
+   ====================================================================== */
+let AC = null, master = null, lastChirp = 0;
+function audio() {
+  if (!AC) {
+    try {
+      AC = new (window.AudioContext || window.webkitAudioContext)();
+      master = AC.createGain(); master.gain.value = 0.22; master.connect(AC.destination);
+    } catch (e) { AC = null; }
+  }
+  if (AC && AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function note(freq, t0, dur, vol, glideTo, vib) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sine'; o.frequency.setValueAtTime(freq, t0);
+  if (glideTo) o.frequency.exponentialRampToValueAtTime(glideTo, t0 + dur);
+  if (vib) {
+    const l = AC.createOscillator(), lg = AC.createGain();
+    l.frequency.value = 6; lg.gain.value = freq * vib; l.connect(lg); lg.connect(o.frequency);
+    l.start(t0); l.stop(t0 + dur + 0.05);
+  }
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.05);
+}
+function marimba(freq, t0, vol) { note(freq, t0, 0.3, vol); note(freq * 4, t0, 0.08, vol * 0.25); }
+const CHIRPS = {
+  happy:     (t) => { marimba(659, t, 0.5); marimba(784, t + 0.1, 0.5); note(880, t + 0.2, 0.22, 0.25, 1040, 0.01); },
+  curious:   (t) => { note(420, t, 0.3, 0.4, 640, 0.015); },
+  surprised: (t) => { note(520, t, 0.09, 0.4, 980); note(980, t + 0.09, 0.16, 0.35, 640); },
+  thinking:  (t) => { note(210, t, 0.55, 0.35, 236, 0.03); },
+  excited:   (t) => { [523, 659, 784, 1047, 1319].forEach((f, i) => marimba(f, t + i * 0.065, 0.45)); },
+  sleepy:    (t) => { note(380, t, 0.8, 0.3, 230, 0.012); },
+  poke:      (t) => { note(700, t, 0.08, 0.45, 1150); marimba(988, t + 0.12, 0.4); marimba(1175, t + 0.2, 0.35); },
+  wake:      (t) => { note(330, t, 0.25, 0.35, 480, 0.01); marimba(659, t + 0.28, 0.45); },
+  listen:    (t) => { marimba(880, t, 0.35); marimba(1175, t + 0.09, 0.3); },
+  bored:     (t) => { note(300, t, 0.35, 0.3, 360, 0.02); note(360, t + 0.4, 0.35, 0.28, 300, 0.02); },
+  babble:    (t) => { marimba(pick([523, 587, 659, 784, 880]), t, 0.22); }
+};
+function chirp(name, o) {
+  o = o || {};
+  if (!settings.sound || !CHIRPS[name]) return;
+  if (o.auto && !AC) return;                       // never make the first sound without a tap
+  const now = performance.now();
+  if (!o.force && now - lastChirp < 300) return;
+  if (!audio()) return;
+  lastChirp = now;
+  CHIRPS[name](AC.currentTime + 0.01);
+}
+
+// Milo's placeholder voice: whatever voice your browser has. The real voice comes later.
+function speakText(text) {
+  return new Promise((resolve) => {
+    const synth = window.speechSynthesis;
+    if (!settings.sound || !synth || typeof SpeechSynthesisUtterance === 'undefined') { resolve(false); return; }
+    try {
+      synth.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.pitch = 1.45; u.rate = 1.05; u.volume = 0.9; u.lang = 'en-US';
+      const v = (synth.getVoices() || []).find((x) => /^en/i.test(x.lang));
+      if (v) u.voice = v;
+      u.onend = () => resolve(true);
+      u.onerror = () => resolve(false);
+      synth.speak(u);
+    } catch (e) { resolve(false); }
+  });
+}
+function stopSpeech() { try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (e) { /* ignore */ } }
+
+/* ======================================================================
+   8. THE LIFE LAYER
+   Everything that makes Milo feel alive without any AI: blinking,
+   glancing around, getting bored, getting sleepy, reacting to touch.
+   ====================================================================== */
+let clock = 0;                                     // seconds since the page opened
+const L = {
+  mood: 'calm', holdUntil: 0, seq: 0, busy: false, freeze: false,
+  lights: true, privacy: false,
+  gaze: { x: 0, y: 0, tx: 0, ty: 0 }, lookUntil: 0, nextGlance: 1.2,
+  pointer: { x: CX, y: 140, t: -99 },
+  blinkPhase: -1, nextBlink: 2.2,
+  hop: { y: 0, v: 0 }, tw: { L: 0, R: 0 }, nextTwitch: 4,
+  speakUntil: 0, pulse: { type: '', start: 0, until: 0 },
+  meters: { energy: 1, boredom: 0.1, curiosity: 0.4, social: 0.15 }, budget: 5, nextAuto: 14
+};
+// M holds the things that change every frame on top of the feeling.
+const M = { blink: 0, gx: 0, gy: 0, speak: 0, sparkle: 0, dots: 0, zzz: 0, wig: 0, sway: 0, bob: 0, roll: 0, nod: 0, headBob: 0, wheel: 0, t: 0 };
+let lastSway = 0;
+
+function hop(v) { L.hop.v = -v; }
+function pulse(type, secs) { L.pulse = { type: type, start: clock, until: clock + secs }; }
+
+function setMood(name, o) {
+  o = o || {};
+  if (!POSES[name]) return;
+  if (L.privacy && name !== 'privacy') return;
+  const prev = L.mood;
+  L.mood = name;
+  const tg = TARGETS[name];
+  for (const k in tg) tgt[k] = tg[k];
+  if (name === 'privacy') tgt.hue = 355 - settings.hue;      // red glow
+  L.holdUntil = o.hold ? clock + o.hold : 0;
+  if (name === 'surprised') hop(150);
+  if (name === 'excited') hop(110);
+  if (o.sound !== false && prev !== name) {
+    const s = name === 'calm' ? (prev === 'sleepy' ? 'wake' : '') : (name === 'privacy' ? '' : name);
+    if (s) chirp(s, { auto: !!o.auto });
+  }
+  syncTiles();
+  canvas.setAttribute('aria-label', name === 'privacy' ? 'Milo, with its camera shutter closed and head tipped down'
+                                                       : 'Milo, a small robot, looking ' + (name === 'calm' ? 'calm' : name));
+}
+
+// Scripts are short stories Milo acts out (like the "Hey Milo" demo). A newer
+// action cancels the running one, so Milo never gets stuck in the middle.
+function runScript(body) {
+  const my = ++L.seq;
+  L.busy = true;
+  const wait = async (ms) => { await sleep(ms); return my === L.seq; };
+  Promise.resolve().then(() => body(wait)).catch((e) => console.error(e)).finally(() => {
+    if (my === L.seq) { L.busy = false; L.lookUntil = 0; }
+  });
+}
+function cancelScripts() { L.seq++; L.busy = false; L.lookUntil = 0; L.speakUntil = 0; hideSubtitle(); stopSpeech(); }
+
+// ---- the log and the subtitle ----
+const logItems = [];
+function log(who, text) {
+  logItems.unshift({ who: who, text: text });
+  if (logItems.length > 7) logItems.pop();
+  const ol = $('log');
+  ol.textContent = '';
+  logItems.forEach((it) => {
+    const li = document.createElement('li');
+    const b = document.createElement('b'); b.textContent = it.who; if (it.who === 'mind') b.className = 'mind';
+    const s = document.createElement('span'); s.textContent = it.text;
+    li.append(b, s); ol.append(li);
+  });
+}
+let subTimer = 0;
+function showSubtitle(text, ms) {
+  const el = $('subtitle'); el.textContent = text; el.hidden = false;
+  clearTimeout(subTimer);
+  if (ms) subTimer = setTimeout(hideSubtitle, ms);
+}
+function hideSubtitle() { clearTimeout(subTimer); if (!L.privacy) $('subtitle').hidden = true; }
+
+// ---- things Milo says (placeholder lines until the real mind is connected) ----
+const LINES = [
+  "Hi! I was just wondering what's behind that door. Want to find out together?",
+  "You're back! I was guarding the sunbeam. It left, though.",
+  "Hmm, I thought about it, and the answer is snacks. For you. I'm a robot.",
+  "I heard you! I was only pretending to be asleep. Mostly."
+];
+let lineIx = Math.floor(Math.random() * LINES.length);
+const nextLine = () => LINES[lineIx++ % LINES.length];
+
+async function sayLine(text, wait) {
+  showSubtitle(text);
+  const est = Math.max(1.8, text.split(/\s+/).length * 0.36);
+  L.speakUntil = clock + est + 0.3;
+  const spoke = speakText(text);
+  const first = await Promise.race([spoke, sleep(250).then(() => 'pending')]);
+  if (first === false) {                           // no browser voice: hum along instead
+    const endAt = performance.now() + est * 1000;
+    while (performance.now() < endAt) { chirp('babble', { force: true }); if (!(await wait(300))) return false; }
+  } else {
+    await Promise.race([spoke, sleep((est + 1.5) * 1000)]);
+  }
+  L.speakUntil = 0;
+  if (!(await wait(900))) return false;
+  hideSubtitle();
+  return true;                                     // false means something cancelled the story
+}
+
+// ---- the demo: wake word, then think, then speak ----
+function heyMilo() {
+  if (L.privacy) {
+    log('life', 'wake word ignored: the microphone is cut');
+    showSubtitle("Privacy mode is on. I can't hear you right now.", 2600);
+    return;
+  }
+  audio();
+  runScript(async (wait) => {
+    if (L.mood === 'sleepy') { setMood('calm', { sound: false }); chirp('wake'); if (!(await wait(600))) return; }
+    log('life', 'hears "Hey Milo" (the wake word runs on the robot)');
+    setMood('curious', { sound: false }); chirp('listen', { force: true }); pulse('listening', 1.3);
+    if (!(await wait(1300))) return;
+    log('life', 'you stopped talking: Thinking face starts now');
+    setMood('thinking'); pulse('thinking', 1.7);
+    log('mind', 'request sent (not connected in this demo)');
+    if (!(await wait(1700))) return;
+    log('mind', 'reply arrives');
+    setMood('happy', { sound: false });
+    L.meters.social = 0; L.meters.boredom = 0;
+    if (!(await sayLine(nextLine(), wait))) return;
+    setMood('curious', { sound: false });
+    log('life', 'conversation window open: no wake word needed for 4 s');
+    if (!(await wait(4000))) return;
+    log('life', 'window closed: waiting for "Hey Milo" again');
+    setMood('calm', { sound: false });
+  });
+}
+
+function poke() {
+  cancelScripts();
+  audio();
+  if (L.privacy) { showSubtitle("Privacy mode is on. I'll just sit here.", 2200); return; }
+  L.meters.boredom = 0; L.meters.social = Math.max(0, L.meters.social - 0.25);
+  log('life', L.mood === 'sleepy' ? 'poked while asleep: wakes up startled' : 'poked: surprise, then a giggle');
+  setMood('surprised', { sound: false }); chirp('poke', { force: true });
+  const my = L.seq;
+  setTimeout(() => { if (my === L.seq && L.mood === 'surprised' && !L.privacy) setMood('happy', { sound: false, hold: 2.2 }); }, 650);
+}
+function tickleBody() {
+  cancelScripts(); audio();
+  if (L.privacy) return;
+  log('life', 'tickled: giggles and wiggles');
+  setMood('excited', { sound: false, hold: 1.8 }); chirp('happy', { force: true });
+}
+function twitchEars() {
+  cancelScripts(); audio();
+  if (L.privacy) return;
+  L.tw.L = 1; L.tw.R = 1;
+  log('life', 'ears touched: twitch');
+  setMood('happy', { sound: false, hold: 1.6 }); chirp('curious', { force: true });
+}
+function wakeUp() {
+  if (L.mood !== 'sleepy') return;
+  setMood('surprised', { sound: false }); chirp('wake');
+  const my = L.seq;
+  setTimeout(() => { if (my === L.seq && L.mood === 'surprised' && !L.privacy) setMood('calm', { sound: false }); }, 900);
+}
+
+function setLights(on) {
+  L.lights = on;
+  setToggle('tLights', on, 'Lights on', 'Lights off');
+  log('life', on ? 'light sensor: bright, wakes up' : 'light sensor: dark, getting sleepy');
+  if (L.privacy) return;
+  cancelScripts();
+  if (!on) {
+    const my = L.seq;
+    setTimeout(() => { if (my === L.seq && !L.lights && !L.privacy) setMood('sleepy'); }, 1200);
+  } else {
+    wakeUp();
+  }
+}
+function setPrivacy(on) {
+  cancelScripts();
+  L.privacy = on;
+  setToggle('tPrivacy', on, 'Privacy on', 'Privacy off');
+  if (on) {
+    log('life', 'privacy mode: microphone power cut, camera shutter closed (head tips down)');
+    setMood('privacy', { sound: false });
+    showSubtitle('Privacy mode: microphone off, camera shut.');
+  } else {
+    log('life', 'privacy mode off: the wake word is listening again');
+    $('subtitle').hidden = true;
+    setMood(L.lights ? 'calm' : 'sleepy', { sound: false });
+    if (L.lights) chirp('wake');
+  }
+}
+
+// ---- Milo's inner needs (the "initiative engine") ----
+function autoLookAround() {
+  L.meters.boredom = 0.15;
+  runScript(async (wait) => {
+    log('life', 'getting bored: looks around');
+    setMood('curious', { sound: false });
+    chirp('bored', { auto: true });
+    const spots = [[-0.9, -0.1], [0.9, -0.2], [0.1, -0.8], [0, 0]];
+    for (let i = 0; i < spots.length; i++) {
+      L.gaze.tx = spots[i][0]; L.gaze.ty = spots[i][1]; L.lookUntil = clock + 1;
+      if (!(await wait(900))) return;
+    }
+    L.lookUntil = 0;
+    setMood('calm', { sound: false });
+  });
+}
+function autoWantsAttention() {
+  L.meters.social = 0.2;
+  runScript(async (wait) => {
+    if (L.budget > 0) {
+      L.budget--;
+      log('initiative', 'wants company: would wake the mind (talk budget left ' + L.budget + ' of 5)');
+    } else {
+      log('initiative', 'wants company, but the talk budget is used up: stays quiet');
+    }
+    setMood('excited', { sound: false }); chirp('happy', { auto: true });
+    if (!(await wait(1800))) return;
+    setMood('calm', { sound: false });
+  });
+}
+
+function life(dt) {
+  const mt = L.meters;
+  const resting = L.mood === 'sleepy' || !L.lights || L.privacy;
+  mt.energy = clamp(mt.energy + (resting ? 0.03 : -0.0045) * dt, 0, 1);
+  if (!resting) {
+    mt.boredom = clamp(mt.boredom + 0.011 * dt, 0, 1);
+    mt.social = clamp(mt.social + 0.006 * dt, 0, 1);
+    mt.curiosity = clamp(mt.curiosity + (Math.random() - 0.5) * 0.05 * dt, 0, 1);
+  }
+  const free = settings.life && !L.freeze;
+  if (free && !L.busy && !resting && clock > L.nextAuto) {
+    if (mt.energy < 0.2) { log('life', 'energy low: dozes off'); setMood('sleepy', { auto: true }); }
+    else if (mt.boredom > 0.7) autoLookAround();
+    else if (mt.social > 0.8) autoWantsAttention();
+    L.nextAuto = clock + 6;
+  }
+  if (free && L.mood === 'sleepy' && L.lights && !L.privacy && mt.energy > 0.95) { log('life', 'rested: wakes up'); wakeUp(); }
+  if (L.holdUntil && clock > L.holdUntil && !L.busy) {   // a temporary feeling wears off
+    L.holdUntil = 0;
+    if (L.mood !== 'calm' && !(L.mood === 'sleepy' && !L.lights) && L.mood !== 'privacy') setMood('calm', { sound: false });
+  }
+
+  // blinking
+  if (free && !L.privacy && L.mood !== 'sleepy' && L.blinkPhase < 0 && clock > L.nextBlink) L.blinkPhase = 0;
+  if (L.blinkPhase >= 0) {
+    L.blinkPhase += dt / 0.16;
+    const p = L.blinkPhase;
+    M.blink = p < 0.45 ? p / 0.45 : p < 1 ? 1 - (p - 0.45) / 0.55 : 0;
+    if (p >= 1) { L.blinkPhase = -1; M.blink = 0; L.nextBlink = clock + (Math.random() < 0.18 ? 0.22 : rand(2.4, 5.8)); }
+  }
+
+  // where Milo looks
+  const G = L.gaze;
+  if (L.privacy) { G.tx = 0; G.ty = 0.9; }
+  else if (L.lookUntil > clock) { /* a script is steering the eyes */ }
+  else if (settings.follow && clock - L.pointer.t < 2.5) {
+    G.tx = clamp((L.pointer.x - CX) / 190, -1, 1); G.ty = clamp((L.pointer.y - 138) / 130, -1, 1);
+  } else if (free && clock > L.nextGlance) {
+    const r = Math.random();
+    if (r < 0.5) { G.tx = rand(-0.3, 0.3); G.ty = rand(-0.2, 0.2); }
+    else if (r < 0.8) { G.tx = pick([-1, 1]) * rand(0.5, 0.9); G.ty = rand(-0.3, 0.2); }
+    else { G.tx = 0; G.ty = 0; }
+    L.nextGlance = clock + rand(1.2, 3.8);
+  } else if (!free && L.lookUntil <= clock) { G.tx = 0; G.ty = 0; }
+  const kg = 1 - Math.exp(-dt * (L.mood === 'sleepy' ? 4 : 16));
+  G.x += (G.tx - G.x) * kg; G.y += (G.ty - G.y) * kg;
+  M.gx = G.x; M.gy = G.y;
+
+  // ears twitch now and then
+  if (free && !L.privacy && L.mood !== 'sleepy' && clock > L.nextTwitch) { L.tw[Math.random() < 0.5 ? 'L' : 'R'] = 1; L.nextTwitch = clock + rand(4, 9); }
+  L.tw.L *= Math.exp(-dt * 6); L.tw.R *= Math.exp(-dt * 6);
+
+  // talking
+  const speaking = L.speakUntil > clock;
+  const sT = speaking ? 0.35 + 0.65 * Math.abs(Math.sin(clock * 11) * Math.sin(clock * 5.3 + 1)) : 0;
+  M.speak += (sT - M.speak) * (1 - Math.exp(-dt * 25));
+
+  // little extras on the face
+  const ks = 1 - Math.exp(-dt * 8);
+  M.sparkle += ((L.mood === 'excited' ? 1 : 0) - M.sparkle) * ks;
+  M.dots    += ((L.mood === 'thinking' ? 1 : 0) - M.dots) * ks;
+  M.zzz     += ((L.mood === 'sleepy' ? 1 : 0) - M.zzz) * ks;
+
+  // body motion
+  const wigT = L.mood === 'excited' ? 1 : L.mood === 'happy' ? 0.25 : 0;
+  M.wig += (wigT - M.wig) * (1 - Math.exp(-dt * 6));
+  const h = L.hop; h.v += 900 * dt; h.y += h.v * dt;
+  if (h.y > 0) { h.y = 0; h.v = h.v > 40 ? -h.v * 0.3 : 0; }
+  const breath = Math.sin(clock * (L.mood === 'sleepy' ? 1.0 : 1.7));
+  M.sway = Math.sin(clock * 9) * 3.4 * M.wig * MOTION + M.gx * 1.5;
+  M.bob = h.y * MOTION - Math.abs(Math.sin(clock * 7)) * 4.5 * M.wig * MOTION + breath * 0.7 + (L.mood === 'sleepy' ? 1.5 : 0);
+  M.roll = Math.sin(clock * (L.mood === 'curious' ? 1.3 : 0.7)) * (L.mood === 'curious' ? 2.2 : L.mood === 'thinking' ? 1.5 : 0.8) * MOTION + M.gx * 1.2;
+  M.nod = (speaking ? Math.sin(clock * 8) * 1.6 : 0) + (L.mood === 'happy' ? Math.sin(clock * 4) * 1.2 * MOTION : 0) + M.gy * 3;
+  M.headBob = breath * 0.6;
+  M.wheel += (M.sway - lastSway) * 2; lastSway = M.sway;
+  M.t = clock;
+}
+
+/* ======================================================================
+   9. THE PAGE
+   Buttons, sliders and the little readout under the stage.
+   ====================================================================== */
+const thumbs = {}, tiles = {};
+function buildTiles() {
+  const host = $('feelings');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  EMOTIONS.forEach((e) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'tile'; b.setAttribute('aria-pressed', 'false');
+    const c = document.createElement('canvas');
+    c.width = Math.round(88 * dpr); c.height = Math.round(88 * dpr * FH / FW);
+    const s = document.createElement('span'); s.textContent = e[1];
+    b.append(c, s); host.append(b);
+    tiles[e[0]] = b; thumbs[e[0]] = c;
+    b.addEventListener('click', () => { cancelScripts(); audio(); setMood(e[0], { hold: settings.life ? 25 : 0 }); });
+  });
+}
+function renderThumbs() {
+  const fr = new FaceRenderer(thumbs.calm.width / FW);
+  EMOTIONS.forEach((e) => {
+    const key = e[0];
+    const m = { blink: 0, gx: 0, gy: 0, speak: 0, t: 0.8,
+      sparkle: key === 'excited' ? 1 : 0, dots: key === 'thinking' ? 1 : 0, zzz: key === 'sleepy' ? 1 : 0 };
+    const g = thumbs[key].getContext('2d');
+    g.clearRect(0, 0, thumbs[key].width, thumbs[key].height);
+    g.drawImage(fr.render(TARGETS[key], m), 0, 0);
+  });
+}
+let thumbQueued = false;
+function queueThumbs() { if (thumbQueued) return; thumbQueued = true; requestAnimationFrame(() => { thumbQueued = false; renderThumbs(); }); }
+function syncTiles() {
+  for (const k in tiles) tiles[k].setAttribute('aria-pressed', String(k === L.mood));
+}
+
+function setToggle(id, on, labelOn, labelOff) {
+  const b = $(id); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? labelOn : labelOff;
+}
+
+const shellButtons = {};
+function buildShells() {
+  const host = $('shells');
+  Object.keys(SHELLS).forEach((key) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'shell'; b.setAttribute('aria-pressed', 'false');
+    const sw = document.createElement('span'); sw.className = 'sw';
+    sw.style.background = 'linear-gradient(135deg,' + SHELLS[key].light + ',' + SHELLS[key].dark + ')';
+    b.append(sw, document.createTextNode(SHELLS[key].name));
+    host.append(b); shellButtons[key] = b;
+    b.addEventListener('click', () => {
+      settings.shell = key; settings.hue = SHELLS[key].hue;
+      store.set('shell', key); store.set('hue', settings.hue);
+      $('rHue').value = settings.hue;
+      syncLook(); queueThumbs();
+      log('life', 'new shell: ' + SHELLS[key].name);
+    });
+  });
+}
+function lookText() {
+  return 'Milo look: shell=' + settings.shell + ', glow hue=' + settings.hue + ', eye size=' + settings.eyeSize.toFixed(2) + ', eye spacing=' + settings.eyeGap.toFixed(2);
+}
+function syncLook() {
+  for (const k in shellButtons) shellButtons[k].setAttribute('aria-pressed', String(k === settings.shell));
+  $('oHue').textContent = settings.hue + ' deg';
+  $('oSize').textContent = settings.eyeSize.toFixed(2);
+  $('oGap').textContent = settings.eyeGap.toFixed(2);
+  $('lookText').value = lookText();
+}
+function wireSliders() {
+  const bind = (id, key) => {
+    $(id).value = settings[key];
+    $(id).addEventListener('input', (e) => {
+      settings[key] = parseFloat(e.target.value); store.set(key, settings[key]);
+      if (L.privacy) tgt.hue = 355 - settings.hue;
+      syncLook(); queueThumbs();
+    });
+  };
+  bind('rHue', 'hue'); bind('rSize', 'eyeSize'); bind('rGap', 'eyeGap');
+  $('btnCopy').addEventListener('click', async () => {
+    const text = lookText(); $('lookText').value = text;
+    try { await navigator.clipboard.writeText(text); $('copyNote').textContent = 'Copied. Paste it in the chat.'; }
+    catch (e) { $('lookText').focus(); $('lookText').select(); $('copyNote').textContent = 'Select the text and copy it.'; }
+  });
+}
+
+function buildMeters() {
+  const host = $('meters');
+  [['energy', 'Energy'], ['boredom', 'Boredom'], ['curiosity', 'Curiosity'], ['social', 'Wants company']].forEach((m) => {
+    const row = document.createElement('div'); row.className = 'meter';
+    const label = document.createElement('span'); label.textContent = m[1];
+    const bar = document.createElement('div'); bar.className = 'bar';
+    const fill = document.createElement('i'); fill.id = 'm-' + m[0]; bar.append(fill);
+    const val = document.createElement('b'); val.id = 'v-' + m[0];
+    row.append(label, bar, val); host.append(row);
+  });
+}
+function updatePanel() {
+  for (const k in L.meters) {
+    const el = $('m-' + k); if (!el) continue;
+    el.style.width = Math.round(L.meters[k] * 100) + '%';
+    $('v-' + k).textContent = Math.round(L.meters[k] * 100);
+  }
+  const mood = L.privacy ? 'privacy' : L.mood;
+  const deg = (v) => String(Math.round(v));
+  $('readout').textContent = mood + '  |  roll ' + deg(cur.roll + M.roll) + ' deg  |  nod ' + deg(cur.pitch + M.nod) +
+    ' deg  |  ears ' + deg(cur.eLa) + '/' + deg(cur.eRa) + ' deg  |  glow ' + deg(settings.hue + cur.hue) + ' deg  |  talk budget ' + L.budget + '/5';
+}
+
+function toStage(e) {
+  const r = canvas.getBoundingClientRect();
+  return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
+}
+function wireStage() {
+  // Milo watches the pointer anywhere on the page, not only over the stage.
+  window.addEventListener('pointermove', (e) => { const p = toStage(e); L.pointer.x = p.x; L.pointer.y = p.y; L.pointer.t = clock; }, { passive: true });
+  document.documentElement.addEventListener('mouseleave', () => { L.pointer.t = -99; });
+  canvas.addEventListener('pointerdown', (e) => {
+    const p = toStage(e); L.pointer.x = p.x; L.pointer.y = p.y; L.pointer.t = clock;
+    const dx = Math.abs(p.x - CX);
+    if (p.y > 62 && p.y < 214 && dx < 100) { if (p.y < 92 && dx > 52) twitchEars(); else poke(); }
+    else if (p.y <= 100 && dx >= 40 && dx < 130) twitchEars();
+    else if (p.y >= 214 && p.y < FLOOR + 4 && dx < 125) tickleBody();
+    else if (!L.privacy) { setMood('curious', { sound: false, hold: 3 }); }
+  });
+}
+
+function wireButtons() {
+  $('btnHey').addEventListener('click', heyMilo);
+  $('btnPoke').addEventListener('click', poke);
+  $('tLights').addEventListener('click', () => { audio(); setLights(!L.lights); });
+  $('tPrivacy').addEventListener('click', () => { audio(); setPrivacy(!L.privacy); });
+  $('tLife').addEventListener('click', () => {
+    settings.life = !settings.life; store.set('life', settings.life);
+    setToggle('tLife', settings.life, 'Life layer on', 'Life layer off');
+    log('life', settings.life ? 'life layer running' : 'life layer paused: Milo only does what you ask');
+  });
+  $('tFollow').addEventListener('click', () => {
+    settings.follow = !settings.follow; store.set('follow', settings.follow);
+    setToggle('tFollow', settings.follow, 'Follow pointer on', 'Follow pointer off');
+  });
+  $('tSound').addEventListener('click', () => {
+    settings.sound = !settings.sound; store.set('sound', settings.sound);
+    setToggle('tSound', settings.sound, 'Sound on', 'Sound off');
+    if (settings.sound) { audio(); chirp('happy', { force: true }); } else stopSpeech();
+  });
+}
+
+/* ======================================================================
+   10. START
+   ====================================================================== */
+let last = performance.now(), acc = 0, panelClock = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  clock += dt; acc += dt;
+  while (acc >= 1 / 120) { stepSprings(1 / 120); acc -= 1 / 120; }
+  life(dt);
+  render();
+  panelClock += dt;
+  if (panelClock > 0.2) { panelClock = 0; updatePanel(); }
+  requestAnimationFrame(frame);
+}
+
+function init() {
+  buildTiles(); buildShells(); buildMeters(); wireSliders(); wireButtons(); wireStage();
+  setToggle('tLife', settings.life, 'Life layer on', 'Life layer off');
+  setToggle('tFollow', settings.follow, 'Follow pointer on', 'Follow pointer off');
+  setToggle('tSound', settings.sound, 'Sound on', 'Sound off');
+  syncLook(); syncTiles();
+  resize(); renderThumbs(); render(); updatePanel();
+  log('life', 'online. Everything on this page runs on the robot side.');
+  if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(canvas);
+  else window.addEventListener('resize', resize);
+  requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+}
+
+// What the remote mind will call later. These are the "tools" from the design log.
+window.milo = {
+  version: 'sim-0.1',
+  emote: (name, o) => setMood(name, Object.assign({ hold: 0 }, o || {})),
+  lookAt: (x, y, secs) => { L.gaze.tx = clamp(x, -1, 1); L.gaze.ty = clamp(y, -1, 1); L.lookUntil = clock + (secs || 1.5); },
+  say: (text) => runScript((wait) => sayLine(text, wait)),
+  playSound: (name) => chirp(name, { force: true }),
+  state: () => ({ mood: L.mood, lights: L.lights, privacy: L.privacy, meters: Object.assign({}, L.meters) }),
+  _test: { freeze: (v) => { L.freeze = !!v; }, setLife: (v) => { settings.life = !!v; }, clock: () => clock }
+};
+
+init();
+})();
+</script>
+</body>
+</html>

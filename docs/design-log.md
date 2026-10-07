@@ -44,6 +44,14 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 16 | Voice feel | Warm and playful | Mid-pitch, friendly, quick to smile, with a mischievous edge. English; no specific accent chosen yet. | Decided (R4) |
 | 17 | Chirp style | Soft, organic, musical | Little coos, trills and warm marimba-like notes: short, quiet and varied. | Decided (R4) |
 | 18 | Memory with two people | Private by default | Milo tells people apart (voice and face) and keeps each person's memories separate. Only household-level facts are shared, unless someone says "you can tell them". Staged: v1 can start with just the owner. | Decided (R4) |
+| 19 | Printing | Print service or makerspace | Iterations take days, so design fewer, bigger prints and test-fit with cheap parts first. A makerspace can also give hands-on help. | Decided (R5) |
+| 20 | Builder experience | Very new to everything, willing to learn | Prefer plug-in modules, ready-made HATs and kits, with as little soldering as possible. Code is written and packaged to run with a few commands. This log explains why, not just what. | Decided (R5) |
+| 21 | Budget | About 250 to 500 (euro or dollar terms), parts only, first prototype | Realistic for the concept spec. To be priced properly once parts are chosen. | Decided (R5) |
+| 22 | First build | Software Milo first | A browser simulator before any hardware; hardware can be ordered in parallel. Version 0 exists: `sim/index.html`. | Decided (R5) |
+| 23 | Mind (text) | DeepSeek API | Chosen by the owner. As far as we know the DeepSeek chat API is text-only, so "sees and understands" needs another model later (to verify). | Decided (owner) |
+| 24 | Voice (text to speech) | Fish Audio | Chosen by the owner. | Decided (owner) |
+| 25 | Images | OpenAI API, if needed | For image generation such as concept art and shell ideas. Not part of the core loop. | Possible (owner) |
+| 26 | API keys | Never in the browser, never in git | Keys live in a `.env` file on the machine that runs the mind server. Git ignores that file. | Decided (owner and assistant) |
 
 ## 3. Architecture principle: two brains
 
@@ -113,6 +121,7 @@ Proposed for later: **look-to-talk**. If you face Milo within a couple of metres
 
 ### Proposed, not yet discussed
 
+- **Beginner-friendly build**: prefer plug-in modules, ready-made HATs, solderless connectors (Qwiic or STEMMA QT style) and a ready-made two-wheel chassis kit over custom parts. Use a makerspace for printing and for soldering help.
 - **Split brain in hardware**: a microcontroller handles real-time work (motors, IMU, cliff and bump sensors, servos, LEDs) next to the Pi, which handles networking, audio, display and camera.
 - **Voice front end**: a multi-microphone array with echo cancellation and direction-of-arrival, so Milo can hear over its own speaker and motors, and turn toward whoever is speaking.
 - **Display**: a panel with a smooth refresh rate (DSI or HDMI class) rather than a slow SPI panel, so the eyes animate well. Touch is optional.
@@ -138,28 +147,52 @@ To work out:
 
 ## 8. Open questions
 
-- **Voice and brain stack**: speech-to-text, text-to-speech and LLM choices; realtime framework and transport; model routing (a fast model for small talk, a stronger one for depth); monthly cost budget.
+- **Voice and brain stack**: the mind is DeepSeek and the voice is Fish Audio (decided). Still open: speech to text (the browser's own, OpenAI's, or another service), the transport between the page or robot and the mind server, how to add vision, and a monthly cost budget.
 - **Memory design**: what is stored, how it is summarized, how people are recognized (face and voice).
 - **Second person**: do they want their own relationship with Milo, and how often are they around?
 - **Name and wake word**: confirm "Milo" and "Hey Milo".
 - **Body**: battery and power, display type, mic array, camera, sensors, dock design, size feasibility.
-- **Builder context**: 3D printer access, electronics experience, budget, timeline.
+- **Timeline**: how much time per week, and any target date.
+- **Mind server home**: first on the owner's own computer; where it lives once it should be always on.
 - **First prototype**: what should it prove?
 - **Character bible**: draft it together.
 
-## 9. Roadmap (proposal, not agreed)
+## 9. Roadmap (working plan)
 
 Start with the riskiest and most magical part, which is talking.
 
-1. **Voice loop on a desk rig** (no wheels): Pi, mic, speaker and screen running wake word, speech-to-text, LLM and text-to-speech with streaming. Validate about one second of latency and find Milo's voice.
-2. **Life layer**: idle animation, emotion state, chirps, turn toward voice, privacy hardware.
+1. **Software Milo in the browser** (decided in R5): face, feelings, life layer and chirps. Version 0 is done. Next comes the mind server: text from DeepSeek, voice from Fish Audio, then microphone input, aiming for about one second from end of speech to first sound.
+2. **Desk rig**: the same code on a Pi with a mic, speaker and screen (no wheels). Order parts in parallel once the voice loop feels right.
 3. **Body v1**: chassis with drive, skid, bump and cliff sensors, neck tilt, ears and glow.
-4. **Memory and growth**: long-term memory, two-person identity, nightly consolidation.
+4. **Memory and growth**: long-term memory, two-person identity, nightly consolidation, Milo's diary.
 5. **Dock and moments**: dock, welcome home, focus buddy, play.
 
 Later candidates: look-to-talk, Milo's diary, shell personas.
 
-## 10. Round log
+## 10. Software Milo (the simulator)
+
+`sim/index.html` is version 0: a single file you can open in any browser, with nothing to install.
+
+What it does today:
+
+- Six feelings from the concept plus a calm state, drawn as a glowing face with ears, a mood glow and a camera lens, on a body with wheels. Each feeling is a set of numbers that Milo glides between, so changes look organic.
+- The life layer: blinking, glances, ear twitches, breathing, boredom, wanting company, getting sleepy and waking up. None of it calls an AI.
+- Reactions: poke the face, touch the ears, tickle the body, turn the lights off (Milo gets sleepy), privacy mode (head tips down, red glow, red camera light).
+- Soft chirps made in the browser, following the "soft, organic, musical" decision.
+- A "Hey Milo" demo that plays out the shape of a conversation (wake word, Thinking face, reply, open window) with placeholder lines and the browser's own voice. No AI behind it yet.
+- Four shells (Classic, Minimal, Retro, Creature), glow colour, eye size and spacing, and a "copy my look" button.
+- A small control surface on `window.milo`: `emote`, `lookAt`, `say`, `playSound`, `state`. These are the "tools" the remote mind will call.
+
+What it does not do yet: talk to a mind, play a real voice, or hear a microphone.
+
+Proposed plan for the mind server:
+
+- A small server holds the API keys and talks to DeepSeek (text), Fish Audio (voice) and a speech-to-text service. The page and, later, the robot never see a key.
+- The simulator and the robot connect to it over a WebSocket with the same messages, so code written now moves onto the robot.
+- The first version runs on the owner's own computer. Hosting it somewhere always on comes later.
+- Keys live in a `.env` file that git ignores.
+
+## 11. Round log
 
 **Round 1: what Milo is**
 
@@ -176,3 +209,8 @@ Later candidates: look-to-talk, Milo's diary, shell personas.
 **Round 4: talking, voice, memory**
 
 - Conversation: wake word plus open window. Voice: warm and playful. Chirps: soft, organic, musical. Memory with two people: private by default.
+
+**Round 5: starting point**
+
+- Printing: print service or makerspace. Skills: very new to everything, willing to learn. Budget: about 250 to 500. First build: software Milo first.
+- Afterwards the owner named the stack: DeepSeek for text, Fish Audio for voice, OpenAI for possible image generation.
