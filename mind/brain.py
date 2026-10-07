@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Iterator
 
 from mind.config import ROOT, Settings
+from mind.personality import Personality
 
 CHARACTER_FILE = ROOT / "mind" / "character.md"
 
@@ -376,28 +377,126 @@ class DemoBrain:
 # The conversation
 # ---------------------------------------------------------------------------
 
+# Situations that show a personality quickly. The editor lets you change this list.
+DEFAULT_PROBES = [
+    "Hi Milo!",
+    "I had a rough day.",
+    "What do you think is behind that door?",
+    "Can you set a timer for ten minutes?",
+    "Are you a real person?",
+    "The vacuum cleaner is coming out.",
+    "I'm going to bed. Goodnight!",
+]
+
+TAG_IN_TEXT = re.compile(r"\[([^\]\n]{1,40})\]")
+
+
+def review_reply(reply: str, events: list[dict]) -> tuple[list[str], list[str]]:
+    """Plain facts and warnings about one reply, so a personality can be judged quickly."""
+    said = [e["text"] for e in events if e["type"] == "say"]
+    spoken = " ".join(said).strip()
+    words = len(spoken.split())
+    # Count real sentences. The voice chunks are not the same thing: short sentences are joined for the voice.
+    sentences = len([s for s in re.split(r"(?<=[.!?…])\s+", spoken) if s.strip()])
+    notes = [f"{sentences} sentence{'s' if sentences != 1 else ''}, {words} words"]
+    warnings: list[str] = []
+    if sentences > 3:
+        warnings.append("more than three sentences")
+    if words > 60:
+        warnings.append("long: over 60 words")
+    first = next((e for e in events if e["type"] in ("emote", "say")), None)
+    if not first or first["type"] != "emote":
+        warnings.append("does not start with an [emote:...]")
+    if "*" in reply or re.search(r"^\s*(#|[-•]\s)", reply, re.M) or EMOJI_RE.search(reply):
+        warnings.append("contains markdown, a list or an emoji")
+    for tag in TAG_IN_TEXT.findall(reply):
+        if parse_tag(tag) is None:
+            warnings.append(f"unknown stage direction [{tag}]")
+    if not said:
+        warnings.append("says nothing")
+    return notes, warnings
+
+
 MAX_HISTORY = 12      # how many past messages Milo remembers within a conversation
 KEEP_HISTORY = 40
 
 
 class Mind:
-    """One conversation: a brain, its history and the parser."""
+    """One conversation: a brain, its history and the parser.
 
-    def __init__(self, brain, character_file: Path = CHARACTER_FILE) -> None:
+    If `history_file` is given, the recent conversation is kept there between runs, so Milo
+    does not forget what was said when the server restarts. It is a plain file on your own
+    computer. Delete it and Milo forgets.
+    """
+
+    def __init__(self, brain, personality: Personality | None = None, history_file: Path | None = None) -> None:
         self.brain = brain
-        self.character_file = character_file
-        self.history: list[dict] = []
+        self.personality = personality or Personality(CHARACTER_FILE)
+        self.history_file = history_file
         self._lock = threading.Lock()
+        self.history: list[dict] = self._load()
+
+    def _load(self) -> list[dict]:
+        if not self.history_file:
+            return []
+        try:
+            data = json.loads(self.history_file.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return []
+        good = [m for m in data if isinstance(m, dict) and m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str)] if isinstance(data, list) else []
+        return good[-KEEP_HISTORY:]
+
+    def _save(self) -> None:
+        if not self.history_file:
+            return
+        try:
+            self.history_file.parent.mkdir(parents=True, exist_ok=True)
+            tmp = self.history_file.with_suffix(".tmp")
+            tmp.write_text(json.dumps(self.history, ensure_ascii=False), encoding="utf-8")
+            tmp.replace(self.history_file)
+        except OSError:
+            pass                                    # remembering is a bonus, never a reason to fail
 
     def character(self) -> str:
+        return self.personality.text()             # read from disk every time, so edits apply at once
+
+    def probe(self, character: str, text: str, state: dict | None = None) -> dict:
+        """Ask one question without touching the conversation, using the given personality text.
+
+        This is how a draft personality can be tried before it is saved.
+        """
+        text = (text or "").strip()[:300]
+        system = build_system_prompt(character, state or {"lights": True, "mood": "calm"})
+        messages = [{"role": "system", "content": system}, {"role": "user", "content": text}]
+        parser = DirectiveStream()
+        raw: list[str] = []
+        events: list[dict] = []
         try:
-            return self.character_file.read_text(encoding="utf-8")      # read every time, so edits apply at once
-        except OSError:
-            return "You are Milo, a small, curious, friendly robot. Keep replies short."
+            for piece in self.brain.stream(messages):
+                raw.append(piece)
+                events.extend(parser.feed(piece))
+            events.extend(parser.finish())
+        except BrainError as e:
+            return {"prompt": text, "error": str(e)}
+        reply = "".join(raw).strip()
+        notes, warnings = review_reply(reply, events)
+        return {
+            "prompt": text,
+            "reply": reply,
+            "said": " ".join(e["text"] for e in events if e["type"] == "say"),
+            "cues": [f"{e['type']} {e.get('name') or e.get('dir')}" for e in events if e["type"] != "say"],
+            "notes": notes,
+            "warnings": warnings,
+        }
 
     def reset(self) -> None:
         with self._lock:
             self.history.clear()
+            if self.history_file:
+                try:
+                    self.history_file.unlink()
+                except OSError:
+                    pass
 
     def chat(self, text: str, event: str, state: dict) -> Iterator[dict]:
         user_content = EVENT_PROMPTS.get(event, "") if event else (text or "").strip()[:600]
@@ -429,4 +528,5 @@ class Mind:
         with self._lock:
             self.history.extend([{"role": "user", "content": user_content}, {"role": "assistant", "content": reply}])
             del self.history[:-KEEP_HISTORY]
+            self._save()
         yield {"type": "done", "first_token_ms": first_ms or 0, "total_ms": int((time.monotonic() - started) * 1000)}

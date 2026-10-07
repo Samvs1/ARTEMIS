@@ -56,6 +56,12 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 28 | Voice home | Fish Audio first, a local voice later | Later the robot gets a small on-device voice (such as Piper) for when Wi-Fi drops, in line with the two-brains idea. | Decided (R6) |
 | 29 | Branches | `main` is kept in sync with the working branch after each round | The owner allowed creating `main`. GitHub's default branch stays the working branch until the owner switches it in the repository settings. | Decided (R6) |
 | 30 | How the mind drives the body | Stage directions inside the reply | The AI writes tags such as `[emote:happy]`, `[look:left]` and `[sound:curious]` in its reply. The server turns them into actions in order (section 10). | Built (assistant) |
+| 31 | Computer | Windows | Double-click launchers `start-milo.bat` and `check-keys.bat`, and a step-by-step README. Not tested on Windows from the build session. | Decided (R6) |
+| 32 | Naming | Milo invents a nickname for each person | Written into the bible. The nickname lives in the conversation history (the last 40 messages) until there is a memory system, so write favourites into the personality to keep them. | Decided (R6) |
+| 33 | Humour | Gentle teasing | Like a friendly cat. This is what the draft does. | Decided (R6) |
+| 34 | Wants and fears | Keep the draft | Closed doors, the vacuum cleaner, the sunbeam and the rest stay. Single ones can be swapped later. | Decided (R6) |
+| 35 | Personality editing | Edited inside the page, with undo and a draft tester | Many iterations are expected. Your version is `data/character.md`; every save is kept; "Try it" runs your unsaved text on a list of situations (section 10). | Decided (owner) |
+| 36 | Final product | A physical robot on a Raspberry Pi with a screen, speaker and microphone | The simulator and mind server are for designing and testing, not for polishing. Section 11 lists what carries over to the Pi. | Decided (owner) |
 
 ## 3. Architecture principle: two brains
 
@@ -161,14 +167,15 @@ To work out:
 - **Mind server home**: first on the owner's own computer; where it lives once it should be always on.
 - **Cloud environment setup**: the owner has allowed api.deepseek.com and api.fish.audio (api.openai.com already worked). The keys only reach new sessions. Names, matching `.env.example`: `DEEPSEEK_API_KEY`, `FISH_AUDIO_API_KEY`, `OPENAI_API_KEY`. The environment already holds an `IMAGE_API_KEY` whose service is unconfirmed.
 - **First prototype**: what should it prove?
-- **Character bible**: react to draft v0. What should Milo call each person? How sharp is its humour? Are the wants and fears right?
+- **Character bible**: tune it by talking to Milo with real keys. The first answers (nicknames, gentle teasing, keep the wants and fears) are in the table.
+- **Pi speech stack**: cloud or on-device speech to text, which wake-word engine, which microphone array and speaker, and whether the mind server runs on the Pi or at home. To be settled with the hardware research (section 11).
 
 ## 9. Roadmap (working plan)
 
 Start with the riskiest and most magical part, which is talking.
 
 1. **Software Milo in the browser** (decided in R5): face, feelings, life layer and chirps are done. The mind server (DeepSeek for text, Fish Audio for voice, the browser's microphone) is built and tested against fakes. Next: a first real run with keys, measuring the time from end of speech to first sound (the target is about one second), then tuning the character.
-2. **Desk rig**: the same code on a Pi with a mic, speaker and screen (no wheels). Order parts in parallel once the voice loop feels right.
+2. **Desk rig**: the mind server and the face page on a Pi with a microphone array, speaker and screen (no wheels), plus a Python body process for audio, wake word and speech to text (section 11). Order the parts as soon as the first real voice run has checked the services.
 3. **Body v1**: chassis with drive, skid, bump and cliff sensors, neck tilt, ears and glow.
 4. **Memory and growth**: long-term memory, two-person identity, nightly consolidation, Milo's diary.
 5. **Dock and moments**: dock, welcome home, focus buddy, play.
@@ -215,13 +222,48 @@ Safety and cost:
 
 Robustness: the API documents could not be read from the build environment. DeepSeek retired its old model names in July 2026 (current: `deepseek-v4-flash` and `deepseek-v4-pro`), and thinking is on by default, which is slow for chat. Fish Audio's documents disagree about the `model` header (`s1`, `s2-pro`, `s2.1-pro`). The server therefore sends "thinking off", retries without it if refused, tries the known model names in order, remembers what worked, and explains every failure in plain words. `--check` sends one tiny request per service.
 
-Tests: 50 unit tests (`python3 -m unittest discover -s mind/tests -t .`) cover the parser, the settings, the server's security rules and both API clients against fake servers. The simulator was driven through the demo mind in a headless browser.
+Tests: 72 unit tests (`python3 -m unittest discover -s mind/tests -t .`) cover the parser, the settings, the personality store, the server's security rules and both API clients against fake servers. The simulator, including the personality editor, was driven through the demo mind in a headless browser.
 
 Not tried yet: real DeepSeek and Fish Audio calls (the keys were not available in the build session), the microphone, and real latency.
 
 The keys live in a `.env` file that git ignores (`.env.example` lists the names). In cloud sessions they come from environment variables instead.
 
-## 11. Round log
+### Editing the personality
+
+Iterating on the personality is expected to take many rounds, so the loop is built to be fast and forgiving. Everything is in the page, under "Milo's personality":
+
+- The text is plain words. **Save** takes effect from the next thing Milo says, with no restart. Your version is `data/character.md` (git ignores it, updates never overwrite it); the shipped default is `mind/character.md`.
+- **Try it on some situations** runs the text in the box, saved or not, on a list of situations (editable) and shows each answer with its stage directions, plus automatic flags: more than three sentences, over 60 words, no leading emote, markdown or emoji, unknown stage directions. Seven questions take a few seconds and cost a fraction of a cent.
+- Every save is kept (up to 100). **Earlier versions** goes back to any of them, and **Use the shipped default** goes back to the project's version without losing yours.
+- **Copy text** and **Copy conversation** put the personality and the last conversation (with stage directions) on the clipboard, to paste to Claude for suggestions. **Start over** clears the conversation, which is needed for a fair comparison.
+- **See exactly what Milo is told** shows the full prompt.
+
+## 11. From the simulator to the robot
+
+The final product is a physical robot: a Raspberry Pi with a screen, speaker and microphone. The simulator and the mind server are how we design and test it first. They should not be polished further than that helps decisions.
+
+Carries over to the Pi as it is:
+
+- **The mind server** (`mind/`, Python 3, standard library only, so nothing to install on a Pi). It can run on the Pi itself, or on a computer at home with the Pi as a thin client.
+- **The personality, the stage-directions protocol and the way a reply becomes behaviour.** The robot gets the same `emote`, `look` and `sound` messages and one `say` per sentence.
+- **The face and the life layer** (blinks, glances, boredom, sleepiness). The plan is to show the same page full screen in Chromium kiosk mode on the Pi's screen, in a face-only view (the real display is about 480 x 320 pixels), and drive it through the same `window.milo` controls.
+
+Replaced on the Pi:
+
+- **Speech to text.** The browser's own speech recognition does not work in Chromium on a Pi, so listening moves to Python on the robot. Options to decide: a cloud service (OpenAI's transcription works with the key we already have), or on-device (for example faster-whisper or sherpa-onnx on a Pi 5).
+- **The wake word and the conversation window.** The push-to-talk button stands in for "Hey Milo". The robot runs a real wake-word detector (for example openWakeWord) and a voice activity detector.
+- **Audio in and out.** A microphone array with echo cancellation, a speaker and amplifier, played from Python. Ask Fish Audio for `wav` or `pcm` instead of `mp3` to avoid decoding on the Pi. The mouth then follows the loudness of what Python plays.
+- **The room and the body drawing.** Only the face is on the real screen. The body, ears, glow and wheels become hardware (ears and glow driven by a microcontroller).
+
+Proposed shape of the robot software (not built):
+
+- A Python "body" process on the Pi: audio, wake word, speech to text, the mind client, and the link to the microcontroller (motors, IMU, cliff and bump sensors, ear servos, LEDs).
+- The face page, drawing the face and running the life layer, driven by the body process over a local connection.
+- The mind server, on the Pi or elsewhere.
+
+What this means for the next steps: keep the simulator as a tool for tuning the character. Do the first real voice run (to check DeepSeek and Fish Audio and the latency), then get hardware for a desk rig (Pi 5, screen, microphone array, speaker) ordered, so the audio and speech stack can be settled on real hardware.
+
+## 12. Round log
 
 **Round 1: what Milo is**
 
@@ -248,3 +290,4 @@ The keys live in a `.env` file that git ignores (`.env.example` lists the names)
 
 - Next build: character and mind in the simulator. Voice home: Fish Audio first, local later. Main branch: keep it in sync after each round.
 - Afterwards the owner allowed api.deepseek.com and api.fish.audio in the environment's network settings.
+- Then: Windows computer, a nickname Milo invents, gentle teasing, keep the wants and fears. The owner asked for the personality to be easy to edit over many iterations (section 10), and noted that the final product is a physical robot on a Raspberry Pi, so the in-house software should not be over-polished (section 11).

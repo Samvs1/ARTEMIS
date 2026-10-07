@@ -9,3 +9,6 @@ dist/
 build/
 __pycache__/
 .venv/
+
+# Your own local data: your personality, conversation history and keys
+data/

@@ -43,6 +43,33 @@ not a setting
     def test_missing_file_is_fine(self):
         self.assertEqual(load_env_file(Path("/nonexistent/.env")), [])
 
+    def test_a_file_saved_by_windows_notepad_works(self):
+        # Notepad can start a file with an invisible marker (a BOM) and uses Windows line endings.
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / ".env"
+            path.write_bytes(b"\xef\xbb\xbfTEST_BOM_KEY=abc123\r\nTEST_SECOND=two\r\n")
+            with mock.patch.dict(os.environ, {}, clear=False):
+                os.environ.pop("TEST_BOM_KEY", None)
+                os.environ.pop("TEST_SECOND", None)
+                names = load_env_file(path)
+                self.assertEqual(names, ["TEST_BOM_KEY", "TEST_SECOND"])
+                self.assertEqual(os.environ["TEST_BOM_KEY"], "abc123")
+                os.environ.pop("TEST_BOM_KEY", None)
+                os.environ.pop("TEST_SECOND", None)
+
+
+class ConsoleTests(unittest.TestCase):
+    def test_printing_an_emoji_never_crashes_on_a_narrow_console(self):
+        import io
+        import sys
+        from mind.server import make_printing_safe
+        raw = io.BytesIO()
+        narrow = io.TextIOWrapper(raw, encoding="cp1252", errors="strict")      # like an older Windows console
+        with mock.patch.object(sys, "stdout", narrow), mock.patch.object(sys, "stderr", narrow):
+            make_printing_safe()
+            print("chat 'hi \U0001F60A'", flush=True)
+        self.assertIn(b"chat 'hi ", raw.getvalue())
+
 
 class SettingsTests(unittest.TestCase):
     def test_defaults_and_overrides(self):

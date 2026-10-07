@@ -45,7 +45,7 @@ def load_env_file(path: Path = ENV_FILE) -> list[str]:
     if not path.is_file():
         return []
     names = []
-    text = path.read_text(encoding="utf-8", errors="replace")
+    text = path.read_text(encoding="utf-8-sig", errors="replace")      # utf-8-sig: Notepad may add an invisible marker at the start
     for name, value in parse_env_text(text).items():
         if value and not os.environ.get(name):
             os.environ[name] = value

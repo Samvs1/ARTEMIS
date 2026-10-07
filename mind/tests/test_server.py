@@ -1,21 +1,26 @@
 import http.client
 import json
+import tempfile
 import threading
 import unittest
 import urllib.error
 import urllib.request
 from http.server import ThreadingHTTPServer
+from pathlib import Path
 
 from mind.config import Settings
 from mind.server import App, Handler, Limiter
+
+NEW_PERSONALITY = "You are Milo, a tiny robot with a very short personality that is still long enough to save."
 
 
 class ServerTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         settings = Settings(mock=True)
+        cls.tmp = tempfile.TemporaryDirectory()          # the tests must never touch your real data folder
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-        cls.server.app = App(settings)
+        cls.server.app = App(settings, data_dir=Path(cls.tmp.name))
         cls.server.daemon_threads = True
         cls.port = cls.server.server_address[1]
         cls.thread = threading.Thread(target=cls.server.serve_forever, daemon=True)
@@ -25,6 +30,58 @@ class ServerTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.server.shutdown()
         cls.server.server_close()
+        cls.tmp.cleanup()
+
+    def post_json(self, path, body):
+        status, _, payload = self.request("POST", path, body)
+        return status, json.loads(payload)
+
+    def test_personality_can_be_read_saved_tried_and_restored(self):
+        status, _, payload = self.request("GET", "/api/personality")
+        info = json.loads(payload)
+        self.assertEqual((status, info["source"]), (200, "default"))
+        self.assertIn("Milo", info["text"])
+
+        status, info = self.post_json("/api/personality", {"text": NEW_PERSONALITY, "note": "tiny"})
+        self.assertEqual((status, info["source"], info["note"]), (200, "yours", "tiny"))
+        _, _, payload = self.request("GET", "/api/prompt")
+        prompt = json.loads(payload)["prompt"]
+        self.assertIn(NEW_PERSONALITY, prompt)                  # chat uses it straight away
+        self.assertIn("[emote:NAME]", prompt)                   # and the rules for the body are still added
+
+        first = info["versions"][0]["id"]
+        self.post_json("/api/personality", {"text": NEW_PERSONALITY + " Second.", "note": "second"})
+        status, info = self.post_json("/api/personality/restore", {"id": first})
+        self.assertEqual(status, 200)
+        self.assertTrue(info["text"].strip().endswith("save."))
+        status, info = self.post_json("/api/personality/reset", {})
+        self.assertEqual((status, info["source"]), (200, "default"))
+
+    def test_bad_personalities_are_refused_politely(self):
+        status, info = self.post_json("/api/personality", {"text": "hi"})
+        self.assertEqual(status, 400)
+        self.assertIn("short", info["error"])
+        status, info = self.post_json("/api/personality/restore", {"id": "banana"})
+        self.assertEqual(status, 400)
+
+    def test_probe_tries_a_draft_without_saving_or_touching_the_conversation(self):
+        self.request("POST", "/api/reset", {})
+        before = json.loads(self.request("GET", "/api/personality")[2])["text"]
+        status, out = self.post_json("/api/probe", {"character": NEW_PERSONALITY, "prompts": ["hello", "tell me a joke", "  "]})
+        self.assertEqual(status, 200)
+        self.assertEqual(out["mode"], "demo")
+        self.assertEqual([r["prompt"] for r in out["results"]], ["hello", "tell me a joke"])
+        for result in out["results"]:
+            self.assertTrue(result["said"])
+            self.assertIn("cues", result)
+            self.assertEqual(result["warnings"], [])
+        self.assertEqual(len(self.server.app.mind.history), 0)
+        self.assertEqual(json.loads(self.request("GET", "/api/personality")[2])["text"], before)
+
+    def test_probe_without_prompts_uses_the_standard_situations(self):
+        status, out = self.post_json("/api/probe", {})
+        self.assertEqual(status, 200)
+        self.assertGreaterEqual(len(out["results"]), 5)
 
     def request(self, method, path, body=None, headers=None):
         conn = http.client.HTTPConnection("127.0.0.1", self.port, timeout=10)

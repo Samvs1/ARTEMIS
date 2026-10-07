@@ -16,26 +16,40 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import threading
 import time
 from collections import deque
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from mind.brain import BrainError, DeepSeekBrain, DemoBrain, Mind, clean_speech   # noqa: E402
-from mind.config import ROOT, Settings, load_env_file                              # noqa: E402
-from mind.voice import DemoVoice, FishVoice, VoiceError                            # noqa: E402
+from mind.brain import (BrainError, CHARACTER_FILE, DEFAULT_PROBES, DeepSeekBrain, DemoBrain, Mind,   # noqa: E402
+                        build_system_prompt, clean_speech)
+from mind.config import ROOT, Settings, load_env_file                                                # noqa: E402
+from mind.personality import MAX_CHARS, Personality, PersonalityError                                # noqa: E402
+from mind.voice import DemoVoice, FishVoice, VoiceError                                              # noqa: E402
 
-VERSION = "0.1"
+VERSION = "0.2"
 SIM_FILE = ROOT / "sim" / "index.html"
-MAX_BODY = 20_000
+DATA_DIR = ROOT / "data"          # your own local files: your personality, its history, the conversation
+MAX_BODY = 100_000
 
 
 def log(message: str) -> None:
     print(time.strftime("%H:%M:%S ") + message, flush=True)
+
+
+def make_printing_safe() -> None:
+    """Some consoles (older Windows ones) cannot show emoji or accents. Show a code instead of crashing."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="backslashreplace")      # type: ignore[union-attr]
+        except (AttributeError, ValueError):
+            pass
 
 
 class Limiter:
@@ -60,11 +74,14 @@ class Limiter:
 class App:
     """Everything the server needs: the settings, the mind and the voice."""
 
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, data_dir: Path | None = None) -> None:
+        data_dir = data_dir or Path(os.environ.get("MILO_DATA_DIR") or DATA_DIR)
         self.settings = settings
         self.brain = DeepSeekBrain(settings) if settings.use_deepseek else DemoBrain()
         self.voice = FishVoice(settings) if settings.use_fish else DemoVoice()
-        self.mind = Mind(self.brain)
+        self.personality = Personality(CHARACTER_FILE, data_dir / "character.md", data_dir / "character-history.json")
+        # Only the real mind keeps its conversation between runs. The demo mind has nothing worth remembering.
+        self.mind = Mind(self.brain, self.personality, history_file=data_dir / "history.json" if settings.use_deepseek else None)
         self.chat_limit = Limiter(settings.max_chats_per_hour)
         self.tts_limit = Limiter(settings.max_tts_chars_per_hour)
 
@@ -142,6 +159,13 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json(404, {"error": "sim/index.html was not found."})
         elif path == "/api/health":
             self.send_json(200, self.app.health())
+        elif path == "/api/personality":
+            self.send_json(200, self.app.personality.describe())
+        elif path == "/api/personality/default":
+            self.send_json(200, {"text": self.app.personality.default_text()})
+        elif path == "/api/prompt":
+            sample = {"local_time": "(the day and time, filled in at every reply)", "lights": True, "mood": "calm"}
+            self.send_json(200, {"prompt": build_system_prompt(self.app.personality.text(), sample)})
         elif path == "/favicon.ico":
             self.send_bytes(204, b"", "image/x-icon")
         else:
@@ -159,8 +183,54 @@ class Handler(BaseHTTPRequestHandler):
         elif path == "/api/reset":
             self.app.mind.reset()
             self.send_json(200, {"ok": True})
+        elif path == "/api/personality":
+            self.handle_personality("save")
+        elif path == "/api/personality/restore":
+            self.handle_personality("restore")
+        elif path == "/api/personality/reset":
+            self.handle_personality("reset")
+        elif path == "/api/probe":
+            self.handle_probe()
         else:
             self.send_json(404, {"error": "Not found."})
+
+    def handle_personality(self, action: str) -> None:
+        data = self.read_json() or {}
+        try:
+            if action == "save":
+                result = self.app.personality.save(str(data.get("text") or ""), str(data.get("note") or ""))
+                log(f"personality saved ({len(result['text']):,} characters)")
+            elif action == "restore":
+                try:
+                    version = int(data.get("id"))
+                except (TypeError, ValueError):
+                    raise PersonalityError("Say which version to go back to.") from None
+                result = self.app.personality.restore(version)
+                log(f"personality went back to version {version}")
+            else:
+                result = self.app.personality.reset()
+                log("personality went back to the shipped default")
+        except PersonalityError as e:
+            return self.send_json(400, {"error": str(e)})
+        self.send_json(200, result)
+
+    def handle_probe(self) -> None:
+        """Ask a list of questions with a personality text (even an unsaved draft) and report the replies."""
+        data = self.read_json() or {}
+        raw = data.get("prompts")
+        prompts = [str(p).strip() for p in raw if str(p).strip()][:10] if isinstance(raw, list) else []
+        prompts = prompts or list(DEFAULT_PROBES)
+        character = data.get("character")
+        character = character if isinstance(character, str) and character.strip() else self.app.personality.text()
+        if len(character) > MAX_CHARS:
+            return self.send_json(400, {"error": "That personality is too long to try."})
+        if not self.app.chat_limit.allow(len(prompts)):
+            return self.send_json(429, {"error": "That is a lot of asking for one hour. Try again a little later."})
+        started = time.monotonic()
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            results = list(pool.map(lambda p: self.app.mind.probe(character, p), prompts))
+        log(f"probe {len(prompts)} situations in {int((time.monotonic() - started) * 1000)} ms")
+        self.send_json(200, {"results": results, "mode": self.app.brain.kind})
 
     def handle_chat(self) -> None:
         data = self.read_json()
@@ -238,6 +308,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--port", type=int, help="port to listen on (default 8000)")
     args = parser.parse_args(argv)
 
+    make_printing_safe()
     loaded = load_env_file()
     settings = Settings.from_env()
     settings.mock = args.mock

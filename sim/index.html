@@ -13,7 +13,7 @@
    marks everything you can press. */
 :root{
   --bg:#edf0f4; --panel:#ffffff; --ink:#141a23; --muted:#556074; --line:#d4dae3;
-  --accent:#1a63e0; --accent-ink:#ffffff; --chip:#e5eaf1; --stage-bd:#cfd6e0;
+  --accent:#1a63e0; --accent-ink:#ffffff; --chip:#e5eaf1; --stage-bd:#cfd6e0; --warn:#a8480a;
   --font-display:'Fredoka', ui-rounded, 'Segoe UI', system-ui, sans-serif;
   --font-body:'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono:'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -22,13 +22,13 @@
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     --bg:#0c1017; --panel:#141a24; --ink:#e8ecf3; --muted:#97a2b6; --line:#263042;
-    --accent:#6aa8ff; --accent-ink:#06101f; --chip:#1c2433; --stage-bd:#263042;
+    --accent:#6aa8ff; --accent-ink:#06101f; --chip:#1c2433; --stage-bd:#263042; --warn:#f0a35e;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"]{
   --bg:#0c1017; --panel:#141a24; --ink:#e8ecf3; --muted:#97a2b6; --line:#263042;
-  --accent:#6aa8ff; --accent-ink:#06101f; --chip:#1c2433; --stage-bd:#263042;
+  --accent:#6aa8ff; --accent-ink:#06101f; --chip:#1c2433; --stage-bd:#263042; --warn:#f0a35e;
   color-scheme: dark;
 }
 
@@ -114,12 +114,38 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 #chatMic{min-width:7rem;justify-content:center}
 .chat-form input{flex:1 1 0;min-width:0;font:inherit;padding:10px 16px;min-height:42px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 .chat-form input:disabled,.chat-form button:disabled{opacity:.55;cursor:not-allowed}
+.chat-tools{margin-top:8px}
+.chat-tools button,.pers-actions button{min-height:38px;padding:9px 14px;font-size:13px}
+button:disabled{opacity:.55;cursor:not-allowed}
+
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+textarea{display:block;width:100%;font:inherit;font-size:14px;line-height:1.5;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);resize:vertical}
+textarea:disabled,select:disabled,.field input:disabled{opacity:.6}
+#persText{min-height:280px}
+.pers-status{margin:0 0 10px}
+.pers-msg{min-height:1.3em;margin:8px 0 0}
+.pers-msg[data-kind="error"]{color:var(--warn)}
+.field{display:grid;gap:4px;margin-top:12px}
+.field label{font-size:13px;color:var(--muted)}
+.field input,.field select{font:inherit;font-size:14px;padding:10px 12px;min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);min-width:0;width:100%}
+.pers-actions{margin-top:12px}
+.pers-results{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:10px}
+.pers-results:empty{display:none}
+.pers-results li{padding:10px 12px;border:1px solid var(--line);border-radius:14px;display:grid;gap:4px;background:var(--panel)}
+.pers-q{font-size:12px;color:var(--muted)}
+.pers-a{font-size:14px;line-height:1.4}
+.pers-cues{font:400 11px/1.4 var(--font-mono);color:var(--muted);overflow-wrap:anywhere}
+.pers-warn{font-size:12px;color:var(--warn)}
+.sub{margin-top:14px}
+.sub summary{font-size:12px}
+.sub textarea{margin-top:8px}
+#persPrompt{white-space:pre-wrap;overflow-wrap:anywhere;font:400 12px/1.5 var(--font-mono);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;max-height:340px;overflow:auto;margin:0}
 
 details summary{cursor:pointer;list-style:none;margin-bottom:0}
 details summary::-webkit-details-marker{display:none}
-details summary::after{content:"  +";letter-spacing:0}
-details[open] summary::after{content:"  \2212"}
-details[open] summary{margin-bottom:12px}
+details > summary::after{content:"  +";letter-spacing:0}
+details[open] > summary::after{content:"  \2212"}
+details[open] > summary{margin-bottom:12px}
 .meters{display:grid;gap:10px;margin:12px 0 14px}
 .meter{display:grid;grid-template-columns:7.2rem minmax(0,1fr) 2.6rem;align-items:center;gap:8px;font-size:13px}
 .meter b{font:400 12px var(--font-mono);color:var(--muted);text-align:right}
@@ -165,8 +191,48 @@ footer{color:var(--muted);font-size:13px}
           <button id="chatSend" class="primary" type="submit" disabled>Send</button>
           <button id="chatMic" class="toggle" type="button" aria-pressed="false" title="Talk instead of typing" disabled>Mic</button>
         </form>
+        <div class="row chat-tools">
+          <button id="chatCopy" type="button" disabled>Copy conversation</button>
+          <button id="chatForget" type="button" disabled>Start over</button>
+        </div>
         <p id="mindHelp" class="hint" hidden></p>
       </div>
+
+      <details class="group" id="persGroup">
+        <summary>Milo's personality</summary>
+        <p id="persStatus" class="hint pers-status" role="status">Open this page through the mind server to edit Milo's personality.</p>
+        <label class="sr-only" for="persText">Milo's personality, in plain words</label>
+        <textarea id="persText" rows="14" spellcheck="true" disabled></textarea>
+        <div class="field">
+          <label for="persNote">What did you change? (optional, helps you find this version later)</label>
+          <input id="persNote" type="text" maxlength="120" placeholder="for example: less wordy" disabled>
+        </div>
+        <div class="row pers-actions">
+          <button id="persSave" class="primary" type="button" disabled>Save</button>
+          <button id="persTry" type="button" disabled>Try it on some situations</button>
+          <button id="persUndo" type="button" disabled>Undo my edits</button>
+          <button id="persCopy" type="button" disabled>Copy text</button>
+        </div>
+        <p id="persMsg" class="hint pers-msg" role="status"></p>
+        <ol id="persResults" class="pers-results" aria-live="polite"></ol>
+        <details class="sub" id="persSituations">
+          <summary>Situations to try (one per line)</summary>
+          <textarea id="persProbes" rows="7" disabled></textarea>
+        </details>
+        <div class="field">
+          <label for="persVersions">Earlier versions</label>
+          <select id="persVersions" disabled></select>
+        </div>
+        <div class="row pers-actions">
+          <button id="persRestore" type="button" disabled>Go back to that version</button>
+          <button id="persReset" type="button" disabled>Use the shipped default</button>
+        </div>
+        <details class="sub" id="persPromptBox">
+          <summary>See exactly what Milo is told</summary>
+          <p class="hint">Your text comes first, then the rules for moving its body, then a line about the moment (the time, the lights, its mood).</p>
+          <pre id="persPrompt"></pre>
+        </details>
+      </details>
 
       <div class="group">
         <h2>Try it</h2>
@@ -922,7 +988,7 @@ const nextLine = () => LINES[lineIx++ % LINES.length];
 
 // ---- the mind server and the voice ----
 // When the page is opened through mind/server.py, Milo can really think (DeepSeek) and speak (Fish Audio).
-const mind = { online: false, info: null, abort: null, listening: false, rec: null, voiceWarned: false, played: 0 };
+const mind = { online: false, info: null, abort: null, listening: false, rec: null, voiceWarned: false, played: 0, transcript: [] };
 let voiceNode = null;                              // the sound that is playing right now
 
 // A "speech" is one sentence plus its audio. The audio is requested as soon as the sentence
@@ -1062,6 +1128,7 @@ async function checkMind() {
     mind.online = true; mind.info = info;
   } catch (e) { mind.online = false; mind.info = null; }
   updateMindUI();
+  if (mind.online && !pers.data) loadPersonality(true);
 }
 
 function updateMindUI() {
@@ -1085,6 +1152,9 @@ function updateMindUI() {
   $('chatSend').disabled = !mind.online || locked;
   $('chatMic').disabled = !mind.online || locked || !SR;
   $('chatMic').title = SR ? 'Talk instead of typing' : 'This browser cannot turn speech into text. Type instead.';
+  $('chatCopy').disabled = !mind.online;
+  $('chatForget').disabled = !mind.online;
+  updatePersUI();
 }
 
 function addChat(who, text) {
@@ -1155,6 +1225,9 @@ function askMind(text, opts) {
   if (L.mood === 'sleepy') setMood('calm', { sound: false });
   if (text) addChat('you', text);
   mind.voiceWarned = false;
+  const turn = { you: text || '(' + String(opts.event || 'event').replace(/_/g, ' ') + ')', cues: [], milo: [] };   // for "Copy conversation"
+  mind.transcript.push(turn);
+  if (mind.transcript.length > 30) mind.transcript.shift();
   runScript(async (wait) => {
     const ctl = new AbortController();
     mind.abort = ctl;
@@ -1169,13 +1242,14 @@ function askMind(text, opts) {
       if (ev.type === 'emote' || ev.type === 'look' || ev.type === 'sound') {
         L.pulse.until = 0;
         cues.push(ev.type + ' ' + (ev.name || ev.dir));
+        turn.cues.push(ev.type + ':' + (ev.name || ev.dir));
         if (sawSay) player.push({ cue: ev }); else applyCue(ev);      // before the first words: act at once
       } else if (ev.type === 'say') {
         L.pulse.until = 0;
         if (L.mood === 'thinking') setMood('happy', { sound: false });
         if (!bubble) bubble = addChat('milo', '');
         sawSay = true;
-        player.push({ speech: makeSpeech(ev.text, () => appendChat(bubble, ev.text)) });
+        player.push({ speech: makeSpeech(ev.text, () => { appendChat(bubble, ev.text); turn.milo.push(ev.text); }) });
       } else if (ev.type === 'error') {
         failure = ev.message;
       } else if (ev.type === 'done') {
@@ -1306,6 +1380,170 @@ function wireChat() {
   });
   $('chatMic').addEventListener('click', () => { if (mind.listening) stopListening(true); else startListening({}); });
   window.addEventListener('focus', () => { if (!mind.online) checkMind(); });
+  wirePersonality();
+}
+
+/* ----------------------------------------------------------------------
+   The personality editor.
+   Edit Milo's personality in plain words, try it on some situations, save it.
+   The next thing Milo says uses it. Every save is kept, so nothing is lost.
+   ---------------------------------------------------------------------- */
+const pers = { data: null, dirty: false };
+const DEFAULT_SITUATIONS = ['Hi Milo!', 'I had a rough day.', 'What do you think is behind that door?',
+  'Can you set a timer for ten minutes?', 'Are you a real person?', 'The vacuum cleaner is coming out.', "I'm going to bed. Goodnight!"];
+
+async function api(path, body) {                    // talk to the mind server: no body means read, a body means do
+  const res = await fetch(path, body === undefined ? { cache: 'no-store' }
+    : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  let data = {};
+  try { data = await res.json(); } catch (e) { /* not JSON */ }
+  if (!res.ok) throw new Error(data.error || 'The mind server answered ' + res.status + '.');
+  return data;
+}
+function niceTime(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return String(iso);
+  try { return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return String(iso); }
+}
+function persMessage(text, kind) { const el = $('persMsg'); el.textContent = text; el.dataset.kind = kind || ''; }
+
+function updatePersUI() {
+  const on = mind.online, d = pers.data, ready = on && !!d;
+  ['persText', 'persNote', 'persTry', 'persCopy', 'persProbes', 'persVersions', 'persReset'].forEach((id) => { $(id).disabled = !ready; });
+  $('persSave').disabled = !ready || !pers.dirty;
+  $('persUndo').disabled = !ready || !pers.dirty;
+  $('persRestore').disabled = !ready || !d.versions.length;
+  const status = $('persStatus');
+  if (!on) { status.textContent = "Open this page through the mind server to edit Milo's personality."; return; }
+  if (!d) { status.textContent = 'Loading...'; return; }
+  const using = d.source === 'yours' ? 'your saved version' + (d.saved_at ? ' from ' + niceTime(d.saved_at) : '') : 'the shipped default';
+  status.textContent = pers.dirty ? 'You have unsaved edits. Chat still uses ' + using + '. "Try it" uses your edits.' : 'Chat is using ' + using + '.';
+}
+function renderVersions() {
+  const sel = $('persVersions');
+  sel.textContent = '';
+  const versions = pers.data ? pers.data.versions : [];
+  if (!versions.length) {
+    const o = document.createElement('option'); o.value = ''; o.textContent = 'No saved versions yet'; sel.append(o);
+    return;
+  }
+  versions.forEach((v) => {
+    const o = document.createElement('option');
+    o.value = String(v.id);
+    o.textContent = niceTime(v.time) + (v.note ? ' · ' + v.note : '') + ' · ' + v.chars + ' characters';
+    sel.append(o);
+  });
+}
+async function loadPersonality(replaceText) {
+  if (!mind.online) return;
+  try {
+    pers.data = await api('/api/personality');
+    if (replaceText || !pers.dirty) { $('persText').value = pers.data.text.trim(); pers.dirty = false; }
+    renderVersions();
+  } catch (e) { persMessage(e.message, 'error'); }
+  updatePersUI();
+}
+function adopt(data, message) {                     // show what the server now holds
+  pers.data = data;
+  $('persText').value = data.text.trim();
+  pers.dirty = false;
+  renderVersions();
+  persMessage(message, '');
+  updatePersUI();
+}
+async function savePersonality() {
+  const length = $('persText').value.trim().length;           // the server checks again; this just saves a trip
+  if (length < 20) { persMessage('The personality is empty or far too short. Milo needs at least a sentence or two about who it is.', 'error'); return; }
+  if (length > 20000) { persMessage('That is too long (' + length.toLocaleString('en-GB') + ' characters; the limit is 20,000). A shorter personality works better anyway.', 'error'); return; }
+  try {
+    adopt(await api('/api/personality', { text: $('persText').value, note: $('persNote').value }),
+      'Saved. Milo uses it from the next thing it says. Press "Start over" for a fresh conversation, because the old one still shows the old style.');
+    $('persNote').value = '';
+    log('mind', 'personality saved');
+  } catch (e) { persMessage(e.message, 'error'); }
+}
+async function tryPersonality() {
+  const prompts = $('persProbes').value.split('\n').map((s) => s.trim()).filter(Boolean);
+  const btn = $('persTry'), label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Asking Milo...';
+  persMessage('', '');
+  try {
+    const out = await api('/api/probe', { character: $('persText').value, prompts: prompts });
+    renderProbe(out);
+  } catch (e) { persMessage(e.message, 'error'); }
+  btn.textContent = label; btn.disabled = !(mind.online && pers.data);
+}
+function renderProbe(out) {
+  const ol = $('persResults');
+  ol.textContent = '';
+  persMessage(out.mode === 'demo'
+    ? 'This is the demo mind: its answers are canned, so your wording will not change them. Add your DeepSeek key to see the real effect.'
+    : 'These answers used the text in the box above, saved or not.', '');
+  out.results.forEach((r) => {
+    const li = document.createElement('li');
+    const q = document.createElement('div'); q.className = 'pers-q'; q.textContent = 'You: ' + r.prompt; li.append(q);
+    if (r.error) {
+      const e = document.createElement('div'); e.className = 'pers-warn'; e.textContent = r.error; li.append(e);
+    } else {
+      const a = document.createElement('div'); a.className = 'pers-a'; a.textContent = 'Milo: ' + (r.said || '(says nothing)'); li.append(a);
+      const c = document.createElement('div'); c.className = 'pers-cues';
+      c.textContent = r.cues.map((x) => '[' + x.replace(' ', ':') + ']').join(' ') + (r.cues.length ? '   ' : '') + r.notes.join(', '); li.append(c);
+      if (r.warnings.length) { const w = document.createElement('div'); w.className = 'pers-warn'; w.textContent = 'Check: ' + r.warnings.join('; '); li.append(w); }
+    }
+    ol.append(li);
+  });
+}
+async function restorePersonality() {
+  const id = parseInt($('persVersions').value, 10);
+  if (!id) return;
+  try { adopt(await api('/api/personality/restore', { id: id }), 'Went back to that version. Your other versions are still in the list.'); }
+  catch (e) { persMessage(e.message, 'error'); }
+}
+async function resetPersonality() {
+  try { adopt(await api('/api/personality/reset', {}), 'Back to the shipped default. Your own versions are still in the list.'); }
+  catch (e) { persMessage(e.message, 'error'); }
+}
+async function copyToClipboard(text, field) {
+  try { await navigator.clipboard.writeText(text); return true; }
+  catch (e) { if (field) { field.focus(); field.select(); } return false; }
+}
+async function copyPersonality() {
+  const ok = await copyToClipboard($('persText').value, $('persText'));
+  persMessage(ok ? 'Copied. Paste it in the chat to share it.' : 'Your browser blocked copying. The text is selected: press Ctrl+C.', '');
+}
+async function copyConversation() {
+  const text = mind.transcript.map((t) => 'You: ' + t.you + '\nMilo: ' + t.cues.map((c) => '[' + c + ']').join(' ') + (t.cues.length ? ' ' : '') + t.milo.join(' ')).join('\n\n');
+  if (!text) { persMessage('There is no conversation to copy yet.', ''); return; }
+  const ok = await copyToClipboard(text, null);
+  persMessage(ok ? 'Copied the conversation, with the stage directions. Paste it in the chat.' : 'Your browser blocked copying. Select the chat text and copy it.', '');
+}
+async function startOver() {
+  cancelScripts();
+  try { await api('/api/reset', {}); } catch (e) { /* the page can still start fresh */ }
+  mind.transcript = [];
+  $('chatLog').textContent = '';
+  log('mind', 'conversation cleared: Milo starts fresh');
+}
+function wirePersonality() {
+  $('persProbes').value = store.get('probes', DEFAULT_SITUATIONS.join('\n'));
+  $('persProbes').addEventListener('input', () => store.set('probes', $('persProbes').value));
+  $('persText').addEventListener('input', () => {
+    pers.dirty = !!pers.data && $('persText').value.trim() !== pers.data.text.trim();
+    updatePersUI();
+  });
+  $('persSave').addEventListener('click', savePersonality);
+  $('persTry').addEventListener('click', tryPersonality);
+  $('persUndo').addEventListener('click', () => { $('persText').value = pers.data.text.trim(); pers.dirty = false; persMessage('Your edits are undone.', ''); updatePersUI(); });
+  $('persCopy').addEventListener('click', copyPersonality);
+  $('persRestore').addEventListener('click', restorePersonality);
+  $('persReset').addEventListener('click', resetPersonality);
+  $('persPromptBox').addEventListener('toggle', async () => {
+    if (!$('persPromptBox').open) return;
+    try { $('persPrompt').textContent = (await api('/api/prompt')).prompt; } catch (e) { $('persPrompt').textContent = e.message; }
+  });
+  $('chatCopy').addEventListener('click', copyConversation);
+  $('chatForget').addEventListener('click', startOver);
+  updatePersUI();
 }
 
 function poke() {
