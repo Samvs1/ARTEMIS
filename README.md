@@ -1,6 +1,6 @@
 # Milo
 
-A small AI companion robot for the apartment: a face on a screen, ears, a mood glow, two wheels, and a remote AI as its mind. This repository holds the design and the software.
+A small AI companion robot for the apartment: a face on a screen, a voice, two wheels, and a remote AI as its mind. (Ears and a mood glow are parked until the basics work.) This repository holds the design and the software.
 
 Milo is curious, friendly and a little mischievous. It reacts instantly to what is around it (that part runs on the robot), and it thinks and talks through a remote AI.
 
@@ -9,6 +9,7 @@ The end goal is a physical robot on a Raspberry Pi with a screen, speaker and mi
 ## Where things are
 
 - `docs/design-log.md`: every decision so far, the open questions and the roadmap. Start here.
+- `docs/shopping-lists.md`: what to buy. List A is the first prototype ("Desk Milo", buy now); List B is the final robot (a draft).
 - `sim/index.html`: the Milo simulator. Open it in any browser (double-click the file) to play with Milo's face, feelings, shells and life layer. Nothing to install.
 - `mind/`: the mind server. It holds the API keys and connects the simulator to DeepSeek (thinking) and Fish Audio (voice).
 - `mind/character.md`: Milo's personality as it ships. You edit your own copy from inside the page (see below).
@@ -77,4 +78,4 @@ On Windows use `py` instead of `python3`.
 
 ## Status
 
-Early design stage. Software first (the simulator and the mind server), hardware after. See `docs/design-log.md` for the roadmap.
+Early design stage. Software first (the simulator and the mind server), hardware after: the first hardware is a talking face on a desk (`docs/shopping-lists.md`, List A). See `docs/design-log.md` for the roadmap.

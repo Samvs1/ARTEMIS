@@ -36,7 +36,7 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 8 | Signature moments | All four: welcome home, company while you work, evening chats, silly play | To be staged; see the roadmap proposal. | Decided (R2) |
 | 9 | Usefulness | Companion plus a few perks | Timers, a focus-buddy mode, music, maybe smart-home lights. Character first; no calendar, email or open-ended web agent for now. | Decided (R3) |
 | 10 | Stability | Rear skid, balance-ready | Stable at rest and when unpowered. Place weight and wheels so a self-balancing mode can be added later. | Decided (R3) |
-| 11 | Extra body language | Ears or antennae (two servos) and a mood glow (LED) | Arms or a lift are deferred (v2 at the earliest). | Decided (R3) |
+| 11 | Extra body language | Ears or antennae (two servos) and a mood glow (LED) | Arms or a lift are deferred (v2 at the earliest). Parked in R7: not part of the first prototype or the first body (row 37). | Decided (R3), parked (R7) |
 | 12 | Design log | Keep it in the repo | Committed to the working branch after each round. | Decided (R3) |
 | 13 | Name and wake word | Milo, wake word "Hey Milo" | Working name; confirm before a wake-word model is trained. | Assumed |
 | 14 | Size | About 190 x 160 x 135 mm, as in the concept | Tight for a Pi 5, a 3.5" screen and a battery; verify with a CAD mock-up before committing. | Assumed |
@@ -62,6 +62,9 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 34 | Wants and fears | Keep the draft | Closed doors, the vacuum cleaner, the sunbeam and the rest stay. Single ones can be swapped later. | Decided (R6) |
 | 35 | Personality editing | Edited inside the page, with undo and a draft tester | Many iterations are expected. Your version is `data/character.md`; every save is kept; "Try it" runs your unsaved text on a list of situations (section 10). | Decided (owner) |
 | 36 | Final product | A physical robot on a Raspberry Pi with a screen, speaker and microphone | The simulator and mind server are for designing and testing, not for polishing. Section 11 lists what carries over to the Pi. | Decided (owner) |
+| 37 | Hardware scope for now | Basics first: a talking face on a desk (Pi, screen, microphone array, speaker) | Ears or antennae, the mood glow, the camera, the neck tilt and the dock are parked until the basics work. The simulator keeps drawing the ears and glow as design exploration. Supersedes row 11 for now. | Decided (R7) |
+| 38 | Shopping lists | Two lists in `docs/shopping-lists.md`: List A "Desk Milo" (first prototype, buy now) and List B "Milo" (final robot, draft, do not buy yet) | List B reuses all of List A. Prices are from listings read in early October 2026 and must be checked on the day of ordering. | Decided (R7) |
+| 39 | Desk rig parts | Pi 5 (4 GB), Waveshare 4 inch DSI touch display, reSpeaker XVF3800 USB mic array, a small powered speaker | The mic array gives echo cancellation, so Milo can be interrupted. Waiting for the owner's answers on the screen, the microphone and the Pi's memory before ordering. | Proposed (R7) |
 
 ## 3. Architecture principle: two brains
 
@@ -127,7 +130,7 @@ Proposed for later: **look-to-talk**. If you face Milo within a couple of metres
 ### Decided changes to the render
 
 - Floor roamer with bump and cliff sensing; rear skid for stability, balance-ready.
-- Ears or antennae (two servos) and a mood glow (LED).
+- Ears or antennae (two servos) and a mood glow (LED). Parked in R7: not needed until the basics work (row 37).
 
 ### Proposed, not yet discussed
 
@@ -166,7 +169,7 @@ To work out:
 - **Timeline**: how much time per week, and any target date.
 - **Mind server home**: first on the owner's own computer; where it lives once it should be always on.
 - **Cloud environment setup**: the owner has allowed api.deepseek.com and api.fish.audio (api.openai.com already worked). The keys only reach new sessions. Names, matching `.env.example`: `DEEPSEEK_API_KEY`, `FISH_AUDIO_API_KEY`, `OPENAI_API_KEY`. The environment already holds an `IMAGE_API_KEY` whose service is unconfirmed.
-- **First prototype**: what should it prove?
+- **First prototype**: Desk Milo (List A in `docs/shopping-lists.md`) should prove three things: the face on the real screen, the whole talking loop on real hardware (wake word, listening, mind, voice, no echo), and the real delay from end of speech to first sound.
 - **Character bible**: tune it by talking to Milo with real keys. The first answers (nicknames, gentle teasing, keep the wants and fears) are in the table.
 - **Pi speech stack**: cloud or on-device speech to text, which wake-word engine, which microphone array and speaker, and whether the mind server runs on the Pi or at home. To be settled with the hardware research (section 11).
 
@@ -175,8 +178,8 @@ To work out:
 Start with the riskiest and most magical part, which is talking.
 
 1. **Software Milo in the browser** (decided in R5): face, feelings, life layer and chirps are done. The mind server (DeepSeek for text, Fish Audio for voice, the browser's microphone) is built and tested against fakes. Next: a first real run with keys, measuring the time from end of speech to first sound (the target is about one second), then tuning the character.
-2. **Desk rig**: the mind server and the face page on a Pi with a microphone array, speaker and screen (no wheels), plus a Python body process for audio, wake word and speech to text (section 11). Order the parts as soon as the first real voice run has checked the services.
-3. **Body v1**: chassis with drive, skid, bump and cliff sensors, neck tilt, ears and glow.
+2. **Desk rig** ("Desk Milo", List A in `docs/shopping-lists.md`): the mind server and the face page on a Pi with a microphone array, speaker and screen (no wheels), plus a Python body process for audio, wake word and speech to text (section 11). Order the parts as soon as the first real voice run has checked the services.
+3. **Body v1** (List B, stage 2): chassis with drive, skid, bump and cliff sensors, battery and a microcontroller. Neck tilt, ears and glow are parked (row 37).
 4. **Memory and growth**: long-term memory, two-person identity, nightly consolidation, Milo's diary.
 5. **Dock and moments**: dock, welcome home, focus buddy, play.
 
@@ -263,6 +266,16 @@ Proposed shape of the robot software (not built):
 
 What this means for the next steps: keep the simulator as a tool for tuning the character. Do the first real voice run (to check DeepSeek and Fish Audio and the latency), then get hardware for a desk rig (Pi 5, screen, microphone array, speaker) ordered, so the audio and speech stack can be settled on real hardware.
 
+### Hardware shopping lists (R7)
+
+The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. In short:
+
+- **List A, "Desk Milo" (buy now).** Pi 5 4 GB, the official 27 W power supply, Active Cooler, microSD card, Waveshare 4 inch DSI touch display, reSpeaker XVF3800 USB mic array and a small powered speaker. Core cost about 228 to 318 euro. No wheels, battery, ears, glow or camera.
+- **List B, "Milo" (draft, do not buy yet).** Everything in List A plus a body: two encoder motors, a Pico 2 controller, distance and motion sensors, a battery board with four 21700 cells, a mic-kill switch and the printed body. Stage 2 adds about 170 to 345 euro, so the finished robot lands near the top of the 250 to 500 budget or a little above (the middle of the ranges is about 530). Stage 3 (dock, better speaker) comes later.
+- **Parked:** ears or antennae, mood glow, camera, neck tilt, arms.
+- Biggest unknowns: Pi 5 prices keep moving with the memory shortage; the motor size depends on the robot's real weight and the floors; I could not confirm the mic array's speaker plug impedance; the battery plan needs a joint safety review before ordering.
+
+
 ## 12. Round log
 
 **Round 1: what Milo is**
@@ -291,3 +304,9 @@ What this means for the next steps: keep the simulator as a tool for tuning the 
 - Next build: character and mind in the simulator. Voice home: Fish Audio first, local later. Main branch: keep it in sync after each round.
 - Afterwards the owner allowed api.deepseek.com and api.fish.audio in the environment's network settings.
 - Then: Windows computer, a nickname Milo invents, gentle teasing, keep the wants and fears. The owner asked for the personality to be easy to edit over many iterations (section 10), and noted that the final product is a physical robot on a Raspberry Pi, so the in-house software should not be over-polished (section 11).
+
+**Round 7: hardware shopping lists**
+
+- Next step chosen: the hardware shopping list. Shopping region: Europe.
+- The owner asked for two lists, a first prototype and a final product, and said to get the basics working first: the ears and antennae are not needed at this stage. Decided: the first hardware is a talking face on a desk, and ears, glow, camera, neck tilt and dock are parked (rows 37 and 38).
+- Research found that the memory shortage has pushed the Pi 5 up (4 GB about 117 to 140 euro), which is why the first list is kept to the parts that prove the basics. Proposed desk rig parts are in row 39 and the lists are in `docs/shopping-lists.md`.
