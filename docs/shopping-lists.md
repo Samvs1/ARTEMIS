@@ -61,6 +61,15 @@ When the box arrives, in order:
 4. Plug in the mic array and the speaker, and record and play a test sound.
 5. Add the Python process that listens (wake word, speech to text) and speaks.
 
+### Where to buy in the Netherlands or Belgium
+
+A quick look, not a full price comparison. Dutch and Belgian VAT are both 21%, and several shops show prices without VAT. All of this must be checked on the day you order.
+
+- **Kiwi Electronics (NL)**, the likely one-stop shop. Seen without VAT: Pi 5 4 GB €98.99 (about €120 with VAT, stock unclear), 27 W power supply €10.89 (about €13.20), Active Cooler €4.49 (about €5.45), XVF3800 plain USB array €44.99 (about €54.40). Their microSD cards and cables are not looked at yet. Kiwi sells other Waveshare displays, but I did not find the 4 inch 480 x 800 one there.
+- **The display** is the hard one to place. [Elektronicavoorjou](https://elektronicavoorjou.nl/en/product/4-inch-480x800-LCD-display-touch-screen/) (NL) had it at €52.95 with VAT, with conflicting stock information. Waveshare's own shop is cheaper (about €25 to 29) but ships from abroad. Ask Kiwi or Tinytronics if they can get it.
+- **The display cable.** Waveshare sells 22-pin to 15-pin cables for the Pi 5 in 200, 300 and 500 mm for a few euro. A 12 cm to 20 cm one suits the desk rig. Check which cable is in the box before buying one.
+- **Other shops seen:** Tinytronics (NL; Pi 5 4 GB €132 with a long lead time, 27 W power supply €13.50), Mouser Belgium (XVF3800 for €47.21, VAT status unclear), Opencircuit and OpenELAB.
+
 ## List B: final robot, "Milo" (draft, do not buy yet)
 
 Milo = everything in List A, plus the parts below. Almost all of List A is reused. Nothing in List A is wasted.

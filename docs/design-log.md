@@ -64,7 +64,7 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 36 | Final product | A physical robot on a Raspberry Pi with a screen, speaker and microphone | The simulator and mind server are for designing and testing, not for polishing. Section 11 lists what carries over to the Pi. | Decided (owner) |
 | 37 | Hardware scope for now | Basics first: a talking face on a desk (Pi, screen, microphone array, speaker) | Ears or antennae, the mood glow, the camera, the neck tilt and the dock are parked until the basics work. The simulator keeps drawing the ears and glow as design exploration. Supersedes row 11 for now. | Decided (R7) |
 | 38 | Shopping lists | Two lists in `docs/shopping-lists.md`: List A "Desk Milo" (first prototype, buy now) and List B "Milo" (final robot, draft, do not buy yet) | List B reuses all of List A. Prices are from listings read in early October 2026 and must be checked on the day of ordering. | Decided (R7) |
-| 39 | Desk rig parts | Pi 5 (4 GB), Waveshare 4 inch DSI touch display, reSpeaker XVF3800 USB mic array, a small powered speaker | The mic array gives echo cancellation, so Milo can be interrupted. Waiting for the owner's answers on the screen, the microphone and the Pi's memory before ordering. | Proposed (R7) |
+| 39 | Desk rig parts | Pi 5 (4 GB), Waveshare 4 inch DSI touch display, reSpeaker XVF3800 USB mic array, a small powered speaker | The mic array gives echo cancellation, so Milo can be interrupted. The owner took all four recommendations (DSI screen now, XVF3800 array, 4 GB) and shops from the Netherlands or Belgium. Nothing is ordered yet. | Decided (R7) |
 
 ## 3. Architecture principle: two brains
 
@@ -309,4 +309,6 @@ The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. I
 
 - Next step chosen: the hardware shopping list. Shopping region: Europe.
 - The owner asked for two lists, a first prototype and a final product, and said to get the basics working first: the ears and antennae are not needed at this stage. Decided: the first hardware is a talking face on a desk, and ears, glow, camera, neck tilt and dock are parked (rows 37 and 38).
-- Research found that the memory shortage has pushed the Pi 5 up (4 GB about 117 to 140 euro), which is why the first list is kept to the parts that prove the basics. Proposed desk rig parts are in row 39 and the lists are in `docs/shopping-lists.md`.
+- Research found that the memory shortage has pushed the Pi 5 up (4 GB about 117 to 140 euro), which is why the first list is kept to the parts that prove the basics. The desk rig parts are in row 39 and the lists are in `docs/shopping-lists.md`.
+- Answers: buy the 4 inch DSI display now, use the XVF3800 mic array, take the Pi 5 with 4 GB, shop from the Netherlands or Belgium.
+- The owner then paused the hardware research ("too much detailed research") to test the software first. Nothing is ordered. Shop picks for the Netherlands and Belgium are in `docs/shopping-lists.md`; prices must be checked on the day of ordering.
