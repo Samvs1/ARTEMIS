@@ -36,7 +36,7 @@
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--font-body);padding:20px 16px 36px}
-.app{max-width:1120px;margin:0 auto;display:grid;gap:18px}
+.app{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:18px}
 h1{font:600 clamp(2.1rem,7vw,3rem)/1 var(--font-display);margin:0;letter-spacing:-.01em}
 header p{margin:8px 0 0;color:var(--muted);max-width:58ch}
 h2,summary{margin:0 0 10px;font:600 12px/1 var(--font-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
@@ -100,6 +100,21 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .look input{flex:1 1 220px;min-width:0;font:400 12px var(--font-mono);padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
 #copyNote{margin:6px 2px 0;font-size:13px;color:var(--muted);min-height:1.3em}
 
+.mind-status{margin:0 0 10px;font-size:13px;color:var(--muted);display:flex;align-items:center;gap:8px}
+.mind-status::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--muted);flex:none}
+.mind-status[data-state="on"]{color:var(--ink)}
+.mind-status[data-state="on"]::before{background:#2ea66a}
+.chat{list-style:none;margin:0 0 10px;padding:0;display:grid;gap:6px;max-height:190px;overflow-y:auto}
+.chat:empty{display:none}
+.chat li{padding:8px 12px;border-radius:14px;max-width:88%;overflow-wrap:anywhere;font-size:14px;line-height:1.35}
+.chat .you{justify-self:end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:5px}
+.chat .milo{justify-self:start;background:var(--chip);border-bottom-left-radius:5px}
+.chat .sys{justify-self:center;max-width:100%;background:none;color:var(--muted);font-size:12px;padding:2px 4px;text-align:center}
+.chat-form{display:flex;gap:8px}
+#chatMic{min-width:7rem;justify-content:center}
+.chat-form input{flex:1 1 0;min-width:0;font:inherit;padding:10px 16px;min-height:42px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.chat-form input:disabled,.chat-form button:disabled{opacity:.55;cursor:not-allowed}
+
 details summary{cursor:pointer;list-style:none;margin-bottom:0}
 details summary::-webkit-details-marker{display:none}
 details summary::after{content:"  +";letter-spacing:0}
@@ -141,6 +156,18 @@ footer{color:var(--muted);font-size:13px}
         <div id="feelings" class="feelings"></div>
       </div>
 
+      <div class="group" id="chatGroup">
+        <h2>Talk to Milo</h2>
+        <p id="mindStatus" class="mind-status" role="status" data-state="off">Checking for the mind server</p>
+        <ol id="chatLog" class="chat" aria-live="polite" aria-label="Conversation"></ol>
+        <form id="chatForm" class="chat-form" autocomplete="off">
+          <input id="chatInput" type="text" aria-label="Say something to Milo" placeholder="Say something" maxlength="300" disabled>
+          <button id="chatSend" class="primary" type="submit" disabled>Send</button>
+          <button id="chatMic" class="toggle" type="button" aria-pressed="false" title="Talk instead of typing" disabled>Mic</button>
+        </form>
+        <p id="mindHelp" class="hint" hidden></p>
+      </div>
+
       <div class="group">
         <h2>Try it</h2>
         <div class="row">
@@ -154,7 +181,7 @@ footer{color:var(--muted);font-size:13px}
           <button id="tFollow" class="toggle" type="button" aria-pressed="true">Follow pointer on</button>
           <button id="tSound" class="toggle" type="button" aria-pressed="true">Sound on</button>
         </div>
-        <p class="hint">"Hey Milo" plays out the shape of a real conversation (hear, think, speak) with no AI behind it yet. Tap Milo's face, ears or body to see how it reacts.</p>
+        <p class="hint">"Hey Milo" plays out a conversation: hear, think, speak. Without the mind server it uses placeholder lines. With it, Milo listens through your microphone and answers for real. Tap Milo's face, ears or body to see how it reacts.</p>
       </div>
 
       <div class="group">
@@ -188,7 +215,7 @@ footer{color:var(--muted);font-size:13px}
     </section>
   </div>
 
-  <footer>Runs entirely in your browser. Source: sim/index.html in the LIGMA repository.</footer>
+  <footer>The page runs in your browser. Chat, thinking and the real voice need the mind server (mind/server.py). Source: sim/index.html in the LIGMA repository.</footer>
 </main>
 
 <script>
@@ -730,11 +757,14 @@ function render() {
    a sound you hear fifty times a day has to stay pleasant.
    ====================================================================== */
 let AC = null, master = null, lastChirp = 0;
+let analyser = null, voiceBuf = null;               // listens to the voice, so the mouth can follow it
 function audio() {
   if (!AC) {
     try {
       AC = new (window.AudioContext || window.webkitAudioContext)();
       master = AC.createGain(); master.gain.value = 0.22; master.connect(AC.destination);
+      analyser = AC.createAnalyser(); analyser.fftSize = 512; analyser.connect(AC.destination);
+      voiceBuf = new Uint8Array(analyser.fftSize);
     } catch (e) { AC = null; }
   }
   if (AC && AC.state === 'suspended') AC.resume();
@@ -811,7 +841,7 @@ const L = {
   pointer: { x: CX, y: 140, t: -99 },
   blinkPhase: -1, nextBlink: 2.2,
   hop: { y: 0, v: 0 }, tw: { L: 0, R: 0 }, nextTwitch: 4,
-  speakUntil: 0, pulse: { type: '', start: 0, until: 0 },
+  speakUntil: 0, voiceOn: false, pulse: { type: '', start: 0, until: 0 },
   meters: { energy: 1, boredom: 0.1, curiosity: 0.4, social: 0.15 }, budget: 5, nextAuto: 14
 };
 // M holds the things that change every frame on top of the feeling.
@@ -852,7 +882,11 @@ function runScript(body) {
     if (my === L.seq) { L.busy = false; L.lookUntil = 0; }
   });
 }
-function cancelScripts() { L.seq++; L.busy = false; L.lookUntil = 0; L.speakUntil = 0; hideSubtitle(); stopSpeech(); }
+function cancelScripts() {
+  L.seq++; L.busy = false; L.lookUntil = 0; L.speakUntil = 0;
+  hideSubtitle(); stopSpeech(); stopVoice(); stopListening(false);
+  if (mind.abort) { try { mind.abort.abort(); } catch (e) { /* already finished */ } mind.abort = null; }
+}
 
 // ---- the log and the subtitle ----
 const logItems = [];
@@ -886,19 +920,93 @@ const LINES = [
 let lineIx = Math.floor(Math.random() * LINES.length);
 const nextLine = () => LINES[lineIx++ % LINES.length];
 
-async function sayLine(text, wait) {
-  showSubtitle(text);
-  const est = Math.max(1.8, text.split(/\s+/).length * 0.36);
+// ---- the mind server and the voice ----
+// When the page is opened through mind/server.py, Milo can really think (DeepSeek) and speak (Fish Audio).
+const mind = { online: false, info: null, abort: null, listening: false, rec: null, voiceWarned: false, played: 0 };
+let voiceNode = null;                              // the sound that is playing right now
+
+// A "speech" is one sentence plus its audio. The audio is requested as soon as the sentence
+// exists, so the next sentence is usually ready before the current one ends.
+function makeSpeech(text, onStart) { return { text: text, onStart: onStart || null, audio: fetchVoice(text) }; }
+
+async function fetchVoice(text) {                  // a decoded sound, or null when there is no real voice
+  if (!mind.online || !settings.sound || !audio() || AC.state !== 'running') return null;
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 20000);
+  try {
+    const res = await fetch('/api/tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal, body: JSON.stringify({ text: text }) });
+    if (!res.ok) {
+      if (!mind.voiceWarned) {
+        mind.voiceWarned = true;
+        let why = 'HTTP ' + res.status;
+        try { why = (await res.json()).error || why; } catch (e) { /* not JSON */ }
+        log('mind', 'voice problem: ' + why);
+      }
+      return null;
+    }
+    const bytes = await res.arrayBuffer();
+    return await new Promise((ok, fail) => AC.decodeAudioData(bytes, ok, fail));
+  } catch (e) {
+    return null;
+  } finally { clearTimeout(timer); }
+}
+
+function playSound(buffer) {
+  return new Promise((resolve) => {
+    stopVoice();
+    const src = AC.createBufferSource();
+    src.buffer = buffer; src.connect(analyser);
+    voiceNode = src; L.voiceOn = true;
+    let settled = false;
+    const end = () => {
+      if (settled) return;
+      settled = true;
+      if (voiceNode === src) { voiceNode = null; L.voiceOn = false; }
+      resolve();
+    };
+    src.onended = end;
+    setTimeout(end, (buffer.duration + 1.5) * 1000);   // a safety net in case the browser never reports the end
+    src.start();
+    mind.played++;
+  });
+}
+function stopVoice() {
+  const n = voiceNode;
+  voiceNode = null; L.voiceOn = false;
+  if (n) { try { n.stop(); } catch (e) { /* already stopped */ } }
+}
+function voiceLevel() {                            // how loud the voice is right now, 0 to 1
+  if (!analyser || !L.voiceOn) return 0;
+  analyser.getByteTimeDomainData(voiceBuf);
+  let sum = 0;
+  for (let i = 0; i < voiceBuf.length; i++) { const x = (voiceBuf[i] - 128) / 128; sum += x * x; }
+  return Math.min(1, Math.sqrt(sum / voiceBuf.length) * 4.5);
+}
+
+// Say one sentence. Returns false if something cancelled it.
+async function speakSpeech(sp, wait) {
+  const sound = await sp.audio;                    // the real voice, if there is one
+  if (!(await wait(0))) return false;
+  showSubtitle(sp.text);
+  if (sp.onStart) sp.onStart();
+  if (sound) { await playSound(sound); return true; }
+  // No real voice: use the browser's voice, or hum along.
+  const est = Math.max(1.8, sp.text.split(/\s+/).length * 0.36);
   L.speakUntil = clock + est + 0.3;
-  const spoke = speakText(text);
+  const spoke = speakText(sp.text);
   const first = await Promise.race([spoke, sleep(250).then(() => 'pending')]);
-  if (first === false) {                           // no browser voice: hum along instead
+  if (first === false) {
     const endAt = performance.now() + est * 1000;
     while (performance.now() < endAt) { chirp('babble', { force: true }); if (!(await wait(300))) return false; }
   } else {
     await Promise.race([spoke, sleep((est + 1.5) * 1000)]);
   }
   L.speakUntil = 0;
+  return true;
+}
+
+async function sayLine(text, wait) {
+  if (!(await speakSpeech(makeSpeech(text), wait))) return false;
   if (!(await wait(900))) return false;
   hideSubtitle();
   return true;                                     // false means something cancelled the story
@@ -912,6 +1020,7 @@ function heyMilo() {
     return;
   }
   audio();
+  if (mind.online) { startListening({}); return; }        // with the mind server this is the real thing
   runScript(async (wait) => {
     if (L.mood === 'sleepy') { setMood('calm', { sound: false }); chirp('wake'); if (!(await wait(600))) return; }
     log('life', 'hears "Hey Milo" (the wake word runs on the robot)');
@@ -931,6 +1040,272 @@ function heyMilo() {
     log('life', 'window closed: waiting for "Hey Milo" again');
     setMood('calm', { sound: false });
   });
+}
+
+/* ----------------------------------------------------------------------
+   The mind: talking to mind/server.py
+   The server answers with one small message per line:
+     {"type":"emote","name":"happy"}  {"type":"look","dir":"left"}  {"type":"sound","name":"curious"}
+     {"type":"say","text":"..."}      {"type":"error","message":"..."}  {"type":"done", ...}
+   Face changes before the first words run at once, which hides the wait for the voice.
+   After that, everything is played in the order it was written.
+   ---------------------------------------------------------------------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;   // the browser's own speech recognition
+
+async function checkMind() {
+  try {
+    // The mind server speaks plain http. A file on disk or a published (https) page can never reach it.
+    if (location.protocol !== 'http:') throw new Error('not served by the mind server');
+    const res = await fetch('/api/health', { cache: 'no-store' });
+    const info = res.ok ? await res.json() : null;
+    if (!info || !info.ok) throw new Error('this is not the mind server');
+    mind.online = true; mind.info = info;
+  } catch (e) { mind.online = false; mind.info = null; }
+  updateMindUI();
+}
+
+function updateMindUI() {
+  const status = $('mindStatus'), help = $('mindHelp'), input = $('chatInput');
+  const locked = L.privacy;
+  if (!mind.online) {
+    status.dataset.state = 'off';
+    status.textContent = 'Mind not connected';
+    input.placeholder = 'Mind not connected';
+    help.hidden = false;
+    help.textContent = 'To chat, run  python3 mind/server.py  in the project folder and open http://127.0.0.1:8000. The "Hey Milo" demo works without it.';
+  } else {
+    const i = mind.info;
+    status.dataset.state = 'on';
+    status.textContent = 'Mind: ' + i.brain.label + '. Voice: ' + i.voice.label + '.';
+    input.placeholder = locked ? 'Privacy mode is on' : 'Say something';
+    help.hidden = i.brain.kind !== 'demo' && i.voice.kind !== 'babble';
+    help.textContent = 'Some parts are in demo mode (canned answers or a babble voice). Put your keys in the .env file to use DeepSeek and Fish Audio.';
+  }
+  input.disabled = !mind.online || locked;
+  $('chatSend').disabled = !mind.online || locked;
+  $('chatMic').disabled = !mind.online || locked || !SR;
+  $('chatMic').title = SR ? 'Talk instead of typing' : 'This browser cannot turn speech into text. Type instead.';
+}
+
+function addChat(who, text) {
+  const li = document.createElement('li');
+  li.className = who; li.textContent = text;
+  const ol = $('chatLog');
+  ol.append(li);
+  while (ol.children.length > 10) ol.removeChild(ol.firstChild);
+  ol.scrollTop = ol.scrollHeight;
+  return li;
+}
+function appendChat(li, text) {
+  li.textContent = (li.textContent ? li.textContent + ' ' : '') + text;
+  $('chatLog').scrollTop = $('chatLog').scrollHeight;
+}
+
+// What the mind is told about the body each time it thinks.
+function stateForMind() {
+  let when = '';
+  try { when = new Date().toLocaleString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }); }
+  catch (e) { when = String(new Date()).slice(0, 40); }
+  return { mood: L.mood, lights: L.lights, local_time: when,
+    energy: Math.round(L.meters.energy * 100), boredom: Math.round(L.meters.boredom * 100), social: Math.round(L.meters.social * 100) };
+}
+
+// Face, eyes and chirps the mind asked for.
+function applyCue(ev) {
+  if (ev.type === 'emote') {
+    setMood(ev.name, { sound: false });
+  } else if (ev.type === 'look') {
+    const d = { left: [-0.9, 0], right: [0.9, 0], up: [0, -0.8], down: [0, 0.7], center: [0, 0] }[ev.dir];
+    if (d) { L.gaze.tx = d[0]; L.gaze.ty = d[1]; L.lookUntil = clock + 1.4; }
+  } else if (ev.type === 'sound') {
+    chirp(ev.name, { force: true });
+  }
+}
+
+// Plays sentences and cues one after another. push() adds to the end, close() says nothing more is coming.
+function makePlayer(wait) {
+  const queue = [];
+  let running = false, closed = false, ok = true, finish;
+  const done = new Promise((resolve) => { finish = resolve; });
+  async function run() {
+    if (running) return;
+    running = true;
+    while (queue.length && ok) {
+      const item = queue.shift();
+      if (item.cue) applyCue(item.cue);
+      else if (!(await speakSpeech(item.speech, wait))) ok = false;
+    }
+    running = false;
+    if (closed) finish(ok);
+  }
+  return {
+    push(item) { queue.push(item); run(); },
+    close() { closed = true; if (!running) finish(ok); },
+    done: done
+  };
+}
+
+// One turn of conversation. `text` is what the person said; `opts.event` is for things Milo starts itself.
+function askMind(text, opts) {
+  opts = opts || {};
+  if (!mind.online) return;
+  if (L.privacy) { showSubtitle("Privacy mode is on. I'm not listening.", 2200); return; }
+  audio();
+  cancelScripts();                                   // an older story stops, and so does an older reply
+  if (L.mood === 'sleepy') setMood('calm', { sound: false });
+  if (text) addChat('you', text);
+  mind.voiceWarned = false;
+  runScript(async (wait) => {
+    const ctl = new AbortController();
+    mind.abort = ctl;
+    L.meters.boredom = 0; L.meters.social = Math.max(0, L.meters.social - 0.3);
+    log('life', opts.event ? 'event "' + opts.event + '": waking the mind' : 'you stopped talking: Thinking face starts now');
+    setMood('thinking', { sound: false }); pulse('thinking', 90); chirp('thinking', { force: true });
+    log('mind', 'request sent');
+    const player = makePlayer(wait);
+    const cues = [];
+    let bubble = null, sawSay = false, info = null, failure = '';
+    const onEvent = (ev) => {
+      if (ev.type === 'emote' || ev.type === 'look' || ev.type === 'sound') {
+        L.pulse.until = 0;
+        cues.push(ev.type + ' ' + (ev.name || ev.dir));
+        if (sawSay) player.push({ cue: ev }); else applyCue(ev);      // before the first words: act at once
+      } else if (ev.type === 'say') {
+        L.pulse.until = 0;
+        if (L.mood === 'thinking') setMood('happy', { sound: false });
+        if (!bubble) bubble = addChat('milo', '');
+        sawSay = true;
+        player.push({ speech: makeSpeech(ev.text, () => appendChat(bubble, ev.text)) });
+      } else if (ev.type === 'error') {
+        failure = ev.message;
+      } else if (ev.type === 'done') {
+        info = ev;
+      }
+    };
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal,
+        body: JSON.stringify({ text: text || '', event: opts.event || '', state: stateForMind() })
+      });
+      if (!res.ok || !res.body) {
+        let why = 'The mind server answered ' + res.status + '.';
+        try { why = (await res.json()).error || why; } catch (e) { /* not JSON */ }
+        throw new Error(why);
+      }
+      const reader = res.body.getReader(), decoder = new TextDecoder();
+      let buf = '';
+      for (;;) {
+        const part = await reader.read();
+        if (part.done) break;
+        if (!(await wait(0))) { ctl.abort(); return; }
+        buf += decoder.decode(part.value, { stream: true });
+        let nl;
+        while ((nl = buf.indexOf('\n')) >= 0) {
+          const line = buf.slice(0, nl).trim();
+          buf = buf.slice(nl + 1);
+          if (!line) continue;
+          let ev = null;
+          try { ev = JSON.parse(line); } catch (e) { /* ignore a broken line */ }
+          if (ev) onEvent(ev);
+        }
+      }
+    } catch (e) {
+      if (e.name === 'AbortError') return;
+      failure = failure || e.message || 'Something went wrong.';
+    }
+    player.close();
+    const finished = await player.done;
+    if (!finished || !(await wait(0))) return;
+    L.pulse.until = 0;
+    if (failure && !sawSay) {                          // nothing was said: show Milo's confusion
+      log('mind', 'problem: ' + failure);
+      addChat('sys', failure);
+      setMood('curious', { sound: false, hold: 8 }); chirp('bored', { force: true });
+      showSubtitle("My mind isn't answering. " + failure, 7000);
+      return;
+    }
+    if (failure) log('mind', 'problem: ' + failure);
+    if (info) log('mind', 'first words after ' + info.first_token_ms + ' ms; ' + cues.length + ' cue(s)' + (cues.length ? ': ' + cues.join(', ') : ''));
+    if (!(await wait(1000))) return;
+    hideSubtitle();
+    L.holdUntil = clock + 8;                           // the face relaxes by itself
+    if (opts.viaVoice && SR) startListening({ window: true });     // the conversation window: keep listening a moment
+  });
+}
+
+// ---- the microphone (the browser turns speech into text) ----
+function setMic(on) {
+  const b = $('chatMic');
+  b.setAttribute('aria-pressed', String(on));
+  b.textContent = on ? 'Listening' : 'Mic';
+}
+function stopListening(send) {
+  const rec = mind.rec;
+  if (!rec) return;
+  if (send) { try { rec.stop(); } catch (e) { /* ignore */ } return; }   // let it finish and send what it heard
+  mind.rec = null; mind.listening = false; setMic(false); L.pulse.until = 0;
+  try { rec.onend = null; rec.abort(); } catch (e) { /* ignore */ }
+}
+function startListening(o) {
+  o = o || {};
+  if (!mind.online || L.privacy) return false;
+  audio();
+  if (mind.listening) return true;
+  cancelScripts();
+  if (!SR) {
+    log('life', 'this browser cannot turn speech into text: type to Milo instead');
+    setMood('curious', { sound: false, hold: 6 }); chirp('listen', { force: true });
+    showSubtitle("I can only read today. Type to me below.", 3500);
+    $('chatInput').focus();
+    return false;
+  }
+  const rec = new SR();
+  rec.lang = 'en-US'; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+  let finalText = '', heard = false;
+  mind.rec = rec; mind.listening = true; setMic(true);
+  if (L.mood === 'sleepy') setMood('calm', { sound: false });
+  setMood('curious', { sound: false }); chirp('listen', { force: true }); pulse('listening', 20);
+  log('life', o.window ? 'conversation window open: no wake word needed' : 'hears "Hey Milo" (the wake word runs on the robot)');
+  rec.onresult = (e) => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const r = e.results[i];
+      if (r.isFinal) finalText += r[0].transcript; else interim += r[0].transcript;
+    }
+    heard = true;
+    $('chatInput').value = (finalText + interim).trim();
+  };
+  rec.onerror = (e) => {
+    const why = { 'not-allowed': 'the browser blocked the microphone (allow it in the address bar)',
+      'service-not-allowed': 'speech recognition is not allowed here', 'network': 'speech recognition needs an internet connection',
+      'audio-capture': 'no microphone was found' }[e.error];
+    if (why) { log('life', 'microphone: ' + why); showSubtitle("I can't hear you: " + why + '.', 4500); }
+  };
+  rec.onend = () => {
+    if (mind.rec !== rec) return;
+    mind.rec = null; mind.listening = false; setMic(false); L.pulse.until = 0;
+    const text = finalText.trim();
+    if (text) { $('chatInput').value = ''; askMind(text, { viaVoice: true }); }
+    else {
+      if (o.window) log('life', 'window closed: waiting for "Hey Milo" again');
+      if (L.mood === 'curious') setMood('calm', { sound: false });
+    }
+  };
+  try { rec.start(); } catch (e) { mind.rec = null; mind.listening = false; setMic(false); return false; }
+  setTimeout(() => { if (mind.rec === rec && !heard) { try { rec.stop(); } catch (e) { /* ignore */ } } }, o.window ? 6000 : 9000);
+  return true;
+}
+
+function wireChat() {
+  $('chatForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const input = $('chatInput'), text = input.value.trim();
+    if (!text || !mind.online) return;
+    input.value = '';
+    askMind(text, {});
+  });
+  $('chatMic').addEventListener('click', () => { if (mind.listening) stopListening(true); else startListening({}); });
+  window.addEventListener('focus', () => { if (!mind.online) checkMind(); });
 }
 
 function poke() {
@@ -980,6 +1355,7 @@ function setPrivacy(on) {
   cancelScripts();
   L.privacy = on;
   setToggle('tPrivacy', on, 'Privacy on', 'Privacy off');
+  updateMindUI();
   if (on) {
     log('life', 'privacy mode: microphone power cut, camera shutter closed (head tips down)');
     setMood('privacy', { sound: false });
@@ -1010,6 +1386,12 @@ function autoLookAround() {
 }
 function autoWantsAttention() {
   L.meters.social = 0.2;
+  if (mind.online && L.budget > 0 && settings.sound && !L.privacy) {      // the real mind decides what to say
+    L.budget--;
+    log('initiative', 'wants company: waking the mind (talk budget left ' + L.budget + ' of 5)');
+    askMind('', { event: 'wants_company' });
+    return;
+  }
   runScript(async (wait) => {
     if (L.budget > 0) {
       L.budget--;
@@ -1076,8 +1458,9 @@ function life(dt) {
   L.tw.L *= Math.exp(-dt * 6); L.tw.R *= Math.exp(-dt * 6);
 
   // talking
-  const speaking = L.speakUntil > clock;
-  const sT = speaking ? 0.35 + 0.65 * Math.abs(Math.sin(clock * 11) * Math.sin(clock * 5.3 + 1)) : 0;
+  const speaking = L.speakUntil > clock || L.voiceOn;
+  const sT = L.voiceOn ? clamp(0.12 + voiceLevel() * 1.1, 0, 1)                      // follow the real voice
+           : speaking ? 0.35 + 0.65 * Math.abs(Math.sin(clock * 11) * Math.sin(clock * 5.3 + 1)) : 0;
   M.speak += (sT - M.speak) * (1 - Math.exp(-dt * 25));
 
   // little extras on the face
@@ -1265,12 +1648,12 @@ function frame(now) {
 }
 
 function init() {
-  buildTiles(); buildShells(); buildMeters(); wireSliders(); wireButtons(); wireStage();
+  buildTiles(); buildShells(); buildMeters(); wireSliders(); wireButtons(); wireStage(); wireChat();
   setToggle('tLife', settings.life, 'Life layer on', 'Life layer off');
   setToggle('tFollow', settings.follow, 'Follow pointer on', 'Follow pointer off');
   setToggle('tSound', settings.sound, 'Sound on', 'Sound off');
   syncLook(); syncTiles();
-  resize(); renderThumbs(); render(); updatePanel();
+  resize(); renderThumbs(); render(); updatePanel(); updateMindUI(); checkMind();
   log('life', 'online. Everything on this page runs on the robot side.');
   if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(canvas);
   else window.addEventListener('resize', resize);
@@ -1283,6 +1666,8 @@ window.milo = {
   emote: (name, o) => setMood(name, Object.assign({ hold: 0 }, o || {})),
   lookAt: (x, y, secs) => { L.gaze.tx = clamp(x, -1, 1); L.gaze.ty = clamp(y, -1, 1); L.lookUntil = clock + (secs || 1.5); },
   say: (text) => runScript((wait) => sayLine(text, wait)),
+  ask: (text) => askMind(String(text || ''), {}),
+  mind: () => ({ online: mind.online, info: mind.info, played: mind.played }),
   playSound: (name) => chirp(name, { force: true }),
   state: () => ({ mood: L.mood, lights: L.lights, privacy: L.privacy, meters: Object.assign({}, L.meters) }),
   _test: { freeze: (v) => { L.freeze = !!v; }, setLife: (v) => { settings.life = !!v; }, clock: () => clock }

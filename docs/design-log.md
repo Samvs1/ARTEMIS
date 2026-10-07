@@ -52,6 +52,10 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 24 | Voice (text to speech) | Fish Audio | Chosen by the owner. | Decided (owner) |
 | 25 | Images | OpenAI API, if needed | For image generation such as concept art and shell ideas. Not part of the core loop. | Possible (owner) |
 | 26 | API keys | Never in the browser, never in git | Keys live in a `.env` file on the machine that runs the mind server (`.env.example` lists the names) and as environment variables in cloud sessions. Git ignores `.env`. | Decided (owner and assistant) |
+| 27 | Next build | Character and mind in the simulator | Character bible drafted in `mind/character.md`. The mind server and a chat box in the simulator are built (section 10). | Decided (R6) |
+| 28 | Voice home | Fish Audio first, a local voice later | Later the robot gets a small on-device voice (such as Piper) for when Wi-Fi drops, in line with the two-brains idea. | Decided (R6) |
+| 29 | Branches | `main` is kept in sync with the working branch after each round | The owner allowed creating `main`. GitHub's default branch stays the working branch until the owner switches it in the repository settings. | Decided (R6) |
+| 30 | How the mind drives the body | Stage directions inside the reply | The AI writes tags such as `[emote:happy]`, `[look:left]` and `[sound:curious]` in its reply. The server turns them into actions in order (section 10). | Built (assistant) |
 
 ## 3. Architecture principle: two brains
 
@@ -82,7 +86,7 @@ Core: curious, friendly, a little mischievous (Decided).
 
 Proposed seeds, not yet chosen:
 
-- **Character bible** with wants, fears and quirks, written together with the owner. Examples: wants to find out what is behind every closed door; afraid of the vacuum cleaner and the dark; always parks in the sunbeam. These drive both the remote mind's lines and the local behaviors.
+- **Character bible**: draft v0 is written in `mind/character.md` and is read on every reply, so edits apply at once. It covers who Milo is, how it talks, what it wants (find out what is behind every closed door; collect small facts about the people it lives with; be there when someone comes home; understand why people hum), what it fears (the vacuum cleaner, the dark, table edges), quirks (the sunbeam, pretending to be asleep, "things I have learned about you"), how it treats people (including no guilt-tripping), and what it cannot do yet. The wants and fears are proposals for the owner to react to.
 - **Growing closer** through memory: inside jokes, remembered preferences, a shared history.
 - **Dreaming at the dock**: while charging at night, Milo replays the day and boils it down to a few "things I learned about you", which feeds the memory system. In the morning it may say "I dreamt about what you said yesterday".
 - **Chirp language**: a palette of chirps and hums keyed to emotional states, so you can read Milo's mood by sound alone. The style is decided (soft, organic, musical). Because chirps repeat a lot, the life layer needs variety, a low volume and a cooldown.
@@ -147,22 +151,23 @@ To work out:
 
 ## 8. Open questions
 
-- **Voice and brain stack**: the mind is DeepSeek and the voice is Fish Audio (decided). Still open: speech to text (the browser's own, OpenAI's, or another service), the transport between the page or robot and the mind server, how to add vision, and a monthly cost budget.
+- **Voice and brain stack**: the mind is DeepSeek and the voice is Fish Audio (decided). Speech to text is the browser's own for now. Still open: a better speech-to-text for the robot, how to add vision, which Fish Audio voice to use, and a monthly cost budget.
+- **First real run**: the mind server has not yet been tried with real keys or a real microphone. A session that has the keys should run `python3 mind/server.py --check` first.
 - **Memory design**: what is stored, how it is summarized, how people are recognized (face and voice).
 - **Second person**: do they want their own relationship with Milo, and how often are they around?
 - **Name and wake word**: confirm "Milo" and "Hey Milo".
 - **Body**: battery and power, display type, mic array, camera, sensors, dock design, size feasibility.
 - **Timeline**: how much time per week, and any target date.
 - **Mind server home**: first on the owner's own computer; where it lives once it should be always on.
-- **Cloud environment setup**: the environment's network policy blocks api.deepseek.com and api.fish.audio (api.openai.com works), and the keys are not in the environment yet. Planned names, matching `.env.example`: `DEEPSEEK_API_KEY`, `FISH_AUDIO_API_KEY`, `OPENAI_API_KEY`. The environment already holds an `IMAGE_API_KEY` whose service is unconfirmed.
+- **Cloud environment setup**: the owner has allowed api.deepseek.com and api.fish.audio (api.openai.com already worked). The keys only reach new sessions. Names, matching `.env.example`: `DEEPSEEK_API_KEY`, `FISH_AUDIO_API_KEY`, `OPENAI_API_KEY`. The environment already holds an `IMAGE_API_KEY` whose service is unconfirmed.
 - **First prototype**: what should it prove?
-- **Character bible**: draft it together.
+- **Character bible**: react to draft v0. What should Milo call each person? How sharp is its humour? Are the wants and fears right?
 
 ## 9. Roadmap (working plan)
 
 Start with the riskiest and most magical part, which is talking.
 
-1. **Software Milo in the browser** (decided in R5): face, feelings, life layer and chirps. Version 0 is done. Next comes the mind server: text from DeepSeek, voice from Fish Audio, then microphone input, aiming for about one second from end of speech to first sound.
+1. **Software Milo in the browser** (decided in R5): face, feelings, life layer and chirps are done. The mind server (DeepSeek for text, Fish Audio for voice, the browser's microphone) is built and tested against fakes. Next: a first real run with keys, measuring the time from end of speech to first sound (the target is about one second), then tuning the character.
 2. **Desk rig**: the same code on a Pi with a mic, speaker and screen (no wheels). Order parts in parallel once the voice loop feels right.
 3. **Body v1**: chassis with drive, skid, bump and cliff sensors, neck tilt, ears and glow.
 4. **Memory and growth**: long-term memory, two-person identity, nightly consolidation, Milo's diary.
@@ -170,11 +175,13 @@ Start with the riskiest and most magical part, which is talking.
 
 Later candidates: look-to-talk, Milo's diary, shell personas.
 
-## 10. Software Milo (the simulator)
+## 10. Software Milo (the simulator and the mind server)
 
-`sim/index.html` is version 0: a single file you can open in any browser, with nothing to install.
+### The simulator
 
-What it does today:
+`sim/index.html` is a single file you can open in any browser, with nothing to install.
+
+What it does:
 
 - Six feelings from the concept plus a calm state, drawn as a glowing face with ears, a mood glow and a camera lens, on a body with wheels. Each feeling is a set of numbers that Milo glides between, so changes look organic.
 - The life layer: blinking, glances, ear twitches, breathing, boredom, wanting company, getting sleepy and waking up. None of it calls an AI.
@@ -182,16 +189,37 @@ What it does today:
 - Soft chirps made in the browser, following the "soft, organic, musical" decision.
 - A "Hey Milo" demo that plays out the shape of a conversation (wake word, Thinking face, reply, open window) with placeholder lines and the browser's own voice. No AI behind it yet.
 - Four shells (Classic, Minimal, Retro, Creature), glow colour, eye size and spacing, and a "copy my look" button.
-- A small control surface on `window.milo`: `emote`, `lookAt`, `say`, `playSound`, `state`. These are the "tools" the remote mind will call.
+- A small control surface on `window.milo`: `emote`, `lookAt`, `say`, `playSound`, `ask`, `state`. These are the "tools" the remote mind drives.
+- A "Talk to Milo" box: type or use the microphone. It only works when the page is opened through the mind server; otherwise it says so and the "Hey Milo" demo keeps working.
 
-What it does not do yet: talk to a mind, play a real voice, or hear a microphone.
+### The mind server
 
-Proposed plan for the mind server:
+Built in R6. `mind/server.py` needs only Python 3. Run `python3 mind/server.py` (or `--mock` for a demo, `--check` to test the keys) and open http://127.0.0.1:8000. It serves the simulator page and three endpoints:
 
-- A small server holds the API keys and talks to DeepSeek (text), Fish Audio (voice) and a speech-to-text service. The page and, later, the robot never see a key.
-- The simulator and the robot connect to it over a WebSocket with the same messages, so code written now moves onto the robot.
-- The first version runs on the owner's own computer. Hosting it somewhere always on comes later.
-- Keys live in a `.env` file that git ignores (`.env.example` lists the names). In cloud sessions they come from environment variables instead.
+- `/api/chat`: the page sends what was said (or an event such as "wants company") plus a little body state (mood, lights, energy). The server builds the prompt from `mind/character.md`, asks DeepSeek for a streamed reply and sends back one small message per line as the reply is written.
+- `/api/tts`: one sentence in, speech out (Fish Audio), or a babble voice in demo mode.
+- `/api/health`: tells the page which mind and voice are active.
+
+Streaming uses plain HTTP with one message per line, not a WebSocket, because it needs no extra software. The robot can use the same messages later.
+
+How a reply becomes behaviour: the AI writes its reply with stage directions in brackets, for example `[emote:excited] A door! [look:left] Which one?`. The server removes them from the speech and sends `emote`, `look` and `sound` messages in order, plus one `say` message per sentence as soon as that sentence is complete. The page acts on face changes before the first words at once (this hides the wait for the voice), asks for each sentence's audio as soon as it exists, and plays everything in order. The mouth follows the real loudness of the voice. A new message from the person interrupts the current reply.
+
+In the browser, "Hey Milo" is a push-to-talk stand-in for the wake word. After a spoken reply, listening stays open for 6 seconds (the conversation window). Speech recognition is the browser's own, so it needs Chrome, Edge or Safari, an internet connection and permission.
+
+Safety and cost:
+
+- Keys stay on the server. Only requests from the page itself are answered, and other websites are refused.
+- Limits per hour: 120 chats and 20,000 spoken characters, so a bug cannot burn through credit. Replies are capped at 220 tokens and are meant to be one to three sentences.
+- Fish Audio is billed per character (reported as about 15 dollars per million UTF-8 bytes, to be verified), so a typical reply costs a fraction of a cent.
+- The initiative engine can wake the mind by itself when Milo wants company, within the talk budget of 5 per session.
+
+Robustness: the API documents could not be read from the build environment. DeepSeek retired its old model names in July 2026 (current: `deepseek-v4-flash` and `deepseek-v4-pro`), and thinking is on by default, which is slow for chat. Fish Audio's documents disagree about the `model` header (`s1`, `s2-pro`, `s2.1-pro`). The server therefore sends "thinking off", retries without it if refused, tries the known model names in order, remembers what worked, and explains every failure in plain words. `--check` sends one tiny request per service.
+
+Tests: 50 unit tests (`python3 -m unittest discover -s mind/tests -t .`) cover the parser, the settings, the server's security rules and both API clients against fake servers. The simulator was driven through the demo mind in a headless browser.
+
+Not tried yet: real DeepSeek and Fish Audio calls (the keys were not available in the build session), the microphone, and real latency.
+
+The keys live in a `.env` file that git ignores (`.env.example` lists the names). In cloud sessions they come from environment variables instead.
 
 ## 11. Round log
 
@@ -215,3 +243,8 @@ Proposed plan for the mind server:
 
 - Printing: print service or makerspace. Skills: very new to everything, willing to learn. Budget: about 250 to 500. First build: software Milo first.
 - Afterwards the owner named the stack: DeepSeek for text, Fish Audio for voice, OpenAI for possible image generation.
+
+**Round 6: character and mind**
+
+- Next build: character and mind in the simulator. Voice home: Fish Audio first, local later. Main branch: keep it in sync after each round.
+- Afterwards the owner allowed api.deepseek.com and api.fish.audio in the environment's network settings.

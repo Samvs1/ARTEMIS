@@ -1,0 +1,288 @@
+#!/usr/bin/env python3
+"""Milo's mind server.
+
+Run it from the project folder:
+
+    python3 mind/server.py            use your keys from .env (or the demo mind if there are none)
+    python3 mind/server.py --mock     ignore any keys and use the demo mind and the babble voice
+    python3 mind/server.py --check    test your keys with one tiny request each, then exit
+
+Then open http://127.0.0.1:8000 in your browser. The page is the Milo simulator, now with a
+chat box. The keys stay in this program. The browser never sees them.
+
+It uses only what comes with Python, so there is nothing to install.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+import threading
+import time
+from collections import deque
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from mind.brain import BrainError, DeepSeekBrain, DemoBrain, Mind, clean_speech   # noqa: E402
+from mind.config import ROOT, Settings, load_env_file                              # noqa: E402
+from mind.voice import DemoVoice, FishVoice, VoiceError                            # noqa: E402
+
+VERSION = "0.1"
+SIM_FILE = ROOT / "sim" / "index.html"
+MAX_BODY = 20_000
+
+
+def log(message: str) -> None:
+    print(time.strftime("%H:%M:%S ") + message, flush=True)
+
+
+class Limiter:
+    """A safety net: at most `per_hour` units per hour, so a bug cannot burn through your credit."""
+
+    def __init__(self, per_hour: int) -> None:
+        self.per_hour = per_hour
+        self._events: deque[tuple[float, int]] = deque()
+        self._lock = threading.Lock()
+
+    def allow(self, cost: int = 1) -> bool:
+        now = time.time()
+        with self._lock:
+            while self._events and self._events[0][0] < now - 3600:
+                self._events.popleft()
+            if sum(c for _, c in self._events) + cost > self.per_hour:
+                return False
+            self._events.append((now, cost))
+            return True
+
+
+class App:
+    """Everything the server needs: the settings, the mind and the voice."""
+
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+        self.brain = DeepSeekBrain(settings) if settings.use_deepseek else DemoBrain()
+        self.voice = FishVoice(settings) if settings.use_fish else DemoVoice()
+        self.mind = Mind(self.brain)
+        self.chat_limit = Limiter(settings.max_chats_per_hour)
+        self.tts_limit = Limiter(settings.max_tts_chars_per_hour)
+
+    def health(self) -> dict:
+        return {
+            "ok": True,
+            "version": VERSION,
+            "brain": {"kind": self.brain.kind, "label": self.brain.label},
+            "voice": {"kind": self.voice.kind, "label": self.voice.label},
+        }
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "MiloMind/" + VERSION
+    protocol_version = "HTTP/1.0"      # the connection closes after each reply, which is what streaming needs
+
+    @property
+    def app(self) -> App:
+        return self.server.app          # type: ignore[attr-defined]
+
+    def log_message(self, format, *args):   # noqa: A002  (quiet: we log what matters ourselves)
+        pass
+
+    # ---- small helpers ----
+    def send_bytes(self, status: int, body: bytes, content_type: str) -> None:
+        self.send_response(status)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def send_json(self, status: int, obj: dict) -> None:
+        self.send_bytes(status, json.dumps(obj).encode("utf-8"), "application/json; charset=utf-8")
+
+    def read_json(self) -> dict | None:
+        try:
+            length = int(self.headers.get("Content-Length") or 0)
+        except ValueError:
+            return None
+        if length <= 0 or length > MAX_BODY:
+            return None
+        try:
+            data = json.loads(self.rfile.read(length))
+        except ValueError:
+            return None
+        return data if isinstance(data, dict) else None
+
+    def host_ok(self) -> bool:
+        """Only answer requests addressed to localhost, so other websites cannot reach this server."""
+        if self.app.settings.host not in ("127.0.0.1", "localhost", "::1"):
+            return True
+        port = self.server.server_address[1]
+        allowed = {f"localhost:{port}", f"127.0.0.1:{port}", f"[::1]:{port}"}
+        return (self.headers.get("Host") or "") in allowed
+
+    def origin_ok(self) -> bool:
+        """The page must come from this server. A page on another website is refused."""
+        origin = self.headers.get("Origin")
+        if not origin:
+            return True                  # tools like curl send no Origin
+        host = self.headers.get("Host") or ""
+        return origin in (f"http://{host}", f"https://{host}")
+
+    # ---- GET ----
+    def do_GET(self) -> None:
+        if not self.host_ok():
+            return self.send_json(403, {"error": "Wrong host."})
+        path = self.path.split("?", 1)[0]
+        if path in ("/", "/index.html", "/sim/index.html"):
+            try:
+                self.send_bytes(200, SIM_FILE.read_bytes(), "text/html; charset=utf-8")
+            except OSError:
+                self.send_json(404, {"error": "sim/index.html was not found."})
+        elif path == "/api/health":
+            self.send_json(200, self.app.health())
+        elif path == "/favicon.ico":
+            self.send_bytes(204, b"", "image/x-icon")
+        else:
+            self.send_json(404, {"error": "Not found."})
+
+    # ---- POST ----
+    def do_POST(self) -> None:
+        if not (self.host_ok() and self.origin_ok()):
+            return self.send_json(403, {"error": "This request did not come from the Milo page."})
+        path = self.path.split("?", 1)[0]
+        if path == "/api/chat":
+            self.handle_chat()
+        elif path == "/api/tts":
+            self.handle_tts()
+        elif path == "/api/reset":
+            self.app.mind.reset()
+            self.send_json(200, {"ok": True})
+        else:
+            self.send_json(404, {"error": "Not found."})
+
+    def handle_chat(self) -> None:
+        data = self.read_json()
+        if data is None:
+            return self.send_json(400, {"error": 'Send JSON like {"text": "hello"}.'})
+        text = str(data.get("text") or "")
+        event = str(data.get("event") or "")
+        state = data.get("state") if isinstance(data.get("state"), dict) else {}
+        if not self.app.chat_limit.allow():
+            return self.send_json(429, {"error": "That is a lot of chatting for one hour. Milo is taking a short rest."})
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        label = self.app.brain.label
+        try:
+            for event_out in self.app.mind.chat(text, event, state):
+                self.wfile.write((json.dumps(event_out, ensure_ascii=False) + "\n").encode("utf-8"))
+                self.wfile.flush()
+                if event_out["type"] == "done":
+                    log(f"chat  {(text or event)[:50]!r} -> first words after {event_out['first_token_ms']} ms ({label})")
+                elif event_out["type"] == "error":
+                    log("chat  problem: " + event_out["message"])
+        except (BrokenPipeError, ConnectionResetError):
+            log("chat  the page stopped listening (interrupted)")
+
+    def handle_tts(self) -> None:
+        data = self.read_json()
+        text = clean_speech(str((data or {}).get("text") or ""))[:400]
+        if not text:
+            return self.send_json(400, {"error": "There was no text to speak."})
+        if not self.app.tts_limit.allow(len(text)):
+            return self.send_json(429, {"error": "Milo has spoken a lot this hour. Try again later."})
+        started = time.monotonic()
+        try:
+            audio, content_type = self.app.voice.synthesize(text)
+        except VoiceError as e:
+            log("voice problem: " + str(e))
+            return self.send_json(502, {"error": str(e)})
+        self.send_bytes(200, audio, content_type)
+        log(f"voice {len(text)} characters -> {len(audio) // 1024} KB in {int((time.monotonic() - started) * 1000)} ms")
+
+
+def run_check(app: App) -> int:
+    """Try each key once, with the smallest possible request."""
+    print("Checking your setup. This sends two tiny requests and costs a fraction of a cent.\n")
+    ok = True
+    if app.settings.use_deepseek:
+        try:
+            reply = "".join(app.brain.stream([{"role": "user", "content": "Say hello in three words."}]))
+            print(f"  Mind  : OK. DeepSeek model '{app.brain.label}' answered: {reply.strip()[:60]!r}")
+        except BrainError as e:
+            ok = False
+            print(f"  Mind  : FAILED. {e}")
+    else:
+        print("  Mind  : demo mind. No DEEPSEEK_API_KEY was found, so there is nothing to check.")
+    if app.settings.use_fish:
+        try:
+            audio, content_type = app.voice.synthesize("Hello from Milo.")
+            print(f"  Voice : OK. Fish Audio model '{app.voice.working}' returned {len(audio) // 1024} KB of {content_type}")
+        except VoiceError as e:
+            ok = False
+            print(f"  Voice : FAILED. {e}")
+    else:
+        print("  Voice : babble voice. No FISH_AUDIO_API_KEY was found, so there is nothing to check.")
+    print("\nAll good." if ok else "\nSomething needs fixing. The messages above say what.")
+    return 0 if ok else 1
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Milo's mind server")
+    parser.add_argument("--mock", action="store_true", help="ignore any keys and use the demo mind and the babble voice")
+    parser.add_argument("--check", action="store_true", help="test your keys with one tiny request each, then exit")
+    parser.add_argument("--host", help="address to listen on (default 127.0.0.1, this computer only)")
+    parser.add_argument("--port", type=int, help="port to listen on (default 8000)")
+    args = parser.parse_args(argv)
+
+    loaded = load_env_file()
+    settings = Settings.from_env()
+    settings.mock = args.mock
+    if args.host:
+        settings.host = args.host
+    if args.port:
+        settings.port = args.port
+    app = App(settings)
+
+    if args.check:
+        return run_check(app)
+
+    try:
+        server = ThreadingHTTPServer((settings.host, settings.port), Handler)
+    except OSError as e:
+        print(f"Could not start on {settings.host}:{settings.port} ({e}).")
+        print(f"Another program may be using that port. Try: python3 mind/server.py --port {settings.port + 1}")
+        return 1
+    server.app = app                      # type: ignore[attr-defined]
+    server.daemon_threads = True
+
+    mind_line = (f"DeepSeek ({app.brain.label})" if settings.use_deepseek
+                 else "demo mind (put DEEPSEEK_API_KEY in .env for the real one)")
+    voice_line = ("Fish Audio" if settings.use_fish
+                  else "babble voice (put FISH_AUDIO_API_KEY in .env for the real one)")
+    if settings.mock:
+        mind_line, voice_line = "demo mind (--mock)", "babble voice (--mock)"
+    url_host = "127.0.0.1" if settings.host in ("0.0.0.0", "") else settings.host
+    print("Milo's mind server")
+    print(f"  Mind  : {mind_line}")
+    print(f"  Voice : {voice_line}")
+    if loaded:
+        print(f"  Keys  : read from .env ({', '.join(loaded)})")
+    print(f"  Open  : http://{url_host}:{settings.port}")
+    print("  Stop  : press Ctrl+C\n")
+    if settings.host not in ("127.0.0.1", "localhost", "::1"):
+        print("  WARNING: this server is open to your network. Anyone on it can use your API credit.\n")
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nStopped.")
+    finally:
+        server.server_close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
