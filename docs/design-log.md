@@ -32,7 +32,7 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 4 | Voice | Natural, expressive voice plus local chirps | Chirps and hums play on the robot for instant reactions (no latency, no LLM cost). | Decided (R1) |
 | 5 | Brain and privacy | Cloud AI with hard privacy switches | Audio streams only after the wake word or while a conversation is live. Physical mic-kill switch; camera shutter (head tips down) with an LED to confirm. | Decided (R2) |
 | 6 | Language | English only | Widest choice of low-latency voices and wake-word models. Other languages are a later maybe. | Decided (R2) |
-| 7 | Household | Mainly the owner, with a partner or roommate sharing the space | The answer was ambiguous ("just me" plus "partner / roommates"). Design for two people from day one: separate memories, and a friendly but different stance toward the second person. | Assumed (R2), to confirm |
+| 7 | Household | Mainly the owner, with a partner or roommate sharing the space | The R2 answer was ambiguous ("just me" plus "partner / roommates"); R4 confirmed two people share the house. Design for two people from day one (see row 18). | Decided (R4) |
 | 8 | Signature moments | All four: welcome home, company while you work, evening chats, silly play | To be staged; see the roadmap proposal. | Decided (R2) |
 | 9 | Usefulness | Companion plus a few perks | Timers, a focus-buddy mode, music, maybe smart-home lights. Character first; no calendar, email or open-ended web agent for now. | Decided (R3) |
 | 10 | Stability | Rear skid, balance-ready | Stable at rest and when unpowered. Place weight and wheels so a self-balancing mode can be added later. | Decided (R3) |
@@ -40,6 +40,10 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 12 | Design log | Keep it in the repo | Committed to the working branch after each round. | Decided (R3) |
 | 13 | Name and wake word | Milo, wake word "Hey Milo" | Working name; confirm before a wake-word model is trained. | Assumed |
 | 14 | Size | About 190 x 160 x 135 mm, as in the concept | Tight for a Pi 5, a 3.5" screen and a battery; verify with a CAD mock-up before committing. | Assumed |
+| 15 | Conversation flow | Wake word plus an open window | Say "Hey Milo" once; the conversation stays open until a few seconds of silence or "thanks, Milo". You can interrupt Milo mid-sentence. Look-to-talk (answering without the wake word when you face Milo) is a possible later add-on. | Decided (R4) |
+| 16 | Voice feel | Warm and playful | Mid-pitch, friendly, quick to smile, with a mischievous edge. English; no specific accent chosen yet. | Decided (R4) |
+| 17 | Chirp style | Soft, organic, musical | Little coos, trills and warm marimba-like notes: short, quiet and varied. | Decided (R4) |
+| 18 | Memory with two people | Private by default | Milo tells people apart (voice and face) and keeps each person's memories separate. Only household-level facts are shared, unless someone says "you can tell them". Staged: v1 can start with just the owner. | Decided (R4) |
 
 ## 3. Architecture principle: two brains
 
@@ -73,7 +77,8 @@ Proposed seeds, not yet chosen:
 - **Character bible** with wants, fears and quirks, written together with the owner. Examples: wants to find out what is behind every closed door; afraid of the vacuum cleaner and the dark; always parks in the sunbeam. These drive both the remote mind's lines and the local behaviors.
 - **Growing closer** through memory: inside jokes, remembered preferences, a shared history.
 - **Dreaming at the dock**: while charging at night, Milo replays the day and boils it down to a few "things I learned about you", which feeds the memory system. In the morning it may say "I dreamt about what you said yesterday".
-- **Chirp language**: a palette of chirps and hums keyed to emotional states, so you can read Milo's mood by sound alone.
+- **Chirp language**: a palette of chirps and hums keyed to emotional states, so you can read Milo's mood by sound alone. The style is decided (soft, organic, musical). Because chirps repeat a lot, the life layer needs variety, a low volume and a cooldown.
+- **Milo's diary**: each morning Milo writes a short diary entry from its overnight dreaming, readable on a phone ("Today the human laughed at my spin."). It makes memory transparent: you can see, correct or delete what Milo thinks it knows.
 
 ## 5. Behavior and signature moments
 
@@ -85,6 +90,8 @@ All four moments are wanted. Ideas so far:
 | Company while you work | Focus buddy: works beside you in a Pomodoro rhythm, dozes during deep focus, victory spin at breaks. Reacts quietly and rarely speaks. | Life layer, almost no LLM |
 | Evening chats | Winds down with you, talks about the day, brings up things you said last week. | Remote mind, memory |
 | Silly play | Games, chasing, dancing to music, hide-and-seek. | Drive base, perception |
+
+Proposed for later: **look-to-talk**. If you face Milo within a couple of metres and start speaking, it answers without the wake word. It needs on-robot face and gaze detection and care about false triggers (talking to your partner, phone calls), so v1 uses the wake word with an open window.
 
 ## 6. Body
 
@@ -125,7 +132,7 @@ Decided:
 To work out:
 
 - What is stored remotely, for how long, and how to delete it.
-- Identity and memory for two people: what is private to whom.
+- Identity for two people: how Milo tells people apart (voice and face), and which facts count as household-level and shared.
 - A polite "stranger" mode for guests.
 - Motor torque and speed limits, and no pinch points at the neck, ears and wheels.
 
@@ -133,7 +140,7 @@ To work out:
 
 - **Voice and brain stack**: speech-to-text, text-to-speech and LLM choices; realtime framework and transport; model routing (a fast model for small talk, a stronger one for depth); monthly cost budget.
 - **Memory design**: what is stored, how it is summarized, how people are recognized (face and voice).
-- **Household**: how often is the partner or roommate around, and is Milo theirs too?
+- **Second person**: do they want their own relationship with Milo, and how often are they around?
 - **Name and wake word**: confirm "Milo" and "Hey Milo".
 - **Body**: battery and power, display type, mic array, camera, sensors, dock design, size feasibility.
 - **Builder context**: 3D printer access, electronics experience, budget, timeline.
@@ -150,6 +157,8 @@ Start with the riskiest and most magical part, which is talking.
 4. **Memory and growth**: long-term memory, two-person identity, nightly consolidation.
 5. **Dock and moments**: dock, welcome home, focus buddy, play.
 
+Later candidates: look-to-talk, Milo's diary, shell personas.
+
 ## 10. Round log
 
 **Round 1: what Milo is**
@@ -163,3 +172,7 @@ Start with the riskiest and most magical part, which is talking.
 **Round 3: body and scope**
 
 - Usefulness: companion plus a few perks. Stability: rear skid, balance-ready. Expression: ears or antennae, and mood glow. Design log: yes, committed after each round.
+
+**Round 4: talking, voice, memory**
+
+- Conversation: wake word plus open window. Voice: warm and playful. Chirps: soft, organic, musical. Memory with two people: private by default.
