@@ -9,6 +9,7 @@ Milo is curious, friendly and a little mischievous. It reacts instantly to what 
 - `docs/design-log.md`: every decision so far, the open questions and the roadmap. Start here.
 - `sim/index.html`: the Milo simulator. Open it in any browser (double-click the file) to play with Milo's face, feelings, shells and life layer. Nothing to install.
 - `docs/img/`: concept images.
+- `.env.example`: the names of the API keys the project will use. Copy it to `.env` and fill in the values on your own computer. `.env` is ignored by git and must never be committed.
 
 ## Try the simulator
 

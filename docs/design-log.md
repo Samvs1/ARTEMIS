@@ -51,7 +51,7 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 23 | Mind (text) | DeepSeek API | Chosen by the owner. As far as we know the DeepSeek chat API is text-only, so "sees and understands" needs another model later (to verify). | Decided (owner) |
 | 24 | Voice (text to speech) | Fish Audio | Chosen by the owner. | Decided (owner) |
 | 25 | Images | OpenAI API, if needed | For image generation such as concept art and shell ideas. Not part of the core loop. | Possible (owner) |
-| 26 | API keys | Never in the browser, never in git | Keys live in a `.env` file on the machine that runs the mind server. Git ignores that file. | Decided (owner and assistant) |
+| 26 | API keys | Never in the browser, never in git | Keys live in a `.env` file on the machine that runs the mind server (`.env.example` lists the names) and as environment variables in cloud sessions. Git ignores `.env`. | Decided (owner and assistant) |
 
 ## 3. Architecture principle: two brains
 
@@ -154,6 +154,7 @@ To work out:
 - **Body**: battery and power, display type, mic array, camera, sensors, dock design, size feasibility.
 - **Timeline**: how much time per week, and any target date.
 - **Mind server home**: first on the owner's own computer; where it lives once it should be always on.
+- **Cloud environment setup**: the environment's network policy blocks api.deepseek.com and api.fish.audio (api.openai.com works), and the keys are not in the environment yet. Planned names, matching `.env.example`: `DEEPSEEK_API_KEY`, `FISH_AUDIO_API_KEY`, `OPENAI_API_KEY`. The environment already holds an `IMAGE_API_KEY` whose service is unconfirmed.
 - **First prototype**: what should it prove?
 - **Character bible**: draft it together.
 
@@ -190,7 +191,7 @@ Proposed plan for the mind server:
 - A small server holds the API keys and talks to DeepSeek (text), Fish Audio (voice) and a speech-to-text service. The page and, later, the robot never see a key.
 - The simulator and the robot connect to it over a WebSocket with the same messages, so code written now moves onto the robot.
 - The first version runs on the owner's own computer. Hosting it somewhere always on comes later.
-- Keys live in a `.env` file that git ignores.
+- Keys live in a `.env` file that git ignores (`.env.example` lists the names). In cloud sessions they come from environment variables instead.
 
 ## 11. Round log
 
