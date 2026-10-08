@@ -1,4 +1,4 @@
-"""Milo's mind.
+"""Arty's mind.
 
 This file holds four things:
 
@@ -254,7 +254,7 @@ EVENT_PROMPTS = {
 
 
 def event_prompt(event: str, detail: str = "") -> str:
-    """The instruction for an event Milo did not hear from the person, or "" for an unknown event."""
+    """The instruction for an event Arty did not hear from the person, or "" for an unknown event."""
     template = EVENT_PROMPTS.get(event, "")
     detail = clean_speech(TAG_IN_TEXT.sub(" ", detail or ""))[:80]
     return template.format(detail=detail or "25", detail_for=f" for '{detail}'" if detail else "")
@@ -469,7 +469,7 @@ DEMO_REPLIES = [
     (("door",), "[emote:excited] [look:left] A door! Which one? I've been staring at it for days. It's very closed."),
     (("vacuum", "hoover"), "[emote:surprised] [sound:surprised] Shh! Don't say that word so loudly. It might hear us."),
     (("sleep", "tired", "night", "bed"), "[emote:sleepy] Mmm, okay. But only if you tuck in my ears."),
-    (("name", "who are you"), "[emote:happy] I'm Milo! A small robot with big questions. What should I call you?"),
+    (("name", "who are you"), "[emote:happy] I'm Artemis, Arty for short! A small robot with big questions. What should I call you?"),
     (("joke",), "[emote:curious] Why did the robot sit in the sunbeam? Because it was solar powered. And also sulking."),
     (("thank",), "[emote:happy] [sound:happy] Anytime. Small favours are my favourite size."),
 ]
@@ -501,7 +501,7 @@ class DemoBrain:
 
 # Situations that show a personality quickly. The editor lets you change this list.
 DEFAULT_PROBES = [
-    "Hi Milo!",
+    "Hi Arty!",
     "I had a rough day.",
     "What do you think is behind that door?",
     "Can you set a timer for ten minutes?",
@@ -599,9 +599,9 @@ def plain_line(m: dict) -> str:
 class Mind:
     """One conversation: a brain, its history, the memory and the parser.
 
-    If `history_file` is given, the recent conversation is kept there between runs, so Milo
+    If `history_file` is given, the recent conversation is kept there between runs, so Arty
     does not forget what was said when the server restarts. It is a plain file on your own
-    computer. Delete it and Milo forgets the conversation (its memory is kept separately,
+    computer. Delete it and Arty forgets the conversation (its memory is kept separately,
     see docs/memory-design.md).
     """
 
@@ -674,7 +674,7 @@ class Mind:
         }
 
     def reset(self) -> None:
-        """Start a fresh conversation. Milo's memory is not touched."""
+        """Start a fresh conversation. Arty's memory is not touched."""
         with self._lock:
             self.history.clear()
             if self.history_file:
@@ -740,7 +740,7 @@ class Mind:
         return past, "\n\n".join(sections), notes, used, morning
 
     def system_prompt(self, state: dict, user_content: str = "hello") -> str:
-        """The whole prompt the next reply would get (for "See exactly what Milo is told"). Changes nothing."""
+        """The whole prompt the next reply would get (for "See exactly what Arty is told"). Changes nothing."""
         _, memory_text, notes, _, _ = self.context(user_content, self.clock())
         return build_system_prompt(self.character(), state, memory_text, notes)
 

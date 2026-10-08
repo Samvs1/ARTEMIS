@@ -14,7 +14,7 @@ from unittest import mock
 from mind.config import Settings
 from mind.server import App, Handler, Limiter
 
-NEW_PERSONALITY = "You are Milo, a tiny robot with a very short personality that is still long enough to save."
+NEW_PERSONALITY = "You are Arty, a tiny robot with a very short personality that is still long enough to save."
 
 
 class HttpHelpers:
@@ -62,7 +62,7 @@ class ServerTests(HttpHelpers, unittest.TestCase):
         status, _, payload = self.request("GET", "/api/personality")
         info = json.loads(payload)
         self.assertEqual((status, info["source"]), (200, "default"))
-        self.assertIn("Milo", info["text"])
+        self.assertIn("Arty", info["text"])
 
         status, info = self.post_json("/api/personality", {"text": NEW_PERSONALITY, "note": "tiny"})
         self.assertEqual((status, info["source"], info["note"]), (200, "yours", "tiny"))
@@ -116,7 +116,7 @@ class ServerTests(HttpHelpers, unittest.TestCase):
         status, ctype, payload = self.request("GET", "/")
         self.assertEqual(status, 200)
         self.assertIn("text/html", ctype)
-        self.assertIn(b"Milo", payload)
+        self.assertIn(b"Arty", payload)
 
     def test_chat_streams_actions_in_order_and_ends_with_done(self):
         status, ctype, payload = self.request("POST", "/api/chat", {"text": "hello there", "state": {"lights": True}})
@@ -218,7 +218,7 @@ class FakeKeeper:
 
 
 class RecordingBrain:
-    """A brain that keeps the messages it is sent, so a test can see what Milo was told."""
+    """A brain that keeps the messages it is sent, so a test can see what Arty was told."""
 
     kind = "demo"
     label = "recording brain"
@@ -370,7 +370,7 @@ class MemoryEndpointTests(HttpHelpers, unittest.TestCase):
         self.assertEqual(self.app.mind.history, [])
         info = self.get_json("/api/memory")[1]
         self.assertEqual((info["facts"], info["episodes"], info["diary"]), ([], [], []))
-        self.remember("They like jam.")                                                 # and Milo can start again
+        self.remember("They like jam.")                                                 # and Arty can start again
         self.assertEqual(len(self.facts()), 1)
 
     # ---- trying things out ----
@@ -427,7 +427,7 @@ class MemoryEndpointTests(HttpHelpers, unittest.TestCase):
         self.assertEqual(self.post_json("/api/memory/banana", {})[0], 404)
         self.assertEqual(self.request("GET", "/api/memory/fact")[0], 404)
 
-    # ---- the memory reaches Milo ----
+    # ---- the memory reaches Arty ----
     def test_the_prompt_page_shows_what_is_remembered(self):
         self.assertNotIn("## What you remember about them", self.get_json("/api/prompt")[1]["prompt"])      # nothing yet: no section
         self.remember("They drink an oat-milk latte every morning.")
@@ -444,17 +444,17 @@ class MemoryEndpointTests(HttpHelpers, unittest.TestCase):
         self.app.memory.outdate_fact(other["id"])
         self.assertNotIn("Ghent", self.get_json("/api/prompt")[1]["prompt"])
 
-    def test_a_chat_puts_a_remembered_fact_into_what_milo_is_told(self):
+    def test_a_chat_puts_a_remembered_fact_into_what_arty_is_told(self):
         brain = self.app.mind.brain = RecordingBrain()
         self.remember("They are called Sam; you call them Captain Biscuit.", kind="identity", importance=9)
-        status, _, payload = self.request("POST", "/api/chat", {"text": "hello Milo", "state": {"lights": True}})
+        status, _, payload = self.request("POST", "/api/chat", {"text": "hello Arty", "state": {"lights": True}})
         self.assertEqual(status, 200)
         self.assertIn(b'"done"', payload)
         system = brain.sent[0][0]
         self.assertEqual(system["role"], "system")
         self.assertIn("Captain Biscuit", system["content"])
         self.assertIn("## What you remember about them", system["content"])
-        self.assertEqual(brain.sent[0][-1], {"role": "user", "content": "hello Milo"})
+        self.assertEqual(brain.sent[0][-1], {"role": "user", "content": "hello Arty"})
 
     # ---- how the app is put together ----
     def test_the_demo_mind_has_a_memory_but_no_keeper(self):

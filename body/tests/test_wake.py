@@ -82,7 +82,7 @@ class WakeWordTests(unittest.TestCase):
             w = WakeWord("hey_jarvis")
             self.assertFalse(w.available)
             self.assertIn("hey_jarvis", w.reason)
-            bad_file = WakeWord("/nowhere/hey_milo.onnx")
+            bad_file = WakeWord("/nowhere/hey_arty.onnx")
         self.assertFalse(bad_file.available)
         self.assertFalse(w.feed(FRAME))
 

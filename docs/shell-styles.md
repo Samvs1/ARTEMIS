@@ -1,8 +1,8 @@
-# Milo: shell styles (R9)
+# Artemis: shell styles (R9)
 
-You asked for shells that make Milo a cool friend rather than an animal, with BMO vibes from Adventure Time, and you ruled out Minimal and Creature. So there are three new styles next to the Classic one. Status: **Proposed**, for you to pick from or mix.
+You asked for shells that make Arty a cool friend rather than an animal, with BMO vibes from Adventure Time, and you ruled out Minimal and Creature. So there are three new styles next to the Classic one. Status: **Proposed**, for you to pick from or mix.
 
-![The four styles side by side](img/3d/milo-styles.png)
+![The four styles side by side](img/3d/artemis-styles.png)
 
 All four share the same hardware and the same outer envelope: **160 x 135 x 190 mm**, the same printed internals (cradle, motor clamps, skid, collar) and the same bought parts. Only the two shells, a few small trim parts and the colours change, so you can pick a style late, or print a second shell set later, without touching the electronics. This is the "different looks, same brain" idea from the concept render.
 
@@ -50,7 +50,7 @@ The rounded cream shell you already have. Still on the table, but the new three 
 
 Notes:
 
-- **The balance holds in every style.** The centre of mass stays 4 to 5 mm behind the axle, so Milo still rests on its skid.
+- **The balance holds in every style.** The centre of mass stays 4 to 5 mm behind the axle, so Arty still rests on its skid.
 - **Tighter corners help the head.** The 70 mm microphone disc only just fits under the head's rounded roof in Classic and Mint (0.2 mm); with 8 mm corners (Retro, Cassette) there is 1.4 mm to spare. If the real microphone board turns out bigger, those two styles cope better.
 - **The side cooling slots are new.** Eight slots in the upper shell, behind the wheels and level with the Pi's cooler. They answer part of the open cooling question from round 8 (the Classic shell has none). I have not tested the airflow or the heat.
 
@@ -97,6 +97,6 @@ In every style the neck collar and the hub caps (P04, P07) take the accent colou
 
 ## How these were made
 
-The same script as before (`cad/milo_mockup.py`) with a small style layer on top (`cad/milo_styles.py`). Run `python cad/milo_styles.py` to redo all the renders, or `python cad/milo_styles.py mint` for one; `python cad/milo_styles.py report` prints the fit and weight numbers in the table above. This is still a mock-up, not print-ready CAD (see the limits in `docs/3d-mockups.md`).
+The same script as before (`cad/artemis_mockup.py`) with a small style layer on top (`cad/artemis_styles.py`). Run `python cad/artemis_styles.py` to redo all the renders, or `python cad/artemis_styles.py mint` for one; `python cad/artemis_styles.py report` prints the fit and weight numbers in the table above. This is still a mock-up, not print-ready CAD (see the limits in `docs/3d-mockups.md`).
 
 ![Mint console, front](img/3d/styles/mint-front.png)

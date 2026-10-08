@@ -1,4 +1,4 @@
-"""Waking Milo up: the wake word, or a keypress when there is no wake word model.
+"""Waking Arty up: the wake word, or a keypress when there is no wake word model.
 
 `WakeWord` uses openWakeWord if it is installed. If the package or the model is missing it does
 not crash: `available` is False and the reason is logged, so the caller can use `PushToTalk`.
@@ -126,7 +126,7 @@ class PushToTalk:
         self._flag = False
         if use_stdin and sys.stdin is not None:
             threading.Thread(target=self._read_keys, name="push-to-talk", daemon=True).start()
-            log("wake", "push to talk: press Enter to talk to Milo")
+            log("wake", "push to talk: press Enter to talk to Arty")
 
     def _read_keys(self) -> None:
         try:

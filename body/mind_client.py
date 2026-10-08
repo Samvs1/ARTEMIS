@@ -66,8 +66,8 @@ class MindClient:
 
     def _unreachable(self, err: Exception) -> MindError:
         if isinstance(err, (TimeoutError, socket.timeout)):
-            return MindError(f"Milo's mind at {self.base_url} took too long to answer.")
-        return MindError(f"Could not reach Milo's mind at {self.base_url} ({getattr(err, 'strerror', None) or err}). "
+            return MindError(f"Arty's mind at {self.base_url} took too long to answer.")
+        return MindError(f"Could not reach Arty's mind at {self.base_url} ({getattr(err, 'strerror', None) or err}). "
                          "Is the mind server running?")
 
     @staticmethod

@@ -1,10 +1,10 @@
-# Milo: behaviour design (R14)
+# Artemis: behaviour design (R14)
 
-Phase 3 of `docs/software-plan.md`: what Milo does by itself, and the small perks. Status: **Decided (R14)**. It follows the brainstorm's signature moments (design log section 5: welcome home, company while you work, evening chats) and row 9 (companion first, plus timers and a focus buddy).
+Phase 3 of `docs/software-plan.md`: what Arty does by itself, and the small perks. Status: **Decided (R14)**. It follows the brainstorm's signature moments (design log section 5: welcome home, company while you work, evening chats) and row 9 (companion first, plus timers and a focus buddy).
 
 ## What is already there
 
-- "Welcome home" mostly comes from memory now: every reply knows how long ago the last talk was and what it was about, so "Hey Milo" after a long day gets a fitting answer without a special event.
+- "Welcome home" mostly comes from memory now: every reply knows how long ago the last talk was and what it was about, so "Hey Arty" after a long day gets a fitting answer without a special event.
 - The simulator's initiative engine starts one kind of talk by itself ("wants company"), within 5 a day.
 
 ## New: timers and the focus buddy
@@ -13,9 +13,9 @@ Two new stage directions the AI may write, handled by whoever plays the reply (t
 
 | Tag | Example | What happens |
 |---|---|---|
-| `[timer:DURATION LABEL]` | `[timer:10m tea]`, `[timer:90s]`, `[timer:1h30m oven]` | Starts a timer. Up to 3 at a time, 5 s to 12 h. When it ends, Milo says so (event `timer_done` with the label). |
+| `[timer:DURATION LABEL]` | `[timer:10m tea]`, `[timer:90s]`, `[timer:1h30m oven]` | Starts a timer. Up to 3 at a time, 5 s to 12 h. When it ends, Arty says so (event `timer_done` with the label). |
 | `[timer:cancel]` | | Cancels all timers. |
-| `[focus:MINUTES]` | `[focus:25]` (default 25, 5 to 90) | Focus buddy: Milo goes quiet beside you (focus face, no self-started talk) for that long, then cheers and suggests a break (event `focus_break`). |
+| `[focus:MINUTES]` | `[focus:25]` (default 25, 5 to 90) | Focus buddy: Arty goes quiet beside you (focus face, no self-started talk) for that long, then cheers and suggests a break (event `focus_break`). |
 | `[focus:stop]` | | Ends focus mode early. |
 
 The parser turns them into events in the reply stream: `{"type": "timer", "seconds": 600, "label": "tea"}`, `{"type": "timer", "cancel": true}`, `{"type": "focus", "minutes": 25}`, `{"type": "focus", "stop": true}`. The AI is told about them in the prompt, with the rule: only when the person asks for a timer or for help focusing, and always say it out loud too ("Ten minutes for the tea, got it!").
@@ -37,7 +37,7 @@ Timers and focus breaks always speak (you asked for them). Good morning and good
 
 - **Mind** (`mind/brain.py`, `mind/server.py`): the two new tags in the parser and the prompt; the new events and `detail`.
 - **Simulator** (`sim/index.html`, normal mode): runs timers and focus mode from the reply stream (a small timer chip on screen with the time left and a cancel button), sends the events, good morning and good night from its lights switch, and keeps the meters (energy, boredom, wish for company) across a reload, adjusted for the time that passed.
-- **Body** (`body/loop.py`): runs timers and focus mode from the reply stream; when one ends and Milo is idle, it starts the event reply itself (no wake word), otherwise it waits until the current talk ends; a face state `focus`. Good morning and good night wait for a light sensor.
+- **Body** (`body/loop.py`): runs timers and focus mode from the reply stream; when one ends and Arty is idle, it starts the event reply itself (no wake word), otherwise it waits until the current talk ends; a face state `focus`. Good morning and good night wait for a light sensor.
 - **Face page**: a `focus` look (calm, half-lidded, steady eyes).
 
 ## The body without its mind

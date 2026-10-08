@@ -1,23 +1,23 @@
-# Milo: open-source inspiration (R10)
+# Artemis: open-source inspiration (R10)
 
-A reading list of GitHub projects to borrow ideas from, so memory, behaviour and personality for Milo do not start from zero. Nothing here is chosen or installed. Searched on 8 October 2026; star counts are what the pages showed that day.
+A reading list of GitHub projects to borrow ideas from, so memory, behaviour and personality for Arty do not start from zero. Nothing here is chosen or installed. Searched on 8 October 2026; star counts are what the pages showed that day.
 
 **How much to trust each entry.** Marked *checked* means I read the repository's own page. Marked *search only* means I only have search-result summaries or blog posts, so look at the repo yourself before relying on it.
 
-## What Milo has today (for comparison)
+## What Arty has today (for comparison)
 
 The last 12 messages go to the AI with each reply, and the last 40 are saved in a file. There is no long-term memory, no timestamps on memories, and no way to tell people apart. The design log already decides that people's memories stay separate (row 18) and that nicknames live in the conversation (row 32); neither is built. The ideas below fill exactly those gaps.
 
 ## 1. Memory
 
-| Project | Licence, size | What to borrow | Fit for Milo |
+| Project | Licence, size | What to borrow | Fit for Arty |
 |---|---|---|---|
 | [Mem0](https://github.com/mem0ai/mem0) *(checked)* | Apache-2.0, about 67k stars | Reads a conversation and decides what is worth keeping. Memories are only added, never overwritten. Recall mixes meaning search, keyword search and entity matching, and ranks by time (current state, past events, plans). Self-hostable with `pip` or Docker. | Closest to "remember what I said yesterday". Needs an LLM to do the extracting (defaults to an OpenAI model; the README says others work; I did not check DeepSeek). |
 | [Graphiti](https://github.com/getzep/graphiti) (the engine of Zep) *(checked)* | Apache-2.0, about 32k stars | Facts carry a "valid from / until" window. When something changes ("I moved to Tokyo") the old fact is marked outdated, not deleted. | The right idea for "what is true now vs then", but it needs a graph database (Neo4j or similar). Too heavy for a Pi. Borrow the idea, not the install. |
-| [Letta](https://github.com/letta-ai/letta) (was MemGPT) *(checked, but its page says little about memory)* | Apache-2.0, about 25k stars | The agent itself edits its own memory, in tiers (always-in-prompt "core" notes, searchable older memory). Blog posts describe it this way; the page did not. | Interesting for "Milo decides what to remember", but it is a whole agent platform. Learning curve is steeper. |
-| [Generative Agents](https://github.com/joonspk-research/generative_agents) (Stanford) *(repo checked; the memory design is from the paper, not the page)* | Apache-2.0 | A running log of everything that happened. Recall scores each memory by how recent, how important and how relevant it is. Periodic "reflection" turns many small memories into a few higher-level insights. | This is the model for Milo's planned nightly "dreaming" and "things I have learned about you". |
+| [Letta](https://github.com/letta-ai/letta) (was MemGPT) *(checked, but its page says little about memory)* | Apache-2.0, about 25k stars | The agent itself edits its own memory, in tiers (always-in-prompt "core" notes, searchable older memory). Blog posts describe it this way; the page did not. | Interesting for "Arty decides what to remember", but it is a whole agent platform. Learning curve is steeper. |
+| [Generative Agents](https://github.com/joonspk-research/generative_agents) (Stanford) *(repo checked; the memory design is from the paper, not the page)* | Apache-2.0 | A running log of everything that happened. Recall scores each memory by how recent, how important and how relevant it is. Periodic "reflection" turns many small memories into a few higher-level insights. | This is the model for Arty's planned nightly "dreaming" and "things I have learned about you". |
 | [a16z companion-app](https://github.com/a16z-infra/companion-app) *(checked)* | MIT, about 6k stars | Simplest possible pattern: recent chat in the prompt, plus a backstory searched by meaning. A character is one text file (short preamble, a sample chat, free-form backstory). | A pattern to read, not a base to build on: its own README lists known gaps and I could not confirm it is maintained. |
-| [CharMemory](https://github.com/bal-spec/sillytavern-character-memory), [MemoryBooks](https://github.com/aikohanasaki/SillyTavern-MemoryBooks), [OpenVault](https://github.com/unkarelian/openvault) for SillyTavern *(search only)* | small community projects | Memories kept as plain, editable text files you can read and correct. OpenVault tracks events, emotions and relationship changes, and who was present for each (so a character does not "know" a secret it never heard). | The editable-file approach fits Milo's planned diary ("see, correct or delete what Milo thinks it knows"). The "who was present" idea fits two people in one home. |
+| [CharMemory](https://github.com/bal-spec/sillytavern-character-memory), [MemoryBooks](https://github.com/aikohanasaki/SillyTavern-MemoryBooks), [OpenVault](https://github.com/unkarelian/openvault) for SillyTavern *(search only)* | small community projects | Memories kept as plain, editable text files you can read and correct. OpenVault tracks events, emotions and relationship changes, and who was present for each (so a character does not "know" a secret it never heard). | The editable-file approach fits Arty's planned diary ("see, correct or delete what Arty thinks it knows"). The "who was present" idea fits two people in one home. |
 
 **My suggestion:** do not start with a database. Start with a plain text file of dated facts per person ("things I have learned about you"), write to it after conversations, and let a nightly step summarise the day (the Generative Agents idea). Mem0 is the first tool to try if the plain file stops being enough. Graph databases can wait.
 
@@ -26,8 +26,8 @@ The last 12 messages go to the AI with each reply, and the last 40 are saved in 
 | Project | What it shows | Notes |
 |---|---|---|
 | [Open-LLM-VTuber](https://github.com/Open-LLM-VTuber/Open-LLM-VTuber) *(checked)* | Voice conversation where you can interrupt (without headphones), a persona set in a config file and a `characters` folder, and the avatar's expressions driven from the backend by an "emotion mapping". About 14k stars, MIT. | The emotion mapping is the same idea as our `[emote:happy]` tags. **Its long-term memory is currently removed** (the page says it will come back), so look here for personality and voice handling, not memory. |
-| [Stack-chan](https://github.com/stack-chan/stack-chan) *(search only)* | A small open desk robot with screen, microphones, speaker and head servos, plus community forks that add an AI voice agent. | Closest in spirit to Milo's body; useful for how a tiny robot ties voice, face and servos together. |
-| [wire-pod](https://github.com/kercre123/wire-pod) (Anki Vector) and [OpenMoxie](https://appleinsider.com/articles/24/12/20/moxie-robot-may-be-saved-by-a-last-minute-open-sourcing-effort) *(search only)* | What happens when a companion robot depends on a company's servers: Moxie stopped working when its maker shut down in January 2025, and the community had to build replacement servers. | A reason to keep Milo's "two brains" plan (a life layer that works offline) and to keep the character and memory files in your own hands. |
+| [Stack-chan](https://github.com/stack-chan/stack-chan) *(search only)* | A small open desk robot with screen, microphones, speaker and head servos, plus community forks that add an AI voice agent. | Closest in spirit to Arty's body; useful for how a tiny robot ties voice, face and servos together. |
+| [wire-pod](https://github.com/kercre123/wire-pod) (Anki Vector) and [OpenMoxie](https://appleinsider.com/articles/24/12/20/moxie-robot-may-be-saved-by-a-last-minute-open-sourcing-effort) *(search only)* | What happens when a companion robot depends on a company's servers: Moxie stopped working when its maker shut down in January 2025, and the community had to build replacement servers. | A reason to keep Arty's "two brains" plan (a life layer that works offline) and to keep the character and memory files in your own hands. |
 | [awesome-ai-companion](https://github.com/DasterProkio/awesome-ai-companion) and the [ai-companion topic](https://github.com/topics/ai-companion) *(search only)* | Long lists of companion projects, many with memory and "proactive" behaviour. | Good for browsing; quality varies a lot, so check each one. |
 
 ## 3. Voice on the robot
@@ -42,7 +42,7 @@ One blog reports a fully local Pi 5 voice stack taking 15 to 25 seconds per answ
 
 ## 4. Recognising people
 
-Milo has no camera in scope (row 37), so voice is the first way to tell people apart.
+Arty has no camera in scope (row 37), so voice is the first way to tell people apart.
 
 | Option | What it is | Notes |
 |---|---|---|

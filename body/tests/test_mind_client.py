@@ -78,7 +78,7 @@ class MindClientTests(unittest.TestCase):
         client = MindClient("http://127.0.0.1:1")
         with self.assertRaises(MindError) as ctx:
             client.tts("Hello there.")
-        self.assertIn("Could not reach Milo's mind", str(ctx.exception))
+        self.assertIn("Could not reach Arty's mind", str(ctx.exception))
         with self.assertRaises(MindError):
             list(client.chat("hi"))
 
@@ -94,7 +94,7 @@ class MindClientTests(unittest.TestCase):
         client.base_url = "http://evil.example"
         with self.assertRaises(MindError) as ctx:
             client.tts("Hello there.")
-        self.assertIn("did not come from the Milo page", str(ctx.exception))
+        self.assertIn("did not come from the Arty page", str(ctx.exception))
 
 
 class RecordingHandler(BaseHTTPRequestHandler):

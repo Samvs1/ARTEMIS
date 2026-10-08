@@ -1,11 +1,11 @@
-"""Start Milo's body: python3 -m body
+"""Start Arty's body: python3 -m body
 
     python3 -m body                      # microphone, speaker, wake word (or Enter), face on http://127.0.0.1:8001/?face=1
     python3 -m body --push-to-talk       # press Enter instead of saying the wake word
     python3 -m body --fake-audio a.wav b.wav   # feed recordings instead of the microphone; nothing is played
     python3 -m body --list-devices       # show microphones and speakers
 
-The mind server should be running first (python3 mind/server.py). If it is not, Milo starts anyway with the
+The mind server should be running first (python3 mind/server.py). If it is not, Arty starts anyway with the
 offline face, answers the wake word with a sleepy chirp, and checks every 10 seconds until the mind is there.
 """
 from __future__ import annotations
@@ -25,7 +25,7 @@ from body.loop import Conversation, log         # noqa: E402
 
 
 class AutoWake:
-    """For recordings: no wake word needed, every recording is something said to Milo."""
+    """For recordings: no wake word needed, every recording is something said to Arty."""
     available = True
 
     def feed(self, frame: bytes) -> bool:
@@ -36,7 +36,7 @@ class AutoWake:
 
 
 def paced(frames, convo: Conversation):
-    """Recordings arrive faster than real time: hold each frame while Milo is still busy answering."""
+    """Recordings arrive faster than real time: hold each frame while Arty is still busy answering."""
     for frame in frames:
         while convo.busy():
             threading.Event().wait(0.02)
@@ -60,7 +60,7 @@ class NoFace:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(prog="python3 -m body", description="Milo's body: hearing, speaking and the face.")
+    p = argparse.ArgumentParser(prog="python3 -m body", description="Arty's body: hearing, speaking and the face.")
     p.add_argument("--fake-audio", nargs="+", metavar="WAV", help="feed these recordings instead of the microphone")
     p.add_argument("--push-to-talk", action="store_true", help="press Enter instead of saying the wake word")
     p.add_argument("--list-devices", action="store_true", help="list microphones and speakers, then stop")
@@ -82,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
     if health:
         log("body", f"mind: {health.get('brain', {}).get('label', '?')}; voice: {health.get('voice', {}).get('label', '?')}")
     else:
-        log("body", f"the mind server does not answer at {settings.mind_url}, so Milo starts without it (offline face). "
+        log("body", f"the mind server does not answer at {settings.mind_url}, so Arty starts without it (offline face). "
                     "Start it with: python3 mind/server.py")
 
     stt = build_chain(settings)
@@ -108,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
         from body.face import FaceServer
         face = FaceServer(settings.face_host, settings.face_port, ROOT / "sim" / "index.html")
         face.start()
-        log("face", f"open http://{settings.face_host}:{face.port}/?face=1 for Milo's face")
+        log("face", f"open http://{settings.face_host}:{face.port}/?face=1 for Arty's face")
 
     ref: list = []
     if args.fake_audio:

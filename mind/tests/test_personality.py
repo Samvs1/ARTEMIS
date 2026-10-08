@@ -6,8 +6,8 @@ from pathlib import Path
 from mind.brain import DemoBrain, Mind, review_reply, DirectiveStream
 from mind.personality import MAX_CHARS, MAX_VERSIONS, Personality, PersonalityError
 
-DEFAULT = "You are Milo. This is the shipped default personality, long enough to be valid."
-MINE = "You are Milo, and this is my own version of the personality, a bit shorter and sillier."
+DEFAULT = "You are Arty. This is the shipped default personality, long enough to be valid."
+MINE = "You are Arty, and this is my own version of the personality, a bit shorter and sillier."
 
 
 class PersonalityTests(unittest.TestCase):
@@ -85,9 +85,9 @@ class PersonalityTests(unittest.TestCase):
         self.assertEqual(self.p.source(), "default")
         self.assertEqual(self.p.text(), DEFAULT)
 
-    def test_a_missing_default_file_still_gives_milo_something(self):
+    def test_a_missing_default_file_still_gives_arty_something(self):
         p = Personality(self.dir / "nope.md")
-        self.assertIn("Milo", p.text())
+        self.assertIn("Arty", p.text())
 
 
 class MindMemoryTests(unittest.TestCase):
@@ -155,6 +155,21 @@ class ReviewTests(unittest.TestCase):
 
     def test_long_replies_are_flagged(self):
         self.assertIn("long: over 60 words", review("[emote:calm] " + "word " * 70 + "end.")[1])
+
+
+class NewNameTests(unittest.TestCase):
+    def test_a_personality_saved_under_the_old_name_is_updated_once_and_can_be_undone(self):
+        with tempfile.TemporaryDirectory() as folder:
+            d = Path(folder)
+            default = d / "default.md"
+            default.write_text("You are Artemis, a small robot. Everyone calls you Arty.", encoding="utf-8")
+            (d / "character.md").write_text("You are Milo, a small robot. Milo loves sunbeams.\n", encoding="utf-8")
+            p = Personality(default, d / "character.md", d / "history.json")
+            self.assertTrue(p.adopt_new_name())
+            self.assertEqual(p.text().strip(), "You are Artemis (Arty for short), a small robot. Arty loves sunbeams.")
+            self.assertIn("Renamed Milo", p.describe()["versions"][0]["note"])   # newest first
+            self.assertFalse(p.adopt_new_name())                     # only once
+            self.assertFalse(Personality(default).adopt_new_name())  # nothing saved: nothing to do
 
 
 if __name__ == "__main__":

@@ -1,10 +1,10 @@
-"""Milo 3D mock-up, built in Blender (bpy) from plain numbers.
+"""Arty 3D mock-up, built in Blender (bpy) from plain numbers.
 
 Run (needs the `bpy` and `pillow` Python packages, see cad/README.md):
 
-    python cad/milo_mockup.py            # all renders into docs/img/3d/ + cad/milo_mockup.blend
-    python cad/milo_mockup.py hero       # one view: hero, views, exploded, coded, section, plate, bought
-    python cad/milo_mockup.py report     # only print the fit and balance report
+    python cad/artemis_mockup.py            # all renders into docs/img/3d/ + cad/artemis_mockup.blend
+    python cad/artemis_mockup.py hero       # one view: hero, views, exploded, coded, section, plate, bought
+    python cad/artemis_mockup.py report     # only print the fit and balance report
 
 All sizes are millimetres. x = left/right, y = front (negative) to back (positive), z = up.
 Every part is tagged PRINTED (P..) or BOUGHT (B..). This is a design mock-up, not
@@ -48,7 +48,7 @@ CODED_PRINTED = (0.85, 0.30, 0.02, 1)
 CODED_BOUGHT = (0.05, 0.22, 0.75, 1)
 DENSITY_PRINTED = 1.25 * 0.9                      # g/cm3, PETG/PLA with a little infill
 PARTS = []                                        # filled by build()
-STYLE = None                                      # optional shell style, see cad/milo_styles.py
+STYLE = None                                      # optional shell style, see cad/artemis_styles.py
 
 
 # ---------------------------------------------------------------- mesh helpers
@@ -494,7 +494,7 @@ def add_face():
     return objs + [so]
 
 
-def setup_scene(mode, res=(1100, 1100), samples=int(os.environ.get('MILO_SAMPLES', 48))):
+def setup_scene(mode, res=(1100, 1100), samples=int(os.environ.get('ARTEMIS_SAMPLES', 48))):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
@@ -638,7 +638,7 @@ def run(view):
     floor_and_lights(dark=view in ("plate", "bought"))
     if mode == "coded":
         sc.view_settings.exposure = -1.1
-    out = os.path.join(IMG_DIR, f"milo-{view}.png")
+    out = os.path.join(IMG_DIR, f"artemis-{view}.png")
 
     if view == "hero":
         camera((520, -680, 400), (0, 0, 95), 85)
@@ -697,7 +697,7 @@ def run(view):
         label_image(out, [(i, o, col) for i, o, _ in items])
     if view == "hero":
         bpy.context.preferences.filepaths.save_version = 0  # no .blend1 backup files
-        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "milo_mockup.blend"))
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "artemis_mockup.blend"))
     print("wrote", out)
 
 

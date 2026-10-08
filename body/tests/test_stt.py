@@ -87,9 +87,9 @@ class OpenAITests(unittest.TestCase):
         return OpenAITranscriber("sk-secret-key", base_url=fake.url, **extra)
 
     def test_sends_the_right_request_and_returns_the_text(self):
-        with FakeOpenAI(ok("  hello milo ")) as fake:
+        with FakeOpenAI(ok("  hello arty ")) as fake:
             text = self.transcriber(fake, model="my-model").transcribe(WAV)
-        self.assertEqual(text, "hello milo")
+        self.assertEqual(text, "hello arty")
         request = fake.seen[0]
         self.assertEqual(request["path"], "/v1/audio/transcriptions")
         self.assertEqual(request["headers"]["Authorization"], "Bearer sk-secret-key")

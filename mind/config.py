@@ -36,20 +36,34 @@ def parse_env_text(text: str) -> dict[str, str]:
     return values
 
 
+OLD_PREFIX, PREFIX = "MILO_", "ARTEMIS_"     # the robot was called Milo until round 15
+
+
+def with_old_names(env):
+    """Let settings written under the old name (MILO_PORT and so on) keep working.
+
+    A new ARTEMIS_ name always wins. Changes `env` in place and returns it."""
+    for name in [n for n in env if n.startswith(OLD_PREFIX)]:
+        new = PREFIX + name[len(OLD_PREFIX):]
+        if env.get(name) and not env.get(new):
+            env[new] = env[name]
+    return env
+
+
 def load_env_file(path: Path = ENV_FILE) -> list[str]:
     """Copy values from the .env file into the environment.
 
     Real environment variables win, and empty values are skipped.
     Returns the names that were set (never the values).
     """
-    if not path.is_file():
-        return []
     names = []
-    text = path.read_text(encoding="utf-8-sig", errors="replace")      # utf-8-sig: Notepad may add an invisible marker at the start
-    for name, value in parse_env_text(text).items():
-        if value and not os.environ.get(name):
-            os.environ[name] = value
-            names.append(name)
+    if path.is_file():
+        text = path.read_text(encoding="utf-8-sig", errors="replace")      # utf-8-sig: Notepad may add an invisible marker at the start
+        for name, value in parse_env_text(text).items():
+            if value and not os.environ.get(name):
+                os.environ[name] = value
+                names.append(name)
+    with_old_names(os.environ)
     return names
 
 
@@ -89,8 +103,8 @@ class Settings:
     def from_env(cls) -> "Settings":
         e = os.environ.get
         return cls(
-            host=e("MILO_HOST") or cls.host,
-            port=_int("MILO_PORT", cls.port),
+            host=e("ARTEMIS_HOST") or cls.host,
+            port=_int("ARTEMIS_PORT", cls.port),
             deepseek_key=e("DEEPSEEK_API_KEY", "").strip(),
             deepseek_base=(e("DEEPSEEK_BASE_URL") or cls.deepseek_base).rstrip("/"),
             deepseek_model=e("DEEPSEEK_MODEL") or cls.deepseek_model,
@@ -100,6 +114,6 @@ class Settings:
             fish_voice=e("FISH_AUDIO_VOICE_ID", "").strip(),
             fish_model=e("FISH_AUDIO_MODEL", "").strip(),
             fish_latency=e("FISH_AUDIO_LATENCY") or cls.fish_latency,
-            max_chats_per_hour=_int("MILO_MAX_CHATS_PER_HOUR", cls.max_chats_per_hour),
-            max_tts_chars_per_hour=_int("MILO_MAX_TTS_CHARS_PER_HOUR", cls.max_tts_chars_per_hour),
+            max_chats_per_hour=_int("ARTEMIS_MAX_CHATS_PER_HOUR", cls.max_chats_per_hour),
+            max_tts_chars_per_hour=_int("ARTEMIS_MAX_TTS_CHARS_PER_HOUR", cls.max_tts_chars_per_hour),
         )

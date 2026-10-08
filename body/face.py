@@ -1,4 +1,4 @@
-"""The face link: serves Milo's face page and tells it what to show.
+"""The face link: serves Arty's face page and tells it what to show.
 
 The body owns the screen. The page (sim/index.html, opened as /?face=1) asks for /events once and
 keeps that connection open (Server-Sent Events). Whatever the body passes to `FaceServer.send()` is
@@ -65,7 +65,7 @@ class _Server6(_Server):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "MiloFace/0.1"
+    server_version = "ArtemisFace/0.1"
     protocol_version = "HTTP/1.0"    # the connection closes after each reply, which is what a stream needs
     timeout = 10                     # a stuck page cannot hold a thread forever
 
@@ -152,7 +152,7 @@ class Handler(BaseHTTPRequestHandler):
     # ---- POST ----
     def do_POST(self) -> None:
         if not (self.host_ok() and self.origin_ok()):
-            return self.send_json(403, {"error": "This request did not come from the Milo page."})
+            return self.send_json(403, {"error": "This request did not come from the Arty page."})
         path = self.path.split("?", 1)[0]
         if path != "/input":
             return self.send_json(404, {"error": "Not found."})

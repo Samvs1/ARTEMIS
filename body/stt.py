@@ -38,7 +38,7 @@ class Transcriber(Protocol):
 
 def multipart_form(fields: dict[str, str], file_field: str, filename: str, content_type: str, data: bytes) -> tuple[bytes, str]:
     """Build a multipart/form-data body by hand. Returns (body, Content-Type header)."""
-    boundary = "----milo" + uuid.uuid4().hex
+    boundary = "----arty" + uuid.uuid4().hex
     out = io.BytesIO()
     for name, value in fields.items():
         out.write(f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"\r\n\r\n{value}\r\n'.encode("utf-8"))
@@ -214,5 +214,5 @@ def build_chain(settings: BodySettings) -> TranscriberChain:
         elif name == "local":
             items.append(LocalWhisper(settings.local_stt_model))
         else:
-            log("config", f"MILO_STT_ORDER names '{name}', which is not a speech to text I know (openai, local). Skipping it.")
+            log("config", f"ARTEMIS_STT_ORDER names '{name}', which is not a speech to text I know (openai, local). Skipping it.")
     return TranscriberChain(items)

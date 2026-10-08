@@ -73,7 +73,7 @@ class ConsoleTests(unittest.TestCase):
 
 class SettingsTests(unittest.TestCase):
     def test_defaults_and_overrides(self):
-        env = {"DEEPSEEK_API_KEY": " key ", "DEEPSEEK_BASE_URL": "https://example.test/", "MILO_PORT": "9001", "FISH_AUDIO_LATENCY": "normal"}
+        env = {"DEEPSEEK_API_KEY": " key ", "DEEPSEEK_BASE_URL": "https://example.test/", "ARTEMIS_PORT": "9001", "FISH_AUDIO_LATENCY": "normal"}
         with mock.patch.dict(os.environ, env, clear=True):
             s = Settings.from_env()
         self.assertEqual(s.deepseek_key, "key")
@@ -91,9 +91,18 @@ class SettingsTests(unittest.TestCase):
         self.assertFalse(s.use_fish)
 
     def test_bad_port_falls_back_to_default(self):
-        with mock.patch.dict(os.environ, {"MILO_PORT": "not a number"}, clear=True):
+        with mock.patch.dict(os.environ, {"ARTEMIS_PORT": "not a number"}, clear=True):
             self.assertEqual(Settings.from_env().port, 8000)
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OldNameTests(unittest.TestCase):
+    def test_settings_written_under_the_old_name_still_work(self):
+        from mind.config import with_old_names
+        env = with_old_names({"MILO_PORT": "8100", "MILO_HOST": "0.0.0.0", "ARTEMIS_HOST": "127.0.0.1", "MILO_EMPTY": ""})
+        self.assertEqual(env["ARTEMIS_PORT"], "8100")
+        self.assertEqual(env["ARTEMIS_HOST"], "127.0.0.1")          # the new name wins
+        self.assertNotIn("ARTEMIS_EMPTY", env)

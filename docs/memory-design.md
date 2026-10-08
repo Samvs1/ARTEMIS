@@ -1,6 +1,6 @@
-# Milo: memory design (R14)
+# Artemis: memory design (R14)
 
-How Milo remembers you between conversations. Status: **Decided (R14)**, following the owner's choices in R12: a plain, readable store of dated facts, the owner only at first but laid out per person, the mind server on the Pi. It implements the brainstorm ideas from the design log: growing closer through memory, "dreaming at the dock", and Milo's diary (section 4).
+How Arty remembers you between conversations. Status: **Decided (R14)**, following the owner's choices in R12: a plain, readable store of dated facts, the owner only at first but laid out per person, the mind server on the Pi. It implements the brainstorm ideas from the design log: growing closer through memory, "dreaming at the dock", and Arty's diary (section 4).
 
 ## Borrowed ideas (no new dependencies)
 
@@ -19,7 +19,7 @@ The mind server stays standard-library Python, so it runs on the Pi with nothing
 | **Facts** | Short, dated sentences about the person ("They drink oat-milk lattes.") | Written by the AI after each talk; edited by the person on the memory page | Until outdated or forgotten |
 | **Episodes** | One or two sentences per talk ("They had a long day and we sat quietly.") | Written by the AI after each talk | Kept; only the latest few are used |
 
-Plus, once a night: a **dream** (tidy the facts, write a **diary entry**, pick a **morning thought** Milo may bring up the next day).
+Plus, once a night: a **dream** (tidy the facts, write a **diary entry**, pick a **morning thought** Arty may bring up the next day).
 
 ## Files
 
@@ -66,7 +66,7 @@ Only what goes into a prompt leaves the machine: the facts and episodes picked f
 ]}
 ```
 
-`summary` is written by Milo in the first person, past tense, one or two sentences.
+`summary` is written by Arty in the first person, past tense, one or two sentences.
 
 ### `state.json`
 
@@ -173,7 +173,7 @@ class MemoryKeeper:
 **Noting talks** (`tick` calls it when the newest message is older than `settle_minutes`, or when 24 or more messages are waiting; it also runs once at start, so a talk is never lost to a restart):
 
 1. Take the messages newer than `noted_until`, split them into talks wherever there is a gap of more than `talk_gap_minutes`.
-2. For each talk, ask the AI once (`brain.complete`, JSON mode) with: today's date and time, the talk (each line with its time; Milo's lines with the stage directions removed), and the facts it might touch (the store's recall against the whole talk with `k=30`, plus all pinned facts), each with its id.
+2. For each talk, ask the AI once (`brain.complete`, JSON mode) with: today's date and time, the talk (each line with its time; Arty's lines with the stage directions removed), and the facts it might touch (the store's recall against the whole talk with `k=30`, plus all pinned facts), each with its id.
 3. The answer must be JSON:
    ```json
    {"summary": "...", "mood": "...",
@@ -187,14 +187,14 @@ class MemoryKeeper:
 
 The rules given to the AI (in plain words, in the prompt):
 
-- Only what the person said or clearly showed about themselves, their life, the people and pets around them, their likes, routines, plans and feelings. Nothing Milo said, nothing guessed, nothing about Milo itself.
+- Only what the person said or clearly showed about themselves, their life, the people and pets around them, their likes, routines, plans and feelings. Nothing Arty said, nothing guessed, nothing about Arty itself.
 - Small talk and passing moods are not facts ("They said hi"); a feeling only if it matters ("They are nervous about Friday's exam").
 - Short, third person ("They …"), one fact per item, with dates written out when the talk gives them ("on Friday 10 October").
 - When something changes, outdate the old fact and give the new one. Prefer `update` over adding a near-duplicate.
 - Importance: 9-10 their name, nickname, family; 6-8 strong likes, big plans, important people; 3-5 routines and preferences; 1-2 trivia.
-- If the person asks Milo to forget something, outdate it and do not add it again.
-- The nickname Milo gave them (if it settled on one) is an `identity` fact with importance 9.
-- Milo's summary: first person, past tense, warm, at most two sentences.
+- If the person asks Arty to forget something, outdate it and do not add it again.
+- The nickname Arty gave them (if it settled on one) is an `identity` fact with importance 9.
+- Arty's summary: first person, past tense, warm, at most two sentences.
 
 **Dreaming** (`tick` calls it once a day between 02:00 and 06:00 local time, or at the first tick after start when the last dream is more than 20 hours old and there is a new episode since; `force` skips the checks):
 
@@ -204,8 +204,8 @@ The rules given to the AI (in plain words, in the prompt):
    {"merge": [{"ids": ["f_a", "f_b"], "text": "...", "kind": "preference", "importance": 5}],
     "outdate": [{"id": "f_c"}],
     "importance": [{"id": "f_d", "importance": 3}],
-    "diary": "3 to 5 sentences in Milo's voice about the day",
-    "morning_thought": "one sentence Milo might say tomorrow, about something the person said"}
+    "diary": "3 to 5 sentences in Arty's voice about the day",
+    "morning_thought": "one sentence Arty might say tomorrow, about something the person said"}
    ```
 3. Apply it (same care as above; merges add one new fact and outdate the old ones with `replaced_by`), write the diary entry for today's date, set `morning_thought` for the next day, set `last_dream`, and `prune()`.
 
@@ -214,16 +214,16 @@ The rules given to the AI (in plain words, in the prompt):
 - Every saved message gets `"time"`. Old messages without a time are treated as old.
 - The messages sent with a reply are those of the **current talk** only (gap rule above), at most the last 12. If the previous talk has not been noted yet, its last 6 messages are added to the prompt as text under "## The end of your last talk (not yet in your memory)" so nothing falls through the gap.
 - The prompt gets the recalled facts and the latest 2 episodes (`store.render`), the morning thought on the first talk of a day, and in "Right now": how long since the last talk ("You last talked 2 days ago.").
-- The rule from round 13 stays, reworded: Milo only knows what is listed and this conversation, and never invents anything else.
+- The rule from round 13 stays, reworded: Arty only knows what is listed and this conversation, and never invents anything else.
 - `history.json` keeps the last 60 messages.
 - `brain.complete(messages, max_tokens=900, json_mode=True) -> str`: one non-streamed answer, used by the keeper. The demo mind answers with an empty, valid result.
 
 ## The memory page (simulator, normal mode)
 
-A panel "What Milo remembers" next to the personality editor:
+A panel "What Arty remembers" next to the personality editor:
 
 - The active facts, grouped by kind, with the date learned; each can be edited (text, importance), pinned, or forgotten (deleted for good).
-- "Tell Milo something to remember" adds a fact by hand (pinned).
+- "Tell Arty something to remember" adds a fact by hand (pinned).
 - Outdated facts, folded away, with the date they changed.
 - The last talks (episodes) and the diary (newest first).
 - **Forget everything about me**: asks for confirmation, then deletes the person's memory folder and the conversation history.
