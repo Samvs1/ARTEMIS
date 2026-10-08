@@ -57,7 +57,7 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 29 | Branches | `main` is kept in sync with the working branch after each round | The owner allowed creating `main`. GitHub's default branch stays the working branch until the owner switches it in the repository settings. | Decided (R6) |
 | 30 | How the mind drives the body | Stage directions inside the reply | The AI writes tags such as `[emote:happy]`, `[look:left]` and `[sound:curious]` in its reply. The server turns them into actions in order (section 10). | Built (assistant) |
 | 31 | Computer | Windows | Double-click launchers `start-artemis.bat` and `check-keys.bat`, and a step-by-step README. Not tested on Windows from the build session. | Decided (R6) |
-| 32 | Naming | Arty invents a nickname for each person | Written into the bible. The nickname lives in the conversation history (40 messages are kept, but only the last 12 are sent to the AI) until there is a memory system, so write favourites into the personality to keep them. | Decided (R6) |
+| 32 | Naming | Arty invents a nickname for each person | Written into the bible. The nickname lived only in the recent conversation until long-term memory came in R14 (row 49); now it can be kept as a fact if it comes up in a talk. To be sure Arty keeps one, write it into the personality. | Decided (R6) |
 | 33 | Humour | Gentle teasing | Like a friendly cat. This is what the draft does. | Decided (R6) |
 | 34 | Wants and fears | Keep the draft | Closed doors, the vacuum cleaner, the sunbeam and the rest stay. Single ones can be swapped later. | Decided (R6) |
 | 35 | Personality editing | Edited inside the page, with undo and a draft tester | Many iterations are expected. Your version is `data/character.md`; every save is kept; "Try it" runs your unsaved text on a list of situations (section 10). | Decided (owner) |
@@ -172,30 +172,30 @@ To work out:
 
 ## 8. Open questions
 
-- **Voice and brain stack**: the mind is DeepSeek and the voice is Fish Audio (decided). Speech to text is the browser's own for now. Still open: a better speech-to-text for the robot, how to add vision, which Fish Audio voice to use, and a monthly cost budget.
-- **First real run**: the mind server has not yet been tried with real keys or a real microphone. A session that has the keys should run `python3 mind/server.py --check` first.
-- **Memory design**: what is stored, how it is summarized, how people are recognized (face and voice).
+- **Voice and brain stack**: the mind is DeepSeek and the voice is Fish Audio (decided). Speech to text is OpenAI's, with faster-whisper as the fallback (row 43). Still open: which Fish Audio voice to use, how to add vision, and a monthly cost budget.
+- **Reply delay**: the first real run (R15) measured about 3.2 s from end of speech to Arty's first word, against a target of about 1 s. Ways to cut it are written down (R17: a faster or fully local speech to text, a shorter silence wait, a short first sentence, streaming the voice); the owner will first see in daily use whether it matters.
+- **Recognizing people**: memory is built per person (row 49), but Arty knows only the owner; telling people apart by voice or face is not designed yet (row 45).
 - **Second person**: do they want their own relationship with Arty, and how often are they around?
-- **Name and wake word**: confirm "Arty" and "Hey Arty".
+- **Wake word**: "Hey Arty" needs its own trained model; "Hey Jarvis" stands in (row 13).
 - **Body**: battery and power, display type, mic array, camera, sensors, dock design, size feasibility.
 - **Timeline**: how much time per week, and any target date.
-- **Mind server home**: first on the owner's own computer; where it lives once it should be always on.
+- **Mind server home**: on the owner's computer for now; on the Pi once it arrives (row 46).
 - **Cloud environment setup**: the owner has allowed api.deepseek.com and api.fish.audio (api.openai.com already worked). The keys only reach new sessions. Names, matching `.env.example`: `DEEPSEEK_API_KEY`, `FISH_AUDIO_API_KEY`, `OPENAI_API_KEY`. The environment already holds an `IMAGE_API_KEY` whose service is unconfirmed.
 - **First prototype**: Desk Arty (List A in `docs/shopping-lists.md`) should prove three things: the face on the real screen, the whole talking loop on real hardware (wake word, listening, mind, voice, no echo), and the real delay from end of speech to first sound.
 - **Character bible**: tune it by talking to Arty with real keys. The first answers (nicknames, gentle teasing, keep the wants and fears) are in the table.
-- **Pi speech stack**: cloud or on-device speech to text, which wake-word engine, which microphone array and speaker, and whether the mind server runs on the Pi or at home. To be settled with the hardware research (section 11).
+- **Pi speech stack**: speech to text (row 43), the wake-word engine (openWakeWord, R12) and where the mind runs (row 46) are chosen. Still to check on the real hardware: the microphone array, the speaker, and the delay and CPU load on the Pi (software plan, Phase 4).
 
 ## 9. Roadmap (working plan)
 
 Start with the riskiest and most magical part, which is talking.
 
-1. **Software Arty in the browser** (decided in R5): face, feelings, life layer and chirps are done. The mind server (DeepSeek for text, Fish Audio for voice, the browser's microphone) is built and tested against fakes. Next: a first real run with keys, measuring the time from end of speech to first sound (the target is about one second), then tuning the character.
+1. **Software Arty in the browser** (decided in R5): face, feelings, life layer and chirps are done. The mind server (DeepSeek for text, Fish Audio for voice, the browser's microphone) is built and tested against fakes. The first real run is done (R15), and the body program, memory and behaviour run on the owner's computer (R12 to R14). Next: pick a voice and tune the character in daily use.
 2. **Desk rig** ("Desk Arty", List A in `docs/shopping-lists.md`): the mind server and the face page on a Pi with a microphone array, speaker and screen (no wheels), plus a Python body process for audio, wake word and speech to text (section 11). Order the parts as soon as the first real voice run has checked the services.
 3. **Body v1** (List B, stage 2): chassis with drive, skid, bump and cliff sensors, battery and a microcontroller. Neck tilt, ears and glow are parked (row 37).
-4. **Memory and growth**: long-term memory, two-person identity, nightly consolidation, Arty's diary.
-5. **Dock and moments**: dock, welcome home, focus buddy, play.
+4. **Memory and growth**: long-term memory, nightly consolidation and Arty's diary are built for one person (R14). Still to do: a second person and telling people apart.
+5. **Dock and moments**: dock, welcome home, play. (The focus buddy and timers are built, R14.)
 
-Later candidates: look-to-talk, Arty's diary, shell personas.
+Later candidates: look-to-talk, shell personas.
 
 ## 10. Software Arty (the simulator and the mind server)
 
@@ -390,3 +390,9 @@ The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. I
 
 - The owner renamed the project and the robot: **Artemis, Arty for short** (rows 13 and 51). Arty is the everyday name in the page, the docs and the wake word ("Hey Arty"); Artemis is the full name, used in titles and when Arty introduces itself ("I'm Artemis, Arty for short!").
 - Nothing the owner already set up breaks: old `MILO_…` settings in `.env` are still read, the page keeps its saved look and settings, and a personality saved under the old name is updated once (the old version stays in its history).
+
+**Round 17: tidying up**
+
+- The owner renamed the GitHub repository from LIGMA to ARTEMIS and made `main` the default branch. The links in the README and the page now point to the new name; GitHub forwards the old address, so old links and downloads keep working.
+- Cutting the reply delay was discussed: a choice of speech to text in `.env` (OpenAI, or a fully local one such as Moonshine that understands you while you talk), a shorter silence wait, a short first sentence, and streaming the voice. Estimated result: about 1.3 to 2.2 s instead of 3.2 s. **Parked by the owner**: first see in daily use whether the delay matters.
+- Cleaned up: the README status, the software plan, the open questions (section 8) and the roadmap (section 9) were brought up to date. Three old work branches on GitHub (`claude/adoring-lamport-…`, `claude/modest-mccarthy-…`, `claude/project-thread-…`) are already fully in `main`; the owner deletes them on GitHub's Branches page.

@@ -1,19 +1,21 @@
 # Artemis: software plan (R11)
 
-What is left to make Arty work as software, in the order I would do it. Status: **Proposed**. Nothing here is built yet.
+What was left to make Arty work as software, in the order I would do it. Written in round 11; the owner answered the decisions in round 12 (bottom of the page). Phases 0 to 3 are now built; Phases 4 and 5 wait for hardware. The status table below is kept up to date; the rest is the plan as it was written.
 
-## Status (round 15)
+## Status (round 17)
 
 | Phase | State |
 |---|---|
-| 0. Prove the basics | Done. First real voice run on the owner's computer (R15): it works, but end of speech to first word is about 3.2 s against the 1 s target; speech to text and the voice are most of it. A Fish Audio voice ID is still to be picked. |
-| 1. The body program | Done (`docs/body-design.md`). Tried with a real headset on Windows (R15), push to talk; the wake word is not installed there yet. |
+| 0. Prove the basics | Done. First real voice run on the owner's computer (R15): it works, but end of speech to first word is about 3.2 s against the 1 s target; speech to text and the voice are most of it. A Fish Audio voice ID is still to be picked. Ideas to cut the delay (round 17: a faster or fully local speech to text, a shorter silence wait, a short first sentence, streaming the voice) are parked until the owner has seen in daily use whether it matters. |
+| 1. The body program | Done (`docs/body-design.md`). Tried with a real headset on Windows (R15), push to talk; the wake word is not installed there yet. A real "Hey Arty" wake word still has to be trained ("Hey Jarvis" stands in). |
 | 2. Memory and people | Done for one person (`docs/memory-design.md`); tried live with DeepSeek. Voice ID left out by decision (row 45). |
 | 3. Behaviour | Done (`docs/behaviour-design.md`): timers, focus buddy, good morning and good night, meters kept across a reload, a body that survives without its mind. Tried live with DeepSeek. Waits for a light sensor: good morning and good night on the robot. |
 | 4. On the Pi | Waits for List A. |
 | 5. The moving body | Waits for List B, stage 2. |
 
-## Where we are
+## Where we were (round 11)
+
+This is how things stood when the plan was written. For today, see the status table above (412 tests pass in round 17).
 
 Built and tested against fakes (72 unit tests pass):
 
@@ -29,7 +31,7 @@ Not built at all:
 
 Never tried: real DeepSeek and Fish Audio calls, and the real delay from end of speech to first sound (the target is about one second).
 
-Small problems found while reading:
+Small problems found while reading. Since fixed: the budget refills every day, `OPENAI_API_KEY` is used for speech to text, and the nickname note says 12. Left as it is on purpose: the four extra sounds (wake, listen, bored, poke) are ones the page and the body play by themselves.
 
 - The talk budget for self-started chat (5) never refills, so Arty goes quiet for good after five.
 - The AI is told about 6 chirps, but the server accepts 10.
@@ -109,13 +111,13 @@ Result: on your computer, say "Hey Arty", talk, interrupt, and see the face reac
 
 Later, still parked: camera and faces, ears and glow, dock, look-to-talk.
 
-## Decisions I need from you
+## Decisions (answered by the owner in round 12)
 
-- **A. Speech to text:** cloud (OpenAI's transcription; fast, costs a little, audio leaves the house after the wake word) or on the robot (faster-whisper; free and private, probably slower on a Pi). My suggestion: cloud first, keep the slot for on-device.
-- **B. Memory:** a plain file of dated facts (my suggestion; readable, easy to correct) or Mem0 straight away.
-- **C. Voice ID:** worth doing in the first version, or start with "the owner only" (the design log allows that) and add your partner later?
-- **D. Where the mind server lives:** on the Pi, or on your computer with the Pi as a thin client? The plan works either way; on the Pi is simpler for an always-on robot.
-- **E. Start Phase 1 now on your computer, before buying hardware?** My suggestion: yes.
+- **A. Speech to text:** cloud (OpenAI's transcription; fast, costs a little, audio leaves the house after the wake word) or on the robot (faster-whisper; free and private, probably slower on a Pi). My suggestion: cloud first, keep the slot for on-device. **Answer:** cloud with an on-device fallback (design log row 43).
+- **B. Memory:** a plain file of dated facts (my suggestion; readable, easy to correct) or Mem0 straight away. **Answer:** the plain file (row 44).
+- **C. Voice ID:** worth doing in the first version, or start with "the owner only" (the design log allows that) and add your partner later? **Answer:** the owner only for now, kept simple (row 45).
+- **D. Where the mind server lives:** on the Pi, or on your computer with the Pi as a thin client? The plan works either way; on the Pi is simpler for an always-on robot. **Answer:** on the Pi (row 46).
+- **E. Start Phase 1 now on your computer, before buying hardware?** My suggestion: yes. **Answer:** yes (row 47).
 
 ## How the work is split
 
