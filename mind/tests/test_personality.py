@@ -99,7 +99,9 @@ class MindMemoryTests(unittest.TestCase):
             self.assertTrue(history.exists())
             again = Mind(DemoBrain(), history_file=history)
             self.assertEqual(len(again.history), 2)
-            self.assertEqual(again.history[0], {"role": "user", "content": "hello"})
+            first = again.history[0]
+            self.assertEqual((first["role"], first["content"]), ("user", "hello"))
+            self.assertIn("T", first["time"])                     # every message carries its time now
             again.reset()
             self.assertFalse(history.exists())
             self.assertEqual(Mind(DemoBrain(), history_file=history).history, [])

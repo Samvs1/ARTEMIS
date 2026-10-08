@@ -17,6 +17,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterator
 
@@ -177,7 +178,7 @@ Your reply is spoken out loud and shown on your face. You can put stage directio
 
 ## What you remember
 
-You only know what has been said in this conversation (the messages above). You have no memory of earlier days yet. Never make up things you remember about the person, things they did, or past moments together. If you are asked what you know about them, tell them honestly what they said in this conversation, or that you are still getting to know them.
+You only know what is written under "What you remember about them" and "Your last talks" below (if anything), and what has been said in this conversation. Never make up things you remember about the person, things they did, or past moments together. If you are asked what you know about them and it is not there, say so honestly: you are still getting to know them.
 
 Rules for every reply:
 - Start with one [emote:...] that matches how you feel. Use a [look:...] or [sound:...] only when it adds something.
@@ -193,9 +194,11 @@ EVENT_PROMPTS = {
 }
 
 
-def context_block(state: dict) -> str:
-    """What is going on right now, taken from the body. Only simple values are accepted."""
-    lines = []
+def context_block(state: dict, notes: list[str] | None = None) -> str:
+    """What is going on right now, taken from the body. Only simple values are accepted.
+
+    `notes` are trusted lines from the mind itself, such as how long ago the last talk was."""
+    lines = list(notes or [])
     when = str(state.get("local_time") or "")[:70].strip()
     if when:
         lines.append(f"Local time: {when}.")
@@ -211,8 +214,9 @@ def context_block(state: dict) -> str:
     return "## Right now\n" + "\n".join("- " + line for line in lines) if lines else ""
 
 
-def build_system_prompt(character: str, state: dict) -> str:
-    parts = [character.strip(), BODY_PROTOCOL.strip(), context_block(state or {})]
+def build_system_prompt(character: str, state: dict, memory: str = "", notes: list[str] | None = None) -> str:
+    """`memory` comes from the memory store; `notes` are lines the mind adds itself (never from the body)."""
+    parts = [character.strip(), BODY_PROTOCOL.strip(), memory.strip(), context_block(state or {}, notes or [])]
     return "\n\n".join(p for p in parts if p)
 
 
@@ -306,6 +310,49 @@ class DeepSeekBrain:
                 last = e
         raise BrainError(str(last) if last else "The mind did not answer.")
 
+    def complete(self, messages: list[dict], max_tokens: int = 900, json_mode: bool = True) -> str:
+        """One whole answer, not streamed. The memory keeper uses it; chat uses stream()."""
+        combos = [(m, t) for m in self.models for t in self.thinking_modes]
+        if self.working:
+            combos = [self.working] + [c for c in combos if c != self.working]
+        last: _Retry | None = None
+        for model, thinking in combos:
+            for use_json in ([True, False] if json_mode else [False]):
+                try:
+                    return self._complete_once(model, thinking, messages, max_tokens, use_json)
+                except _Retry as e:
+                    last = e
+        raise BrainError(str(last) if last else "The mind did not answer.")
+
+    def _complete_once(self, model: str, thinking: str, messages: list[dict], max_tokens: int, use_json: bool) -> str:
+        body = {"model": model, "messages": messages, "stream": False, "temperature": 0.3, "max_tokens": max_tokens}
+        if thinking == "off":
+            body["thinking"] = {"type": "disabled"}
+        if use_json:
+            body["response_format"] = {"type": "json_object"}
+        req = urllib.request.Request(
+            self.base + "/chat/completions",
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Authorization": "Bearer " + self.key, "Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                obj = json.loads(resp.read().decode("utf-8", "replace"))
+        except urllib.error.HTTPError as e:
+            detail = describe_http_error(e)
+            if e.code in (400, 404, 422):
+                raise _Retry(f"DeepSeek did not accept model '{model}' (HTTP {e.code}: {detail})") from e
+            raise BrainError(friendly_status("DeepSeek", e.code, detail)) from e
+        except (urllib.error.URLError, OSError) as e:
+            raise BrainError(network_message("DeepSeek", self.base, e)) from e
+        except ValueError as e:
+            raise BrainError("DeepSeek sent back something that is not JSON.") from e
+        text = (((obj.get("choices") or [{}])[0].get("message") or {}).get("content") or "").strip()
+        if not text:
+            raise BrainError("DeepSeek sent back an empty answer.")
+        return text
+
     def _stream_once(self, model: str, thinking: str, messages: list[dict]) -> Iterator[str]:
         body = {"model": model, "messages": messages, "stream": True, "temperature": 0.9, "max_tokens": 220}
         if thinking == "off":
@@ -376,6 +423,11 @@ class DemoBrain:
             time.sleep(0.015)
             yield reply[i:i + 4]
 
+    def complete(self, messages: list[dict], max_tokens: int = 900, json_mode: bool = True) -> str:
+        """The demo mind remembers nothing: an empty but valid answer for the memory keeper."""
+        return json.dumps({"summary": "We had a little demo chat.", "mood": "", "facts": [], "merge": [],
+                           "outdate": [], "importance": [], "diary": "", "morning_thought": ""})
+
 
 # ---------------------------------------------------------------------------
 # The conversation
@@ -421,22 +473,79 @@ def review_reply(reply: str, events: list[dict]) -> tuple[list[str], list[str]]:
     return notes, warnings
 
 
-MAX_HISTORY = 12      # how many past messages Milo remembers within a conversation
-KEEP_HISTORY = 40
+MAX_HISTORY = 12      # how many messages of the current talk go with each reply
+KEEP_HISTORY = 60     # how many messages are kept on disk
+TALK_GAP = timedelta(minutes=45)     # this much quiet ends a talk
+
+
+def now_local() -> datetime:
+    return datetime.now().astimezone()
+
+
+def parse_time(value) -> datetime | None:
+    """An ISO time from the history, or None. A time without an offset is taken as local time."""
+    try:
+        t = datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+    return t if t.tzinfo else t.astimezone()
+
+
+def split_talks(messages: list[dict], gap: timedelta = TALK_GAP) -> list[list[dict]]:
+    """Group messages into talks: a new talk starts after `gap` of quiet. Messages without a time
+    (saved before times were kept) count as one old talk."""
+    talks: list[list[dict]] = []
+    prev: datetime | None = None
+    prev_untimed = False
+    for m in messages:
+        t = parse_time(m.get("time"))
+        if not talks:
+            new = True
+        elif t is None:
+            new = not prev_untimed
+        else:
+            new = prev_untimed or prev is None or t - prev > gap
+        if new:
+            talks.append([])
+        talks[-1].append(m)
+        prev_untimed = t is None
+        prev = t
+    return talks
+
+
+def ago(delta: timedelta) -> str:
+    minutes = max(0, int(delta.total_seconds() // 60))
+    if minutes < 90:
+        return f"about {max(minutes, 1)} minutes ago"
+    hours = minutes // 60
+    if hours < 36:
+        return f"about {hours} hours ago"
+    days = round(hours / 24)
+    return f"{days} days ago" if days < 60 else "a long time ago"
+
+
+def plain_line(m: dict) -> str:
+    """One message as a line of text for the prompt, without stage directions."""
+    who = "You" if m.get("role") == "assistant" else "They"
+    return f"- {who}: {clean_speech(TAG_IN_TEXT.sub(' ', m.get('content') or '')) or '...'}"
 
 
 class Mind:
-    """One conversation: a brain, its history and the parser.
+    """One conversation: a brain, its history, the memory and the parser.
 
     If `history_file` is given, the recent conversation is kept there between runs, so Milo
     does not forget what was said when the server restarts. It is a plain file on your own
-    computer. Delete it and Milo forgets.
+    computer. Delete it and Milo forgets the conversation (its memory is kept separately,
+    see docs/memory-design.md).
     """
 
-    def __init__(self, brain, personality: Personality | None = None, history_file: Path | None = None) -> None:
+    def __init__(self, brain, personality: Personality | None = None, history_file: Path | None = None,
+                 memory=None, clock=now_local) -> None:
         self.brain = brain
         self.personality = personality or Personality(CHARACTER_FILE)
         self.history_file = history_file
+        self.memory = memory                        # a mind.memory.MemoryStore, or None
+        self.clock = clock
         self._lock = threading.Lock()
         self.history: list[dict] = self._load()
 
@@ -460,6 +569,11 @@ class Mind:
             tmp.replace(self.history_file)
         except OSError:
             pass                                    # remembering is a bonus, never a reason to fail
+
+    def messages(self) -> list[dict]:
+        """A copy of the saved messages (the memory keeper reads them)."""
+        with self._lock:
+            return [dict(m) for m in self.history]
 
     def character(self) -> str:
         return self.personality.text()             # read from disk every time, so edits apply at once
@@ -494,6 +608,7 @@ class Mind:
         }
 
     def reset(self) -> None:
+        """Start a fresh conversation. Milo's memory is not touched."""
         with self._lock:
             self.history.clear()
             if self.history_file:
@@ -502,14 +617,81 @@ class Mind:
                 except OSError:
                     pass
 
+    def context(self, user_content: str, now: datetime) -> tuple[list[dict], str, list[str], list[str], bool]:
+        """What goes with the next reply: the current talk's messages, the memory text, the trusted
+        notes for "Right now", the ids of the facts used, and whether the morning thought was used."""
+        with self._lock:
+            hist = list(self.history)
+        talks = split_talks(hist)
+        current: list[dict] = []
+        earlier = talks
+        if talks:
+            last_t = parse_time(talks[-1][-1].get("time"))
+            if last_t is not None and now - last_t <= TALK_GAP:
+                current, earlier = talks[-1], talks[:-1]
+        past = [{"role": m["role"], "content": m["content"]} for m in current[-MAX_HISTORY:]]
+
+        notes: list[str] = []
+        sections: list[str] = []
+        used: list[str] = []
+        morning = False
+        state = self.memory.state() if self.memory else {}
+        episodes = self.memory.episodes(limit=2) if self.memory else []
+        talk_start = parse_time(current[0].get("time")) if current else now
+
+        # How long since the last talk.
+        last_end = parse_time(earlier[-1][-1].get("time")) if earlier else None
+        if last_end is None and episodes:
+            last_end = parse_time(episodes[-1].get("end"))
+        if last_end is not None and talk_start is not None:
+            notes.append(f"Before this conversation, you last talked {ago(talk_start - last_end)}.")
+        elif not earlier and not episodes:
+            notes.append("This is the first conversation you remember having with them.")
+
+        if self.memory:
+            query = " ".join([m["content"] for m in current[-3:] if m["role"] == "user"] + [user_content])
+            facts = self.memory.recall(query)
+            used = [f["id"] for f in facts]
+            text = self.memory.render(facts, episodes, now)
+            if text:
+                sections.append(text)
+            thought = state.get("morning_thought") or {}
+            today = now.date().isoformat()
+            talked_today = any((parse_time(m.get("time")) or now.replace(year=1970)).date() == now.date() for m in hist)
+            if (thought.get("text") and not thought.get("used") and thought.get("for_date") == today
+                    and not talked_today):
+                sections.append('## Last night\nYou dreamt about this and may bring it up if it fits: "'
+                                + str(thought["text"])[:300] + '"')
+                morning = True
+
+        # The end of the last talk, while the memory keeper has not noted it yet.
+        if earlier:
+            noted = parse_time(state.get("noted_until")) if self.memory else None
+            if self.memory is None or noted is None or (last_end is not None and last_end > noted):
+                lines = [plain_line(m) for m in earlier[-1][-6:] if not m.get("event")]
+                if lines:
+                    sections.append("## The end of your last talk (not yet in your memory)\n" + "\n".join(lines))
+        return past, "\n\n".join(sections), notes, used, morning
+
+    def system_prompt(self, state: dict, user_content: str = "hello") -> str:
+        """The whole prompt the next reply would get (for "See exactly what Milo is told"). Changes nothing."""
+        _, memory_text, notes, _, _ = self.context(user_content, self.clock())
+        return build_system_prompt(self.character(), state, memory_text, notes)
+
     def chat(self, text: str, event: str, state: dict) -> Iterator[dict]:
         user_content = EVENT_PROMPTS.get(event, "") if event else (text or "").strip()[:600]
         if not user_content:
             yield {"type": "error", "message": "There was nothing to say."}
             return
-        system = build_system_prompt(self.character(), state or {})
-        with self._lock:
-            past = list(self.history[-MAX_HISTORY:])
+        now = self.clock()
+        try:
+            past, memory_text, notes, used, morning = self.context(user_content, now)
+        except Exception as e:                      # memory trouble must never stop a reply
+            print(f"memory problem, answering without it: {e}", flush=True)
+            with self._lock:
+                past = [{"role": m["role"], "content": m["content"]} for m in self.history[-MAX_HISTORY:]]
+            memory_text, notes, used, morning = "", [], [], False
+        system = build_system_prompt(self.character(), state or {}, memory_text, notes)
         messages = [{"role": "system", "content": system}] + past + [{"role": "user", "content": user_content}]
         parser = DirectiveStream()
         started = time.monotonic()
@@ -529,8 +711,22 @@ class Mind:
         if not reply:
             yield {"type": "error", "message": "The mind sent back an empty reply."}
             return
+        stamp = now.isoformat(timespec="seconds")
+        asked = {"role": "user", "content": user_content, "time": stamp}
+        if event:
+            asked["event"] = event                  # not something the person said: the keeper skips it
         with self._lock:
-            self.history.extend([{"role": "user", "content": user_content}, {"role": "assistant", "content": reply}])
+            self.history.extend([asked, {"role": "assistant", "content": reply, "time": self.clock().isoformat(timespec="seconds")}])
             del self.history[:-KEEP_HISTORY]
             self._save()
+        if self.memory:
+            try:
+                if used:
+                    self.memory.mark_used(used)
+                if morning:
+                    thought = dict(self.memory.state().get("morning_thought") or {})
+                    thought["used"] = True
+                    self.memory.set_state(morning_thought=thought)
+            except Exception as e:
+                print(f"memory problem after a reply: {e}", flush=True)
         yield {"type": "done", "first_token_ms": first_ms or 0, "total_ms": int((time.monotonic() - started) * 1000)}
