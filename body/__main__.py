@@ -5,7 +5,8 @@
     python3 -m body --fake-audio a.wav b.wav   # feed recordings instead of the microphone; nothing is played
     python3 -m body --list-devices       # show microphones and speakers
 
-The mind server must be running first (python3 mind/server.py).
+The mind server should be running first (python3 mind/server.py). If it is not, Milo starts anyway with the
+offline face, answers the wake word with a sleepy chirp, and checks every 10 seconds until the mind is there.
 """
 from __future__ import annotations
 
@@ -78,10 +79,11 @@ def main(argv: list[str] | None = None) -> int:
 
     mind = MindClient(settings.mind_url)
     health = mind.health()
-    if not health:
-        log("body", f"the mind server does not answer at {settings.mind_url}. Start it first: python3 mind/server.py")
-        return 1
-    log("body", f"mind: {health.get('brain', {}).get('label', '?')}; voice: {health.get('voice', {}).get('label', '?')}")
+    if health:
+        log("body", f"mind: {health.get('brain', {}).get('label', '?')}; voice: {health.get('voice', {}).get('label', '?')}")
+    else:
+        log("body", f"the mind server does not answer at {settings.mind_url}, so Milo starts without it (offline face). "
+                    "Start it with: python3 mind/server.py")
 
     stt = build_chain(settings)
     if args.fake_audio:
@@ -111,7 +113,7 @@ def main(argv: list[str] | None = None) -> int:
     ref: list = []
     if args.fake_audio:
         mic = PacedMic(mic, ref)
-    convo = Conversation(settings, mic, speaker, wake, stt, mind, face)
+    convo = Conversation(settings, mic, speaker, wake, stt, mind, face, offline=not health)
     ref.append(convo)
     stop = threading.Event()
     signal.signal(signal.SIGINT, lambda *_: stop.set())

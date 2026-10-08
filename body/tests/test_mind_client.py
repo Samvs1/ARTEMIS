@@ -97,6 +97,47 @@ class MindClientTests(unittest.TestCase):
         self.assertIn("did not come from the Milo page", str(ctx.exception))
 
 
+class RecordingHandler(BaseHTTPRequestHandler):
+    """A fake mind that writes down what it was asked and answers with one sentence."""
+
+    protocol_version = "HTTP/1.0"
+    asked: list = []
+
+    def log_message(self, *a):
+        pass
+
+    def do_POST(self):
+        self.asked.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+        self.send_response(200)
+        self.send_header("Content-Type", "application/x-ndjson")
+        self.end_headers()
+        self.wfile.write(b'{"type": "say", "text": "Your tea is ready."}\n{"type": "done"}\n')
+
+
+class DetailTests(unittest.TestCase):
+    def setUp(self):
+        self.handler = type("H", (RecordingHandler,), {"asked": []})
+        self.server = ThreadingHTTPServer(("127.0.0.1", 0), self.handler)
+        self.server.daemon_threads = True
+        threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.02}, daemon=True).start()
+        self.client = MindClient(f"http://127.0.0.1:{self.server.server_address[1]}")
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+    def test_the_detail_is_sent_with_an_event(self):
+        events = list(self.client.chat(event="timer_done", detail="tea", state={"mood": "calm"}))
+        self.assertEqual([e["type"] for e in events], ["say", "done"])
+        self.assertEqual(self.handler.asked, [{"text": "", "event": "timer_done", "detail": "tea", "state": {"mood": "calm"}}])
+
+    def test_no_detail_means_no_detail_field(self):
+        list(self.client.chat("hello"))
+        list(self.client.chat(event="focus_break", detail=""))
+        self.assertEqual([sorted(body) for body in self.handler.asked], [["event", "state", "text"]] * 2)
+        self.assertEqual(self.handler.asked[1]["event"], "focus_break")
+
+
 class SlowHandler(BaseHTTPRequestHandler):
     """A fake mind that sends one event, then waits until the test says so (or the connection drops)."""
 

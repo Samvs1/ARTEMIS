@@ -74,6 +74,8 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 46 | Where the mind server runs | On the Pi | | Decided (owner, R12) |
 | 47 | When to start the robot software | Now, on the owner's computer, before the hardware arrives | The body program runs on Windows or Linux with any microphone and speaker. | Decided (owner, R12) |
 | 48 | Body program design | Three programs: mind server (exists), body (hears, speaks, drives the face), face page in kiosk mode fed by the body | `docs/body-design.md`. | Decided (R12) |
+| 49 | Memory design | Facts, episodes and a nightly dream with a diary, per person, in plain files on the Pi | `docs/memory-design.md`. Ideas from Mem0 (add, update or retire facts after a talk), Generative Agents (recall by recency, importance and relevance; nightly reflection), Graphiti (outdate, do not delete) and CharMemory (readable files); no new dependencies. | Decided (R14) |
+| 50 | Timers and focus buddy | Stage directions `[timer:…]` and `[focus:…]`, run by the page or the body; Milo announces the end | `docs/behaviour-design.md`. Good morning and good night from the lights switch, within the daily budget. | Decided (R14) |
 
 ## 3. Architecture principle: two brains
 
@@ -356,3 +358,11 @@ The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. I
 - The owner ran `start-milo.bat` with real keys. Two problems: the sentences of one answer came out in different voices, and Milo claimed to remember things that never happened ("I know you say hello to me first").
 - Cause of the voices: no `FISH_AUDIO_VOICE_ID` was set, and without one Fish Audio picks a random voice for each request (Milo asks per sentence). On top of that, a sentence whose voice request failed fell back to the browser's own voice. Fixed: the server warns at start and in `--check` when no voice ID is set; Fish Audio is retried once when busy; and once the real voice has been heard, the simulator never switches to the browser voice (it retries the sentence, then hums it). **The owner needs to pick a voice at fish.audio and set `FISH_AUDIO_VOICE_ID`.**
 - Cause of the invented memory: the personality asks for a "things I have learned about you" list that does not exist yet. Fixed in the prompt the code builds (so it holds whatever the personality says): Milo only knows the current conversation and must never invent past moments. Tried with the real DeepSeek mind: "So far I only know that you say hello very nicely. My list is mostly empty." Real memory is Phase 2.
+
+**Round 14: memory and behaviour (Phase 2 and 3)**
+
+- The owner asked to carry on with the software plan, borrowing from other projects where it helps (rows 49 and 50).
+- Built: the memory store, the memory keeper (notes after each talk, the nightly dream, the diary, the morning thought), "What Milo remembers" in the page, times on every message and talks split by 45 minutes of quiet, timers and the focus buddy, new events (timer done, focus break, good morning, good night), and a body that keeps running without its mind.
+- Tried with the real DeepSeek mind: from a five-message chat the keeper noted exactly the right five facts, with dates worked out ("Saturday 10 October"); in a fresh conversation Milo recalled all of them; "Lotte cancelled, next weekend instead" outdated the old fact and added the new one; the dream wrote a diary entry in Milo's voice and set the morning thought "Is Lotte still coming next weekend?".
+- Fixed on the way: `check-keys.bat` crashed when a Fish Audio key was set (a mistake from round 13); a short internet outage no longer makes the keeper give up on a talk.
+- Behaviour tried with the real DeepSeek mind: asked for a tea timer it wrote `[timer:8m tea]` and said "Eight minutes for the tea, coming right up!"; the timer_done event gave "Your tea is ready!"; asked for help focusing it started a 25-minute focus block and at the break suggested a stretch and water; "cancel everything" cancelled the timers. Phases 2 and 3 of `docs/software-plan.md` are done; phases 4 and 5 wait for the hardware.

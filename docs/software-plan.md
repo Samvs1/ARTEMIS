@@ -2,6 +2,17 @@
 
 What is left to make Milo work as software, in the order I would do it. Status: **Proposed**. Nothing here is built yet.
 
+## Status (round 14)
+
+| Phase | State |
+|---|---|
+| 0. Prove the basics | Done. Real DeepSeek run (first words in under a second); housekeeping, CI. The voice half still needs the owner's keys on their computer. |
+| 1. The body program | Done (`docs/body-design.md`). Not yet tried with a real microphone and speaker. |
+| 2. Memory and people | Done for one person (`docs/memory-design.md`); tried live with DeepSeek. Voice ID left out by decision (row 45). |
+| 3. Behaviour | Done (`docs/behaviour-design.md`): timers, focus buddy, good morning and good night, meters kept across a reload, a body that survives without its mind. Tried live with DeepSeek. Waits for a light sensor: good morning and good night on the robot. |
+| 4. On the Pi | Waits for List A. |
+| 5. The moving body | Waits for List B, stage 2. |
+
 ## Where we are
 
 Built and tested against fakes (72 unit tests pass):

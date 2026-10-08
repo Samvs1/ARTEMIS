@@ -1,6 +1,6 @@
 # Milo: body program design (R12)
 
-The "body" is the Python program that lets Milo hear and speak without a browser. It runs on the Pi next to the mind server, and it can run on a Windows or Linux computer during development. Status: **Decided (R12)**, built in steps.
+The "body" is the Python program that lets Milo hear and speak without a browser. It runs on the Pi next to the mind server, and it can run on a Windows or Linux computer during development. Status: **Decided (R12)**, built in steps; timers, the focus state and running without the mind were added in R14 (`docs/behaviour-design.md`).
 
 Owner decisions this design follows (R12): cloud speech to text with a local fallback; plain-file memory; the owner only at first (memory laid out per person, no voice ID yet); the mind server runs on the Pi; start before the hardware arrives.
 
@@ -149,8 +149,9 @@ def build_chain(settings) -> TranscriberChain: ...
 class MindClient:
     def __init__(self, base_url: str): ...
     def health(self) -> dict | None: ...
-    def chat(self, text: str = "", event: str = "", state: dict | None = None) -> Iterator[dict]: ...
-        # streams the server's NDJSON events: emote, look, sound, say, error, done; sends the Origin header the server expects
+    def chat(self, text: str = "", event: str = "", state: dict | None = None, detail: str = "") -> Iterator[dict]: ...
+        # streams the server's NDJSON events: emote, look, sound, timer, focus, say, error, done; sends the Origin header the server expects.
+        # `event` (+ `detail`, sent only when given) asks for a reply to something that happened, e.g. event "timer_done", detail "tea"
     def tts(self, text: str, fmt: str = "wav") -> bytes: ...   # raises MindError
     def cancel(self) -> None: ...                  # closes the open chat stream (the server sees an interrupt)
 ```
@@ -172,10 +173,12 @@ Events the body sends to the face:
 
 | Event | Meaning |
 |---|---|
-| `{"type": "state", "name": "idle" \| "listening" \| "thinking" \| "speaking" \| "sleeping" \| "offline" \| "privacy"}` | What Milo is doing; the face shows it (listening: attentive eyes; thinking: the thinking face; offline: sleepy and confused) |
+| `{"type": "state", "name": "idle" \| "listening" \| "thinking" \| "speaking" \| "focus" \| "sleeping" \| "offline" \| "privacy"}` | What Milo is doing; the face shows it (listening: attentive eyes; thinking: the thinking face; focus: calm, half-lidded, steady eyes, shown instead of `idle` while a focus block runs; offline: sleepy and confused) |
 | `{"type": "emote", "name": ...}` and `{"type": "look", "dir": ...}` | Straight from the mind's stage directions |
 | `{"type": "mouth", "level": 0.0..1.0}` | About 30 per second while speaking |
 | `{"type": "caption", "text": ...}` | Optional, for debugging; hidden unless `&captions=1` |
+
+The mind's `timer` and `focus` stage directions are not sent to the face: the loop keeps the timers itself, and a focus block only shows as the `focus` state. A page that does not know a state name ignores it (`focus` needs the face page's focus look, see `docs/behaviour-design.md`).
 
 The face page in `?face=1` mode: no room, body, buttons or panels; the face fills the window (designed for 800 x 480); the life layer keeps blinking, glancing and breathing but makes no sound, starts nothing and never calls the mind; it reconnects to `/events` every few seconds and looks sleepy while disconnected.
 
@@ -185,19 +188,36 @@ The face page in `?face=1` mode: no room, body, buttons or panels; the face fill
 idle ──wake word──► listening ──utterance──► thinking ──first "say"──► speaking ──done──► listening (window) ──silence──► idle
                         ▲                                                  │
                         └────────────── you talk over Milo (barge-in) ─────┘
+idle ──a timer or focus block ends (no wake word, no speech to text)──► thinking ──► speaking ──► listening (window) ──► idle
 ```
 
 - On wake: chirp `listen`, face `listening`, start an utterance with a 6 s no-speech timeout.
 - On an utterance: face `thinking`, chirp `thinking`, transcribe, send to the mind with the body state (mood, lights, local time).
-- While the reply streams: apply emote and look at once until the first sentence, then in order with the speech. Ask for each sentence's voice as soon as it exists, play them in order, and feed the mouth.
-- After the reply: listen again for `window_seconds` without the wake word, then go back to idle.
+- While the reply streams: apply emote and look at once until the first sentence, then in order with the speech. Ask for each sentence's voice as soon as it exists, play them in order, and feed the mouth. `timer` and `focus` events are applied the same way (at once before the first sentence, afterwards in order with the speech).
+- After the reply: listen again for `window_seconds` without the wake word, then go back to resting.
 - Barge-in (only when `barge_in` is on): speech during playback stops the voice, cancels the reply and starts listening.
-- If the mind or the voice fails: say nothing, face `offline`, chirp `sleepy`, log the reason, go back to idle.
+- If the mind or the voice fails: say nothing, face `offline`, chirp `sleepy`, log the reason, go back to resting (now in offline mode, see below).
 - Ctrl+C stops cleanly.
+
+**The resting face** is `idle`, or `focus` while a focus block runs, or `offline` while the mind is away (offline wins). After every talk the face returns to the resting face. During a focus block the wake word still works (talking is fine); no talk starts by itself except the end of a timer.
+
+**Timers and the focus block** (R14, `docs/behaviour-design.md`). The `Scheduler` in `body/loop.py` keeps up to 3 timers (a fourth replaces the oldest; `{"type": "timer", "cancel": true}` clears them all, also those that ended but were not announced yet) and one focus block (`{"type": "focus", "minutes": n}` starts or restarts it, `{"type": "focus", "stop": true}` ends it without an event). It only looks at the `clock` given to `Conversation` (default `time.monotonic`), so tests use a fake clock and never sleep. Every microphone frame calls `Conversation.tick()`, which asks the scheduler what has ended:
+
+- Milo is idle (resting, nothing queued for the speaker): start a reply at once, with no wake word and no speech to text: `mind.chat(event="timer_done", detail=label)` or `mind.chat(event="focus_break", detail=str(minutes))`. It goes through the same streaming and speaking path as a normal reply (face `thinking`, then `speaking`), and afterwards the usual listening window opens.
+- Milo is busy (thinking, speaking, or listening during a talk): the event waits in a queue and starts on the first tick after Milo is idle again. Several ended things are announced one after the other.
+- The mind is away: the reply cannot be written, so the body plays a chime instead (chirp `excited` for a timer, `happy` for a focus break). If the mind fails during the announcement itself, that chime is played before the usual sleepy chirp.
+
+**Offline** (R14). `Conversation(..., offline=True)` starts in offline mode, and a failed reply switches to it:
+
+- The face shows `offline`. The wake word still works: chirp `listen`, then chirp `sleepy`, face stays `offline`; no listening, no speech to text, no mind call (a repeated wake word within 2 s is ignored).
+- A background check, `mind.health()` in a small thread, runs every 10 s (and once at once after a wake word); the mic loop is never blocked. When the mind answers, the body leaves offline mode and the face goes back to the resting face.
+- The log tells about the change once (going offline, coming back), not about every check.
 
 ### `body/__main__.py`
 
 `python3 -m body` with flags `--fake-audio FILE [FILE ...]` (feed WAV files instead of the microphone, and print instead of playing), `--push-to-talk` (Enter instead of the wake word), `--list-devices`, `--no-face`.
+
+If the mind server does not answer at start, the body does not stop: it logs one plain-word line and starts in offline mode (above).
 
 ## Changes outside `body/`
 

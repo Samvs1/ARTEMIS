@@ -68,6 +68,12 @@ h2,summary{margin:0 0 10px;font:600 12px/1 var(--font-body);letter-spacing:.09em
 .stage-wrap{position:relative;border-radius:22px;border:1px solid var(--stage-bd);overflow:hidden;background:#0d1322}
 #stage{display:block;width:100%;aspect-ratio:480/380;touch-action:manipulation;cursor:pointer}
 .subtitle{position:absolute;left:12px;right:12px;bottom:12px;padding:9px 14px;border-radius:14px;background:rgba(8,12,22,.84);color:#f2f6ff;font-size:15px;line-height:1.35;text-align:center}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 2px 0}
+.chip{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:3px 3px 3px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:13px;font-weight:500}
+.chip-name{min-width:0;max-width:16ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-time{font:500 12px var(--font-mono);font-variant-numeric:tabular-nums;color:var(--muted)}
+.chip-focus{border-color:var(--accent)}
+.chip .chip-x{display:inline-flex;align-items:center;justify-content:center;flex:none;width:32px;min-height:32px;padding:0 0 2px;font-size:18px;line-height:1}
 .readout{margin:8px 2px 0;font:400 12px/1.5 var(--font-mono);color:var(--muted);min-height:1.5em;overflow-wrap:anywhere}
 
 .group{padding-block:16px;border-top:1px solid var(--line)}
@@ -148,6 +154,41 @@ textarea:disabled,select:disabled,.field input:disabled{opacity:.6}
 .sub textarea{margin-top:8px}
 #persPrompt{white-space:pre-wrap;overflow-wrap:anywhere;font:400 12px/1.5 var(--font-mono);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;max-height:340px;overflow:auto;margin:0}
 
+/* What Milo remembers */
+.mem-status{margin:0 0 4px}
+.mem-add-row{display:flex;flex-wrap:wrap;gap:8px}
+.field .mem-add-row input{flex:1 1 220px;width:auto}
+.mem-title{margin:24px 0 10px;font:600 12px/1 var(--font-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.mem-kind{margin:20px 0 8px;font:600 14px/1.2 var(--font-body);color:var(--ink)}
+.mem-kind span{margin-left:6px;font-size:12px;font-weight:400;color:var(--muted)}
+.mem-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.mem-scroll{max-height:300px;overflow-y:auto;padding-right:4px}
+.mem-list li{padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:grid;gap:6px}
+.mem-text{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.mem-diary .mem-text{white-space:pre-wrap}
+.mem-list li.hint{margin:0;border-style:dashed;background:none}
+.is-outdated .mem-text{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.mem-meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;font-size:12px;color:var(--muted)}
+.mem-meta b{font-weight:600;color:var(--ink)}
+.mem-imp{display:inline-block;width:30px;height:4px;margin-right:6px;border-radius:99px;background:var(--chip);overflow:hidden;vertical-align:middle}
+.mem-imp i{display:block;height:100%;border-radius:99px;background:var(--muted);opacity:.65}
+.mem-pin{padding:1px 8px;border-radius:99px;background:var(--chip);color:var(--ink);font-size:11px;font-weight:500}
+.mem-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px}
+.mem-foot .mem-meta{flex:1 1 12rem}
+.mem-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mem-actions button,.mem-edit button{min-height:32px;padding:5px 12px;font-size:12.5px}
+.mem-ask{font-size:13px;color:var(--warn)}
+.mem-edit{display:grid;gap:8px}
+.mem-edit input[type=text]{font:inherit;font-size:14px;padding:9px 12px;min-height:40px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);width:100%;min-width:0}
+.mem-edit-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.mem-edit-row label{font-size:12px;color:var(--muted)}
+.mem-edit input[type=number]{font:inherit;font-size:14px;width:4.6rem;padding:8px 10px;min-height:34px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.mem-forget{margin-top:12px;padding:12px 14px;border:1px solid var(--warn);border-radius:14px;display:grid;gap:10px}
+.mem-forget p{margin:0;font-size:13px}
+.mem-forget input{font:inherit;font-size:14px;padding:9px 12px;min-height:38px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);width:9rem}
+button.danger{color:var(--warn);border-color:var(--warn)}
+button.danger:hover{background:var(--panel)}
+button.danger:disabled{border-color:var(--line);color:var(--muted)}
 details summary{cursor:pointer;list-style:none;margin-bottom:0}
 details summary::-webkit-details-marker{display:none}
 details > summary::after{content:"  +";letter-spacing:0}
@@ -168,7 +209,7 @@ footer{color:var(--muted);font-size:13px}
 
 /* Face mode (?face=1): the page is just Milo's screen. Everything else stays in the page but is not shown. */
 html.face-mode, html.face-mode body{height:100%;margin:0;padding:0;overflow:hidden;background:#04060c;cursor:none;user-select:none;-webkit-user-select:none}
-html.face-mode .app > header, html.face-mode .controls, html.face-mode footer, html.face-mode .readout{display:none}
+html.face-mode .app > header, html.face-mode .controls, html.face-mode footer, html.face-mode .readout, html.face-mode .chips{display:none}
 html.face-mode .stage-col::after{display:none}
 html.face-mode .stage-wrap{position:fixed;inset:0;width:100%;border:0;border-radius:0;background:#04060c}
 html.face-mode #stage{width:100%;height:100%;aspect-ratio:auto;touch-action:none;cursor:none}
@@ -189,6 +230,7 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
         <canvas id="stage" role="img" aria-label="Milo, a small robot, looking calm"></canvas>
         <div id="subtitle" class="subtitle" aria-live="polite" hidden></div>
       </div>
+      <div id="chips" class="chips" role="group" aria-label="Timers and focus" hidden></div>
       <p id="readout" class="readout"></p>
     </section>
 
@@ -250,6 +292,49 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
         </details>
       </details>
 
+      <details class="group" id="memGroup">
+        <summary>What Milo remembers</summary>
+        <p id="memStatus" class="hint mem-status" role="status">Open this page through the mind server to see what Milo remembers.</p>
+        <div id="memBody" hidden>
+          <form id="memAddForm" class="field" autocomplete="off">
+            <label for="memAddText">Tell Milo something to remember</label>
+            <div class="mem-add-row">
+              <input id="memAddText" type="text" maxlength="200" placeholder="for example: They are allergic to cats.">
+              <button id="memAddBtn" class="primary" type="submit">Remember this</button>
+            </div>
+          </form>
+          <p id="memMsg" class="hint pers-msg" role="status"></p>
+          <div id="memFacts"></div>
+          <details class="sub" id="memOutdated">
+            <summary id="memOutdatedTitle">Outdated</summary>
+            <ul id="memOutdatedList" class="mem-list"></ul>
+          </details>
+          <h3 class="mem-title">Last talks</h3>
+          <ol id="memTalks" class="mem-list mem-scroll"></ol>
+          <h3 class="mem-title">Milo's diary</h3>
+          <ol id="memDiary" class="mem-list mem-scroll"></ol>
+          <h3 class="mem-title">For trying things out</h3>
+          <p id="memKeeper" class="hint" style="margin-top:0"></p>
+          <div class="row pers-actions">
+            <button id="memNote" type="button">Note the last talk now</button>
+            <button id="memDream" type="button">Dream now</button>
+          </div>
+          <h3 class="mem-title">Start over</h3>
+          <div class="row pers-actions" style="margin-top:0">
+            <button id="memForgetAll" class="danger" type="button">Forget everything about me</button>
+          </div>
+          <form id="memForgetBox" class="mem-forget" autocomplete="off" hidden>
+            <p>This erases everything Milo remembers about you (what it learned, the last talks and the diary) and the saved conversation. It cannot be undone. Type <b>forget</b> to go ahead.</p>
+            <div class="row">
+              <label class="sr-only" for="memForgetWord">Type the word forget to confirm</label>
+              <input id="memForgetWord" type="text" placeholder="forget" spellcheck="false">
+              <button id="memForgetGo" class="danger" type="submit" disabled>Forget everything</button>
+              <button id="memForgetCancel" type="button">Keep my memories</button>
+            </div>
+          </form>
+        </div>
+      </details>
+
       <div class="group">
         <h2>Try it</h2>
         <div class="row">
@@ -263,7 +348,7 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
           <button id="tFollow" class="toggle" type="button" aria-pressed="true">Follow pointer on</button>
           <button id="tSound" class="toggle" type="button" aria-pressed="true">Sound on</button>
         </div>
-        <p class="hint">"Hey Milo" plays out a conversation: hear, think, speak. Without the mind server it uses placeholder lines. With it, Milo listens through your microphone and answers for real. Tap Milo's face, ears or body to see how it reacts.</p>
+        <p class="hint">"Hey Milo" plays out a conversation: hear, think, speak. Without the mind server it uses placeholder lines. With it, Milo listens through your microphone and answers for real. Tap Milo's face, ears or body to see how it reacts. Ask the mind for a timer or for help focusing and small chips show the time left under Milo.</p>
       </div>
 
       <div class="group">
@@ -426,6 +511,12 @@ const POSES = {
     L: eye({ ax: -12, ay: 0, bx: 12, by: 0, cx: 0, cy: 14, th: 5.5, pup: 0 }),
     mouth: { w: 5, q: 0.5, t: 3, o: 0, r: 0, x: 0, y: 33 },
     gx: 0, gy: 0.3, roll: 3, pitch: 12, earL: { a: 68, l: 0.85 }, earR: { a: 68, l: 0.85 }, hue: 40, glow: 0.12
+  },
+  // Not a feeling but a mode: the focus buddy sits quietly beside you. Lids half down, steady eyes, a small flat mouth.
+  focus: {
+    L: eye({ th: 27, pup: 8, ay: -6, by: 6, lidT: 0.32, lidTA: 0 }),
+    mouth: { w: 7, q: 1.8, t: 3.5, o: 0, r: 0, x: 0, y: 32 },
+    gx: 0, gy: 0.22, roll: 0, pitch: 4, earL: { a: 26, l: 0.96 }, earR: { a: 26, l: 0.96 }, hue: 10, glow: 0.3
   },
   // Not a feeling but a mode: the camera shutter is closed and the microphone is cut.
   privacy: {
@@ -952,10 +1043,17 @@ const L = {
 const M = { blink: 0, gx: 0, gy: 0, speak: 0, sparkle: 0, dots: 0, zzz: 0, wig: 0, sway: 0, bob: 0, roll: 0, nod: 0, headBob: 0, wheel: 0, t: 0 };
 let lastSway = 0;
 
+// Timers (up to 3) and the focus buddy. They run on the wall clock, so a busy or hidden tab does not make them drift.
+// When one ends it waits in `pending` until Milo is free, then wakes the mind with an event.
+const TIMER_MAX = 3, TIMER_LIMITS = [5, 12 * 3600], FOCUS_LIMITS = [5, 90];     // seconds; minutes (the same limits the mind uses)
+const T = { list: [], next: 1, pending: [], firing: false };
+const FOCUS = { on: false, minutes: 0, endsAt: 0 };
+
 // Milo may start a conversation by itself 5 times a day. The count is kept in the browser and refills at midnight.
 const DAILY_BUDGET = 5;
-function today() {
-  const d = new Date(), two = (n) => (n < 10 ? '0' : '') + n;
+function today(d) {
+  d = d || new Date();
+  const two = (n) => (n < 10 ? '0' : '') + n;
   return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
 }
 function refillBudget() {                          // once per calendar day
@@ -978,6 +1076,7 @@ function setMood(name, o) {
   o = o || {};
   if (!POSES[name]) return;
   if (L.privacy && name !== 'privacy') return;
+  if (name === 'calm' && FOCUS.on && !o.exact) name = 'focus';       // while focusing, "back to calm" means back to the focus look
   const prev = L.mood;
   L.mood = name;
   const tg = TARGETS[name];
@@ -992,7 +1091,7 @@ function setMood(name, o) {
   }
   syncTiles();
   canvas.setAttribute('aria-label', name === 'privacy' ? 'Milo, with its camera shutter closed and head tipped down'
-                                                       : 'Milo, a small robot, looking ' + (name === 'calm' ? 'calm' : name));
+                                                       : 'Milo, a small robot, looking ' + (name === 'focus' ? 'focused and calm' : name));
 }
 
 // Scripts are short stories Milo acts out (like the "Hey Milo" demo). A newer
@@ -1176,6 +1275,8 @@ function heyMilo() {
    The server answers with one small message per line:
      {"type":"emote","name":"happy"}  {"type":"look","dir":"left"}  {"type":"sound","name":"curious"}
      {"type":"say","text":"..."}      {"type":"error","message":"..."}  {"type":"done", ...}
+     {"type":"timer","seconds":600,"label":"tea"}  {"type":"timer","cancel":true}
+     {"type":"focus","minutes":25}                 {"type":"focus","stop":true}
    Face changes before the first words run at once, which hides the wait for the voice.
    After that, everything is played in the order it was written.
    ---------------------------------------------------------------------- */
@@ -1193,6 +1294,8 @@ async function checkMind() {
   } catch (e) { mind.online = false; mind.info = null; }
   updateMindUI();
   if (mind.online && !pers.data) loadPersonality(true);
+  if (mind.online && !mem.data) loadMemory();
+  updateMemUI();
 }
 
 function updateMindUI() {
@@ -1253,7 +1356,17 @@ function applyCue(ev) {
     if (d) { L.gaze.tx = d[0]; L.gaze.ty = d[1]; L.lookUntil = clock + 1.4; }
   } else if (ev.type === 'sound') {
     chirp(ev.name, { force: true });
+  } else if (ev.type === 'timer' && !FACE_MODE) {
+    if (ev.cancel) cancelTimers(); else addTimer(ev.seconds, ev.label);
+  } else if (ev.type === 'focus' && !FACE_MODE) {
+    if (ev.stop) endFocus(false); else startFocus(ev.minutes);
   }
+}
+// A short line for the log and the "Copy conversation" text.
+function cueText(ev) {
+  if (ev.type === 'timer') return ev.cancel ? 'timer cancel' : 'timer ' + Math.round(Number(ev.seconds) || 0) + 's' + (ev.label ? ' ' + ev.label : '');
+  if (ev.type === 'focus') return ev.stop ? 'focus stop' : 'focus ' + (Number(ev.minutes) || 25) + 'm';
+  return ev.type + ' ' + (ev.name || ev.dir);
 }
 
 // Plays sentences and cues one after another. push() adds to the end, close() says nothing more is coming.
@@ -1270,6 +1383,8 @@ function makePlayer(wait) {
       else if (!(await speakSpeech(item.speech, wait))) ok = false;
     }
     running = false;
+    // If the talk was cut short (a poke, a new question), a timer or focus block the reply asked for still starts.
+    if (!ok) queue.splice(0).forEach((item) => { if (item.cue && (item.cue.type === 'timer' || item.cue.type === 'focus')) applyCue(item.cue); });
     if (closed) finish(ok);
   }
   return {
@@ -1289,24 +1404,24 @@ function askMind(text, opts) {
   if (L.mood === 'sleepy') setMood('calm', { sound: false });
   if (text) addChat('you', text);
   mind.voiceWarned = false;
-  const turn = { you: text || '(' + String(opts.event || 'event').replace(/_/g, ' ') + ')', cues: [], milo: [] };   // for "Copy conversation"
+  const turn = { you: text || '(' + String(opts.event || 'event').replace(/_/g, ' ') + (opts.detail ? ': ' + opts.detail : '') + ')', cues: [], milo: [] };   // for "Copy conversation"
   mind.transcript.push(turn);
   if (mind.transcript.length > 30) mind.transcript.shift();
   runScript(async (wait) => {
     const ctl = new AbortController();
     mind.abort = ctl;
     L.meters.boredom = 0; L.meters.social = Math.max(0, L.meters.social - 0.3);
-    log('life', opts.event ? 'event "' + opts.event + '": waking the mind' : 'you stopped talking: Thinking face starts now');
+    log('life', opts.event ? 'event "' + opts.event + '"' + (opts.detail ? ' (' + opts.detail + ')' : '') + ': waking the mind' : 'you stopped talking: Thinking face starts now');
     setMood('thinking', { sound: false }); pulse('thinking', 90); chirp('thinking', { force: true });
     log('mind', 'request sent');
     const player = makePlayer(wait);
     const cues = [];
     let bubble = null, sawSay = false, info = null, failure = '';
     const onEvent = (ev) => {
-      if (ev.type === 'emote' || ev.type === 'look' || ev.type === 'sound') {
+      if (ev.type === 'emote' || ev.type === 'look' || ev.type === 'sound' || ev.type === 'timer' || ev.type === 'focus') {
         L.pulse.until = 0;
-        cues.push(ev.type + ' ' + (ev.name || ev.dir));
-        turn.cues.push(ev.type + ':' + (ev.name || ev.dir));
+        cues.push(cueText(ev));
+        turn.cues.push(cueText(ev).replace(' ', ':'));
         if (sawSay) player.push({ cue: ev }); else applyCue(ev);      // before the first words: act at once
       } else if (ev.type === 'say') {
         L.pulse.until = 0;
@@ -1323,7 +1438,7 @@ function askMind(text, opts) {
     try {
       const res = await fetch('/api/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal,
-        body: JSON.stringify({ text: text || '', event: opts.event || '', state: stateForMind() })
+        body: JSON.stringify({ text: text || '', event: opts.event || '', detail: opts.detail || '', state: stateForMind() })
       });
       if (!res.ok || !res.body) {
         let why = 'The mind server answered ' + res.status + '.';
@@ -1351,6 +1466,7 @@ function askMind(text, opts) {
       if (e.name === 'AbortError') return;
       failure = failure || e.message || 'Something went wrong.';
     }
+    refreshMemory();                                   // the reply is in: show what Milo now holds in mind
     player.close();
     const finished = await player.done;
     if (!finished || !(await wait(0))) return;
@@ -1366,7 +1482,8 @@ function askMind(text, opts) {
     if (info) log('mind', 'first words after ' + info.first_token_ms + ' ms; ' + cues.length + ' cue(s)' + (cues.length ? ': ' + cues.join(', ') : ''));
     if (!(await wait(1000))) return;
     hideSubtitle();
-    L.holdUntil = clock + 8;                           // the face relaxes by itself
+    L.holdUntil = clock + (FOCUS.on ? 2.5 : 8);        // the face relaxes by itself (back to the focus look sooner)
+    if (opts.event === 'good_night' && !L.lights && !L.privacy) setMood('sleepy');     // the talk is over: off to sleep
     if (opts.viaVoice && SR) startListening({ window: true });     // the conversation window: keep listening a moment
   });
 }
@@ -1610,6 +1727,282 @@ function wirePersonality() {
   updatePersUI();
 }
 
+/* ----------------------------------------------------------------------
+   What Milo remembers.
+   Shows the plain-word memory the mind server keeps (facts, last talks, diary) and lets you
+   fix it: tell Milo something, change a fact, pin it, forget it, or forget everything.
+   Everything in it was written by an AI, so it is only ever shown as text, never as HTML.
+   ---------------------------------------------------------------------- */
+const mem = { data: null, edit: null, confirmId: null, seq: 0 };
+const KIND_NAMES = { identity: 'Who you are', preference: 'Likes and preferences', routine: 'Routines', relationship: 'People and pets',
+  event: 'Things that happened', plan: 'Plans', feeling: 'Feelings', other: 'Other' };
+
+function memEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  return e;
+}
+function memBtn(label, cls, onClick, aria) {
+  const b = memEl('button', cls, label);
+  b.type = 'button';
+  if (aria) b.setAttribute('aria-label', aria);
+  b.addEventListener('click', onClick);
+  return b;
+}
+function memMessage(text, kind) { const el = $('memMsg'); el.textContent = text; el.dataset.kind = kind || ''; }
+function memDate(d, withYear) { try { return d.toLocaleDateString('en-GB', withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' }); } catch (e) { return d.toDateString(); } }
+function memDay(iso) {                               // today, yesterday, or the date
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date(), midnight = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((midnight(now) - midnight(d)) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  return memDate(d, d.getFullYear() !== now.getFullYear());
+}
+const memCap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const memPlural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+
+function updateMemUI() {
+  const on = mind.online, d = mem.data;
+  $('memBody').hidden = !(on && d);
+  const status = $('memStatus');
+  if (!on) { status.textContent = 'Open this page through the mind server to see what Milo remembers.'; return; }
+  if (!d) { status.textContent = 'Loading...'; return; }
+  const active = d.facts.filter((f) => f.status !== 'outdated');
+  status.textContent = active.length
+    ? 'Milo remembers ' + memPlural(active.length, 'thing', 'things') + ' about you' + (active.some((f) => f.pinned) ? ' (' + active.filter((f) => f.pinned).length + ' pinned, so they are always in its mind).' : '.')
+    : 'Milo does not remember anything about you yet. After a talk it writes down what it learned, or you can tell it something below.';
+}
+async function loadMemory() {
+  if (!mind.online) return;
+  const seq = ++mem.seq;
+  try {
+    const data = await api('/api/memory');
+    if (seq !== mem.seq) return;                     // a newer answer is on its way
+    mem.data = data;
+    renderMemory(false);
+  } catch (e) { if (seq === mem.seq) memMessage(e.message, 'error'); }
+  updateMemUI();
+}
+function refreshMemory() { return loadMemory(); }
+
+function renderMemory(force) {
+  const d = mem.data;
+  if (!d) return;
+  updateMemUI();
+  if (force || !(mem.edit || mem.confirmId)) renderMemFacts();      // do not pull a row away while it is being changed
+  renderMemTalks();
+  renderMemDiary();
+  const k = d.keeper || {};
+  const last = String(k.last || '').trim();          // the keeper writes its own status; do not double the full stop
+  $('memKeeper').textContent = 'Memory keeper: ' + (k.running ? 'running' : 'not running') + (last ? '. Status: ' + last + (/[.!?]$/.test(last) ? '' : '.') : '.');
+}
+
+function factById(id) { return mem.data ? mem.data.facts.find((f) => f.id === id) : null; }
+function byImportance(a, b) { return (b.pinned - a.pinned) || (b.importance - a.importance) || String(b.created).localeCompare(String(a.created)); }
+
+function renderMemFacts() {
+  const d = mem.data, box = $('memFacts');
+  box.textContent = '';
+  const active = d.facts.filter((f) => f.status !== 'outdated');
+  const old = d.facts.filter((f) => f.status === 'outdated');
+  const kinds = Object.keys(KIND_NAMES);
+  const known = (f) => (KIND_NAMES[f.kind] ? f.kind : 'other');
+  kinds.forEach((kind) => {
+    const list = active.filter((f) => known(f) === kind).sort(byImportance);
+    if (!list.length) return;
+    const h = memEl('h3', 'mem-kind', KIND_NAMES[kind]);
+    h.append(memEl('span', '', String(list.length)));
+    const ul = memEl('ul', 'mem-list');
+    list.forEach((f) => ul.append(memFactRow(f, false)));
+    box.append(h, ul);
+  });
+  $('memOutdatedTitle').textContent = 'Outdated (' + old.length + ')';
+  $('memOutdated').hidden = !old.length;
+  const ol = $('memOutdatedList');
+  ol.textContent = '';
+  old.sort((a, b) => String(b.updated).localeCompare(String(a.updated))).forEach((f) => ol.append(memFactRow(f, true)));
+}
+
+function memFactRow(f, outdated) {
+  const li = memEl('li', outdated ? 'is-outdated' : '');
+  if (mem.edit && mem.edit.id === f.id) { li.append(memEditForm(f)); return li; }
+  li.append(memEl('div', 'mem-text', f.text));
+  const meta = memEl('div', 'mem-meta');
+  if (f.pinned) meta.append(memEl('span', 'mem-pin', 'Pinned'));
+  meta.append(memEl('span', '', (outdated ? 'Changed ' : 'Learned ') + memDay(outdated ? f.updated : f.created)));
+  if (outdated) {
+    const next = f.replaced_by ? factById(f.replaced_by) : null;
+    if (next) meta.append(memEl('span', '', 'Now: ' + next.text));
+  } else {
+    const imp = memEl('span', 'mem-importance');
+    imp.title = 'How important Milo thinks this is, from 1 (trivia) to 10 (their name)';
+    const bar = memEl('span', 'mem-imp'), fill = document.createElement('i');
+    fill.style.width = (f.importance * 10) + '%';
+    bar.append(fill);
+    imp.append(bar, document.createTextNode('importance ' + f.importance));
+    meta.append(imp);
+  }
+  const foot = memEl('div', 'mem-foot'), actions = memEl('div', 'mem-actions');
+  foot.append(meta, actions);
+  li.append(foot);
+  if (mem.confirmId === f.id) {
+    actions.append(memEl('span', 'mem-ask', 'Forget this for good?'),
+      memBtn('Yes, forget it', 'danger', () => { mem.confirmId = null; memDo('/api/memory/forget', { id: f.id }, 'Forgotten.'); }, 'Yes, forget: ' + f.text),
+      memBtn('Keep it', '', () => { mem.confirmId = null; renderMemory(true); }));
+  } else {
+    if (!outdated) {
+      actions.append(
+        memBtn('Edit', '', () => { mem.edit = { id: f.id, text: f.text, importance: f.importance }; mem.confirmId = null; renderMemory(true); }, 'Edit: ' + f.text),
+        memBtn(f.pinned ? 'Unpin' : 'Pin', '', () => memDo('/api/memory/fact', { id: f.id, pinned: !f.pinned }, f.pinned ? 'Unpinned. Milo may let it fade if it is not important.' : 'Pinned. Milo will always have it in mind.'),
+          (f.pinned ? 'Unpin: ' : 'Pin: ') + f.text));
+    }
+    actions.append(memBtn('Forget', '', () => { mem.confirmId = f.id; mem.edit = null; renderMemory(true); }, 'Forget: ' + f.text));
+  }
+  return li;
+}
+
+function memEditForm(f) {
+  const form = memEl('form', 'mem-edit');
+  form.autocomplete = 'off'; form.noValidate = true;       // the page says what is wrong, in its own words
+  const text = memEl('input'); text.type = 'text'; text.maxLength = 200; text.value = mem.edit.text; text.id = 'memEditText';
+  text.setAttribute('aria-label', 'What Milo remembers');
+  text.addEventListener('input', () => { mem.edit.text = text.value; });
+  text.addEventListener('keydown', (e) => { if (e.key === 'Escape') { mem.edit = null; renderMemory(true); } });
+  const row = memEl('div', 'mem-edit-row');
+  const label = memEl('label', '', 'Importance (1 to 10)'); label.htmlFor = 'memEditImp';
+  const imp = memEl('input'); imp.type = 'number'; imp.min = '1'; imp.max = '10'; imp.step = '1'; imp.value = String(mem.edit.importance); imp.id = 'memEditImp';
+  imp.addEventListener('input', () => { mem.edit.importance = imp.value; });
+  const save = memEl('button', 'primary', 'Save'); save.type = 'submit';
+  row.append(label, imp, save, memBtn('Cancel', '', () => { mem.edit = null; renderMemory(true); }));
+  form.append(text, row);
+  form.addEventListener('submit', (e) => { e.preventDefault(); saveMemEdit(f); });
+  setTimeout(() => { if (document.activeElement !== text && mem.edit && mem.edit.id === f.id) text.focus(); }, 0);
+  return form;
+}
+async function saveMemEdit(f) {
+  const text = String(mem.edit.text).trim(), importance = Number(mem.edit.importance);
+  if (!text) { memMessage('Write what Milo should remember, or press Cancel.', 'error'); return; }
+  if (!Number.isInteger(importance) || importance < 1 || importance > 10) { memMessage('Importance is a whole number from 1 to 10.', 'error'); return; }
+  try {
+    await api('/api/memory/fact', { id: f.id, text: text, importance: importance });
+    mem.edit = null;
+    memMessage('Saved.', '');
+  } catch (e) { memMessage(e.message, 'error'); return; }
+  await refreshMemory();
+  renderMemory(true);
+}
+
+function renderMemTalks() {
+  const ol = $('memTalks');
+  ol.textContent = '';
+  const talks = mem.data.episodes.slice().reverse();
+  if (!talks.length) { ol.append(memEl('li', 'hint', 'No talks noted yet. A few minutes after a talk ends, Milo writes a line about it here.')); return; }
+  talks.forEach((t) => {
+    const li = memEl('li');
+    const meta = memEl('div', 'mem-meta');
+    const start = new Date(t.start), end = new Date(t.end);
+    const day = memDay(t.start);
+    if (day) {
+      let when = memCap(day);
+      try { when += ', ' + start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); } catch (e) { /* keep the day only */ }
+      meta.append(memEl('b', '', when));
+    }
+    const mins = Math.round((end - start) / 60000);
+    if (isFinite(mins) && mins >= 0) meta.append(memEl('span', '', mins < 3 ? 'a few minutes' : mins + ' minutes'));
+    if (t.mood) meta.append(memEl('span', 'mem-pin', t.mood));
+    li.append(meta, memEl('div', 'mem-text', t.summary));
+    ol.append(li);
+  });
+}
+function renderMemDiary() {
+  const ol = $('memDiary');
+  ol.textContent = '';
+  if (!mem.data.diary.length) { ol.append(memEl('li', 'hint', 'No diary yet. Milo writes an entry once a night, when it dreams.')); return; }
+  mem.data.diary.forEach((e) => {
+    const li = memEl('li', 'mem-diary');
+    const parts = String(e.date).split('-').map(Number), day = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+    const rel = isNaN(day.getTime()) ? '' : memDay(day);
+    const meta = memEl('div', 'mem-meta');
+    if (isNaN(day.getTime())) meta.append(memEl('b', '', String(e.date)));
+    else {
+      let weekday = '';
+      try { weekday = day.toLocaleDateString('en-GB', { weekday: 'long' }); } catch (err) { /* skip it */ }
+      meta.append(memEl('b', '', rel === 'today' || rel === 'yesterday' ? memCap(rel) : weekday), memEl('span', '', memDate(day, day.getFullYear() !== new Date().getFullYear())));
+    }
+    li.append(meta, memEl('div', 'mem-text', e.text));
+    ol.append(li);
+  });
+}
+
+async function memDo(path, body, done) {             // one change, then show the page what the server now holds
+  try { await api(path, body); memMessage(done, ''); }
+  catch (e) { memMessage(e.message, 'error'); }
+  await refreshMemory();
+  renderMemory(true);
+}
+async function addMemory(e) {
+  e.preventDefault();
+  const input = $('memAddText'), text = input.value.trim();
+  if (!text) { memMessage('Write what Milo should remember first.', 'error'); return; }
+  try {
+    await api('/api/memory/fact', { text: text });
+    input.value = '';
+    memMessage('Milo will remember that. It is pinned, so it is always in its mind.', '');
+    log('mind', 'a memory was added by hand');
+  } catch (err) { memMessage(err.message, 'error'); return; }
+  await refreshMemory();
+  renderMemory(true);
+}
+async function memTry(kind) {                        // "Note the last talk now" and "Dream now"
+  const btn = $(kind === 'note' ? 'memNote' : 'memDream'), label = btn.textContent;
+  btn.disabled = true; btn.textContent = kind === 'note' ? 'Noting...' : 'Dreaming...';
+  memMessage('', '');
+  try {
+    const out = await api('/api/memory/' + kind + '-now', {});
+    if (kind === 'note') memMessage(out.noted ? 'Noted ' + memPlural(out.noted, 'talk', 'talks') + '. The new facts are listed above.' : 'There was no new talk to note.', '');
+    else memMessage(out.dreamed ? 'Milo dreamed. Look in the diary above.' : 'Milo did not dream. ' + (out.status || 'There was nothing to tidy yet.'), '');
+  } catch (e) { memMessage(e.message, 'error'); }
+  btn.textContent = label; btn.disabled = false;
+  await refreshMemory();
+  renderMemory(true);
+}
+function openForgetAll(open) {
+  const box = $('memForgetBox');
+  box.hidden = !open;
+  $('memForgetWord').value = '';
+  $('memForgetGo').disabled = true;
+  if (open) $('memForgetWord').focus(); else $('memForgetAll').focus();
+}
+async function forgetEverything(e) {
+  e.preventDefault();
+  if ($('memForgetWord').value.trim().toLowerCase() !== 'forget') return;
+  try {
+    await api('/api/memory/forget-everything', { confirm: 'forget' });
+  } catch (err) { memMessage(err.message, 'error'); return; }
+  openForgetAll(false);
+  mem.edit = null; mem.confirmId = null;
+  mind.transcript = [];                              // the server dropped the conversation too
+  $('chatLog').textContent = '';
+  log('mind', 'memory erased: Milo has forgotten everything about you');
+  memMessage('Milo has forgotten everything about you, and the conversation too.', '');
+  await refreshMemory();
+  renderMemory(true);
+}
+function wireMemory() {
+  $('memAddForm').addEventListener('submit', addMemory);
+  $('memNote').addEventListener('click', () => memTry('note'));
+  $('memDream').addEventListener('click', () => memTry('dream'));
+  $('memForgetAll').addEventListener('click', () => openForgetAll($('memForgetBox').hidden));
+  $('memForgetCancel').addEventListener('click', () => openForgetAll(false));
+  $('memForgetWord').addEventListener('input', () => { $('memForgetGo').disabled = $('memForgetWord').value.trim().toLowerCase() !== 'forget'; });
+  $('memForgetBox').addEventListener('submit', forgetEverything);
+  $('memGroup').addEventListener('toggle', () => { if ($('memGroup').open) refreshMemory(); });
+  updateMemUI();
+}
+
 function poke() {
   cancelScripts();
   audio();
@@ -1652,6 +2045,7 @@ function setLights(on) {
   } else {
     wakeUp();
   }
+  lightsGreeting(on);
 }
 function setPrivacy(on) {
   cancelScripts();
@@ -1708,17 +2102,202 @@ function autoWantsAttention() {
   });
 }
 
+// ---- timers and the focus buddy ----
+// The mind starts them with a stage direction in its reply. Everything is shown as small chips under the stage.
+function addTimer(seconds, label) {
+  seconds = Number(seconds);
+  if (!(seconds > 0)) return;
+  seconds = clamp(Math.round(seconds), TIMER_LIMITS[0], TIMER_LIMITS[1]);
+  label = String(label == null ? '' : label).replace(/\s+/g, ' ').trim().slice(0, 40);
+  while (T.list.length >= TIMER_MAX) {
+    const old = T.list.shift();
+    log('timer', 'three timers already: the oldest' + (old.label ? ' ("' + old.label + '")' : '') + ' is replaced');
+  }
+  T.list.push({ id: T.next++, label: label, endsAt: Date.now() + seconds * 1000 });
+  log('timer', 'started: ' + timeLeft(seconds * 1000) + (label ? ' for "' + label + '"' : ''));
+  renderChips();
+}
+function cancelTimer(id) {
+  const i = T.list.findIndex((t) => t.id === id);
+  if (i < 0) return;
+  const t = T.list.splice(i, 1)[0];
+  log('timer', 'cancelled' + (t.label ? ': "' + t.label + '"' : ''));
+  renderChips();
+}
+function cancelTimers() {
+  if (!T.list.length) return;
+  T.list = [];
+  log('timer', 'all timers cancelled');
+  renderChips();
+}
+function startFocus(minutes) {
+  minutes = Number(minutes);
+  minutes = clamp(minutes > 0 ? Math.round(minutes) : 25, FOCUS_LIMITS[0], FOCUS_LIMITS[1]);
+  FOCUS.on = true; FOCUS.minutes = minutes; FOCUS.endsAt = Date.now() + minutes * 60000;
+  log('focus', 'focus buddy on for ' + minutes + ' min: quiet, no self-started talk');
+  if (!L.busy && L.mood !== 'sleepy') setMood('focus', { sound: false });     // in the middle of a reply, the face follows once it is over
+  renderChips();
+}
+function endFocus(fire) {
+  if (!FOCUS.on) return;
+  const minutes = FOCUS.minutes;
+  FOCUS.on = false; FOCUS.endsAt = 0;
+  if (L.mood === 'focus') setMood(L.lights ? 'calm' : 'sleepy', { sound: false });
+  log('focus', fire ? 'focus block of ' + minutes + ' min is over' : 'focus buddy stopped');
+  if (fire) queueAnnounce({ event: 'focus_break', detail: String(minutes) });
+  renderChips();
+}
+
+// When a timer or a focus block ends, Milo announces it. It waits until it is not in the middle of a talk.
+function queueAnnounce(item) { T.pending.push(item); drainAnnounce(); }
+function isFree() { return !L.busy && !mind.listening; }
+async function drainAnnounce() {
+  if (T.firing || !T.pending.length || !isFree()) return;
+  T.firing = true;
+  const item = T.pending.shift();
+  try {
+    if (!item.chirped) {                               // a happy chirp first, even when the mind takes a moment
+      item.chirped = true;
+      chirp('happy', { force: true, auto: true });
+      setMood('happy', { sound: false, hold: 4 });
+    }
+    await sleep(700);
+    if (!isFree()) { T.pending.unshift(item); return; }   // someone started talking meanwhile: try again later
+    if (mind.online && !L.privacy) {
+      log('timer', item.event === 'timer_done' ? 'timer ended: waking the mind' : 'focus block ended: waking the mind');
+      askMind('', { event: item.event, detail: item.detail });
+    } else {                                           // no mind to ask (or it is in privacy mode): say it plainly
+      const text = item.event === 'timer_done' ? (item.detail ? 'Your ' + item.detail + ' timer is done!' : 'Your timer is done!')
+                                               : 'Your focus block is done. Time for a little break!';
+      log('timer', 'ended, but the mind is not available: ' + text);
+      showSubtitle(text, 7000);
+    }
+  } finally { T.firing = false; }
+}
+
+function timeLeft(ms) {
+  const s = Math.max(0, Math.ceil(ms / 1000)), h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), two = (n) => (n < 10 ? '0' : '') + n;
+  return (h ? h + ':' : '') + two(m) + ':' + two(s % 60);
+}
+// One chip per timer, and one for the focus block. The text comes from the AI, so it is only ever set as text.
+const chipEls = new Map();
+function renderChips() {
+  if (FACE_MODE) return;
+  const host = $('chips'), want = [];
+  if (FOCUS.on) want.push({ key: 'focus', label: 'Focus', end: FOCUS.endsAt, what: 'focus', cancel: () => { if (FOCUS.on) endFocus(false); } });
+  T.list.forEach((t) => want.push({ key: 't' + t.id, label: t.label || 'Timer', end: t.endsAt, what: (t.label || 'timer') + ' timer', cancel: () => cancelTimer(t.id) }));
+  const keep = new Set(want.map((w) => w.key));
+  chipEls.forEach((c, key) => { if (!keep.has(key)) { c.root.remove(); chipEls.delete(key); } });
+  want.forEach((w) => {
+    let c = chipEls.get(w.key);
+    if (!c) {
+      const root = document.createElement('span'), name = document.createElement('span'), time = document.createElement('b'), x = document.createElement('button');
+      root.className = 'chip' + (w.key === 'focus' ? ' chip-focus' : '');
+      name.className = 'chip-name'; time.className = 'chip-time';
+      x.type = 'button'; x.className = 'chip-x'; x.textContent = '×';
+      x.addEventListener('click', () => { audio(); w.cancel(); });
+      root.append(name, time, x);
+      c = { root: root, name: name, time: time, x: x };
+      chipEls.set(w.key, c);
+    }
+    const slot = host.children[want.indexOf(w)];     // keep the order: focus first, then the timers as they were set
+    if (slot !== c.root) host.insertBefore(c.root, slot || null);
+    c.end = w.end;
+    c.name.textContent = w.label; c.name.title = w.label;
+    c.x.setAttribute('aria-label', 'Cancel ' + w.what); c.x.title = 'Cancel ' + w.what;
+  });
+  host.hidden = !want.length;
+  updateChipTimes();
+}
+function updateChipTimes() {
+  const now = Date.now();
+  chipEls.forEach((c) => { c.time.textContent = timeLeft(c.end - now); });
+}
+function timerTick() {
+  const now = Date.now();
+  const due = T.list.filter((t) => now >= t.endsAt).sort((a, b) => a.endsAt - b.endsAt);
+  if (due.length) {
+    T.list = T.list.filter((t) => now < t.endsAt);
+    due.forEach((t) => { log('timer', 'ended' + (t.label ? ': "' + t.label + '"' : '')); T.pending.push({ event: 'timer_done', detail: t.label }); });
+  }
+  if (FOCUS.on && now >= FOCUS.endsAt) endFocus(true);
+  if (due.length) renderChips(); else updateChipTimes();
+  drainAnnounce();
+}
+
+// ---- good morning and good night, from the lights switch ----
+// Morning (05:00 to 11:00) and night (21:00 to 03:00) each happen once a day at most. The day is remembered in the browser.
+function lightsGreeting(on) {
+  if (FACE_MODE) return;
+  const now = new Date(), h = now.getHours();
+  const kind = on ? (h >= 5 && h < 11 ? 'morning' : '') : (h >= 21 || h < 3 ? 'night' : '');
+  if (!kind) return;
+  const event = on ? 'good_morning' : 'good_night', name = event.replace('_', ' ');
+  // a night that goes past midnight still belongs to the evening it began
+  const day = kind === 'night' && h < 3 ? today(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)) : today(now);
+  let seen = store.get('greeted', {});
+  if (!seen || typeof seen !== 'object') seen = {};
+  refillBudget();
+  const skip = seen[kind] === day ? 'already said today'
+    : !mind.online ? 'the mind is not connected'
+    : L.privacy ? 'privacy mode is on'
+    : FOCUS.on ? 'focus mode is on'
+    : !settings.sound ? 'sound is off'
+    : L.budget <= 0 ? 'the talk budget is used up' : '';
+  if (skip) { log('initiative', name + ': stays quiet (' + skip + ')'); return; }
+  seen[kind] = day; store.set('greeted', { morning: seen.morning || '', night: seen.night || '' });
+  spendBudget();
+  log('initiative', name + ': waking the mind (talk budget left ' + L.budget + ' of 5)');
+  askMind('', { event: event });
+}
+
+// ---- the meters, across a reload ----
+// Saved every 10 seconds and when the page closes. On the way back they move on by the time that passed, at the
+// same speed as in life(). After a long absence (more than 8 hours) Milo has had a good rest.
+const REST_AFTER = 8 * 3600;
+function saveMeters() {
+  if (FACE_MODE) return;
+  const m = L.meters;
+  store.set('meters', { t: Date.now(), energy: m.energy, boredom: m.boredom, curiosity: m.curiosity, social: m.social, rest: isResting() });
+}
+function restoreMeters() {
+  const s = store.get('meters', null);
+  if (!s || typeof s !== 'object' || !Number.isFinite(s.t)) return;
+  const secs = (Date.now() - s.t) / 1000;
+  if (secs < 0) return;                                  // the clock was set back: keep the fresh start
+  const m = L.meters, num = (v, d) => (Number.isFinite(v) ? clamp(v, 0, 1) : d);
+  m.curiosity = num(s.curiosity, m.curiosity);
+  if (secs > REST_AFTER) {
+    m.energy = 1; m.boredom = 0.1; m.social = 0.4;
+    log('life', 'back after more than 8 hours: rested, a little curious who is around');
+    return;
+  }
+  m.energy = num(s.energy, m.energy); m.boredom = num(s.boredom, m.boredom); m.social = num(s.social, m.social);
+  if (s.rest) m.energy = clamp(m.energy + 0.03 * secs, 0, 1);
+  else {
+    m.energy = clamp(m.energy - 0.0045 * secs, 0, 1);
+    m.boredom = clamp(m.boredom + 0.011 * secs, 0, 1);
+    m.social = clamp(m.social + 0.006 * secs, 0, 1);
+  }
+  if (secs > 20) log('life', 'back after ' + (secs < 90 ? Math.round(secs) + ' s' : Math.round(secs / 60) + ' min') + ': meters moved on');
+}
+
+function isResting() { return L.mood === 'sleepy' || !L.lights || L.privacy; }
+
 function life(dt) {
   const mt = L.meters;
-  const resting = L.mood === 'sleepy' || !L.lights || L.privacy;
+  const resting = isResting();
   mt.energy = clamp(mt.energy + (resting ? 0.03 : -0.0045) * dt, 0, 1);
   if (!resting) {
-    mt.boredom = clamp(mt.boredom + 0.011 * dt, 0, 1);
-    mt.social = clamp(mt.social + 0.006 * dt, 0, 1);
+    if (!FOCUS.on) {                                   // working side by side: not bored, not lonely
+      mt.boredom = clamp(mt.boredom + 0.011 * dt, 0, 1);
+      mt.social = clamp(mt.social + 0.006 * dt, 0, 1);
+    }
     mt.curiosity = clamp(mt.curiosity + (Math.random() - 0.5) * 0.05 * dt, 0, 1);
   }
   const free = settings.life && !L.freeze;
-  if (free && !FACE_MODE && !L.busy && !resting && clock > L.nextAuto) {      // the face page starts nothing by itself
+  const steady = L.mood === 'focus';                   // the focus look: no wandering eyes, no ear twitches
+  if (free && !FACE_MODE && !L.busy && !resting && !FOCUS.on && clock > L.nextAuto) {      // the face page starts nothing by itself; focus mode is quiet
     if (mt.energy < 0.2) { log('life', 'energy low: dozes off'); setMood('sleepy', { auto: true }); }
     else if (mt.boredom > 0.7) autoLookAround();
     else if (mt.social > 0.8) autoWantsAttention();
@@ -1728,7 +2307,7 @@ function life(dt) {
   if (L.holdUntil && clock > L.holdUntil && !L.busy) {   // a temporary feeling wears off
     L.holdUntil = 0;
     if (FACE_MODE) restoreFace();
-    else if (L.mood !== 'calm' && !(L.mood === 'sleepy' && !L.lights) && L.mood !== 'privacy') setMood('calm', { sound: false });
+    else if (L.mood !== (FOCUS.on ? 'focus' : 'calm') && !(L.mood === 'sleepy' && !L.lights) && L.mood !== 'privacy') setMood('calm', { sound: false });
   }
 
   // blinking
@@ -1748,17 +2327,18 @@ function life(dt) {
     G.tx = clamp((L.pointer.x - CX) / 190, -1, 1); G.ty = clamp((L.pointer.y - 138) / 130, -1, 1);
   } else if (free && clock > L.nextGlance) {
     const r = Math.random();
-    if (r < 0.5) { G.tx = rand(-0.3, 0.3); G.ty = rand(-0.2, 0.2); }
+    if (steady) { G.tx = rand(-0.12, 0.12); G.ty = rand(0, 0.15); }              // barely moves
+    else if (r < 0.5) { G.tx = rand(-0.3, 0.3); G.ty = rand(-0.2, 0.2); }
     else if (r < 0.8) { G.tx = pick([-1, 1]) * rand(0.5, 0.9); G.ty = rand(-0.3, 0.2); }
     else { G.tx = 0; G.ty = 0; }
-    L.nextGlance = clock + rand(1.2, 3.8);
+    L.nextGlance = clock + (steady ? rand(5, 10) : rand(1.2, 3.8));
   } else if (!free && L.lookUntil <= clock) { G.tx = 0; G.ty = 0; }
   const kg = 1 - Math.exp(-dt * (L.mood === 'sleepy' ? 4 : 16));
   G.x += (G.tx - G.x) * kg; G.y += (G.ty - G.y) * kg;
   M.gx = G.x; M.gy = G.y;
 
   // ears twitch now and then
-  if (free && !L.privacy && L.mood !== 'sleepy' && clock > L.nextTwitch) { L.tw[Math.random() < 0.5 ? 'L' : 'R'] = 1; L.nextTwitch = clock + rand(4, 9); }
+  if (free && !L.privacy && L.mood !== 'sleepy' && !steady && clock > L.nextTwitch) { L.tw[Math.random() < 0.5 ? 'L' : 'R'] = 1; L.nextTwitch = clock + rand(4, 9); }
   L.tw.L *= Math.exp(-dt * 6); L.tw.R *= Math.exp(-dt * 6);
 
   // talking
@@ -1807,7 +2387,7 @@ function buildTiles() {
     const s = document.createElement('span'); s.textContent = e[1];
     b.append(c, s); host.append(b);
     tiles[e[0]] = b; thumbs[e[0]] = c;
-    b.addEventListener('click', () => { cancelScripts(); audio(); setMood(e[0], { hold: settings.life ? 25 : 0 }); });
+    b.addEventListener('click', () => { cancelScripts(); audio(); setMood(e[0], { hold: settings.life ? 25 : 0, exact: true }); });
   });
 }
 function renderThumbs() {
@@ -1949,7 +2529,7 @@ function wireButtons() {
    ====================================================================== */
 const FS = { state: 'offline', linkDown: true, es: null, level: 0, mouthUntil: 0, nextHuh: 0 };
 // The look for each thing the body can be doing. "speaking" keeps whatever feeling is showing.
-const STATE_MOOD = { idle: 'calm', listening: 'curious', thinking: 'thinking', speaking: 'calm', sleeping: 'sleepy', offline: 'sleepy' };
+const STATE_MOOD = { idle: 'calm', listening: 'curious', thinking: 'thinking', speaking: 'calm', sleeping: 'sleepy', offline: 'sleepy', focus: 'focus' };
 
 function faceState(name) {
   if (name !== 'privacy' && !STATE_MOOD[name]) return;
@@ -2040,14 +2620,18 @@ function frame(now) {
 
 function init() {
   if (FACE_MODE) { initFace(); return; }
-  loadBudget();
-  buildTiles(); buildShells(); buildMeters(); wireSliders(); wireButtons(); wireStage(); wireChat();
+  loadBudget(); restoreMeters();
+  buildTiles(); buildShells(); buildMeters(); wireSliders(); wireButtons(); wireStage(); wireChat(); wireMemory();
   setToggle('tLife', settings.life, 'Life layer on', 'Life layer off');
   setToggle('tFollow', settings.follow, 'Follow pointer on', 'Follow pointer off');
   setToggle('tSound', settings.sound, 'Sound on', 'Sound off');
   syncLook(); syncTiles();
   resize(); renderThumbs(); render(); updatePanel(); updateMindUI(); checkMind();
   log('life', 'online. Everything on this page runs on the robot side.');
+  setInterval(timerTick, 500);                       // timers and the focus block
+  setInterval(saveMeters, 10000);
+  window.addEventListener('pagehide', saveMeters);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') saveMeters(); });
   if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(canvas);
   else window.addEventListener('resize', resize);
   requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
@@ -2062,8 +2646,11 @@ window.milo = {
   ask: (text) => askMind(String(text || ''), {}),
   mind: () => ({ online: mind.online, info: mind.info, played: mind.played }),
   playSound: (name) => chirp(name, { force: true }),
-  state: () => ({ mood: L.mood, lights: L.lights, privacy: L.privacy, meters: Object.assign({}, L.meters) }),
-  _test: { freeze: (v) => { L.freeze = !!v; }, setLife: (v) => { settings.life = !!v; }, clock: () => clock }
+  state: () => ({ mood: L.mood, lights: L.lights, privacy: L.privacy, meters: Object.assign({}, L.meters),
+    focus: FOCUS.on ? { minutes: FOCUS.minutes, left_s: Math.max(0, Math.ceil((FOCUS.endsAt - Date.now()) / 1000)) } : null,
+    timers: T.list.map((t) => ({ label: t.label, left_s: Math.max(0, Math.ceil((t.endsAt - Date.now()) / 1000)) })) }),
+  _test: { freeze: (v) => { L.freeze = !!v; }, setLife: (v) => { settings.life = !!v; }, clock: () => clock,
+           cue: (ev) => applyCue(ev), saveMeters: saveMeters }
 };
 
 init();
