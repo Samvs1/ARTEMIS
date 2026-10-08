@@ -148,6 +148,41 @@ textarea:disabled,select:disabled,.field input:disabled{opacity:.6}
 .sub textarea{margin-top:8px}
 #persPrompt{white-space:pre-wrap;overflow-wrap:anywhere;font:400 12px/1.5 var(--font-mono);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;max-height:340px;overflow:auto;margin:0}
 
+/* What Milo remembers */
+.mem-status{margin:0 0 4px}
+.mem-add-row{display:flex;flex-wrap:wrap;gap:8px}
+.field .mem-add-row input{flex:1 1 220px;width:auto}
+.mem-title{margin:24px 0 10px;font:600 12px/1 var(--font-body);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.mem-kind{margin:20px 0 8px;font:600 14px/1.2 var(--font-body);color:var(--ink)}
+.mem-kind span{margin-left:6px;font-size:12px;font-weight:400;color:var(--muted)}
+.mem-list{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.mem-scroll{max-height:300px;overflow-y:auto;padding-right:4px}
+.mem-list li{padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:var(--panel);display:grid;gap:6px}
+.mem-text{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.mem-diary .mem-text{white-space:pre-wrap}
+.mem-list li.hint{margin:0;border-style:dashed;background:none}
+.is-outdated .mem-text{color:var(--muted);text-decoration:line-through;text-decoration-thickness:1px}
+.mem-meta{display:flex;flex-wrap:wrap;align-items:center;gap:2px 12px;font-size:12px;color:var(--muted)}
+.mem-meta b{font-weight:600;color:var(--ink)}
+.mem-imp{display:inline-block;width:30px;height:4px;margin-right:6px;border-radius:99px;background:var(--chip);overflow:hidden;vertical-align:middle}
+.mem-imp i{display:block;height:100%;border-radius:99px;background:var(--muted);opacity:.65}
+.mem-pin{padding:1px 8px;border-radius:99px;background:var(--chip);color:var(--ink);font-size:11px;font-weight:500}
+.mem-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px}
+.mem-foot .mem-meta{flex:1 1 12rem}
+.mem-actions{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.mem-actions button,.mem-edit button{min-height:32px;padding:5px 12px;font-size:12.5px}
+.mem-ask{font-size:13px;color:var(--warn)}
+.mem-edit{display:grid;gap:8px}
+.mem-edit input[type=text]{font:inherit;font-size:14px;padding:9px 12px;min-height:40px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);width:100%;min-width:0}
+.mem-edit-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.mem-edit-row label{font-size:12px;color:var(--muted)}
+.mem-edit input[type=number]{font:inherit;font-size:14px;width:4.6rem;padding:8px 10px;min-height:34px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+.mem-forget{margin-top:12px;padding:12px 14px;border:1px solid var(--warn);border-radius:14px;display:grid;gap:10px}
+.mem-forget p{margin:0;font-size:13px}
+.mem-forget input{font:inherit;font-size:14px;padding:9px 12px;min-height:38px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);width:9rem}
+button.danger{color:var(--warn);border-color:var(--warn)}
+button.danger:hover{background:var(--panel)}
+button.danger:disabled{border-color:var(--line);color:var(--muted)}
 details summary{cursor:pointer;list-style:none;margin-bottom:0}
 details summary::-webkit-details-marker{display:none}
 details > summary::after{content:"  +";letter-spacing:0}
@@ -248,6 +283,49 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
           <p class="hint">Your text comes first, then the rules for moving its body, then a line about the moment (the time, the lights, its mood).</p>
           <pre id="persPrompt"></pre>
         </details>
+      </details>
+
+      <details class="group" id="memGroup">
+        <summary>What Milo remembers</summary>
+        <p id="memStatus" class="hint mem-status" role="status">Open this page through the mind server to see what Milo remembers.</p>
+        <div id="memBody" hidden>
+          <form id="memAddForm" class="field" autocomplete="off">
+            <label for="memAddText">Tell Milo something to remember</label>
+            <div class="mem-add-row">
+              <input id="memAddText" type="text" maxlength="200" placeholder="for example: They are allergic to cats.">
+              <button id="memAddBtn" class="primary" type="submit">Remember this</button>
+            </div>
+          </form>
+          <p id="memMsg" class="hint pers-msg" role="status"></p>
+          <div id="memFacts"></div>
+          <details class="sub" id="memOutdated">
+            <summary id="memOutdatedTitle">Outdated</summary>
+            <ul id="memOutdatedList" class="mem-list"></ul>
+          </details>
+          <h3 class="mem-title">Last talks</h3>
+          <ol id="memTalks" class="mem-list mem-scroll"></ol>
+          <h3 class="mem-title">Milo's diary</h3>
+          <ol id="memDiary" class="mem-list mem-scroll"></ol>
+          <h3 class="mem-title">For trying things out</h3>
+          <p id="memKeeper" class="hint" style="margin-top:0"></p>
+          <div class="row pers-actions">
+            <button id="memNote" type="button">Note the last talk now</button>
+            <button id="memDream" type="button">Dream now</button>
+          </div>
+          <h3 class="mem-title">Start over</h3>
+          <div class="row pers-actions" style="margin-top:0">
+            <button id="memForgetAll" class="danger" type="button">Forget everything about me</button>
+          </div>
+          <form id="memForgetBox" class="mem-forget" autocomplete="off" hidden>
+            <p>This erases everything Milo remembers about you (what it learned, the last talks and the diary) and the saved conversation. It cannot be undone. Type <b>forget</b> to go ahead.</p>
+            <div class="row">
+              <label class="sr-only" for="memForgetWord">Type the word forget to confirm</label>
+              <input id="memForgetWord" type="text" placeholder="forget" spellcheck="false">
+              <button id="memForgetGo" class="danger" type="submit" disabled>Forget everything</button>
+              <button id="memForgetCancel" type="button">Keep my memories</button>
+            </div>
+          </form>
+        </div>
       </details>
 
       <div class="group">
@@ -1193,6 +1271,8 @@ async function checkMind() {
   } catch (e) { mind.online = false; mind.info = null; }
   updateMindUI();
   if (mind.online && !pers.data) loadPersonality(true);
+  if (mind.online && !mem.data) loadMemory();
+  updateMemUI();
 }
 
 function updateMindUI() {
@@ -1351,6 +1431,7 @@ function askMind(text, opts) {
       if (e.name === 'AbortError') return;
       failure = failure || e.message || 'Something went wrong.';
     }
+    refreshMemory();                                   // the reply is in: show what Milo now holds in mind
     player.close();
     const finished = await player.done;
     if (!finished || !(await wait(0))) return;
@@ -1608,6 +1689,282 @@ function wirePersonality() {
   $('chatCopy').addEventListener('click', copyConversation);
   $('chatForget').addEventListener('click', startOver);
   updatePersUI();
+}
+
+/* ----------------------------------------------------------------------
+   What Milo remembers.
+   Shows the plain-word memory the mind server keeps (facts, last talks, diary) and lets you
+   fix it: tell Milo something, change a fact, pin it, forget it, or forget everything.
+   Everything in it was written by an AI, so it is only ever shown as text, never as HTML.
+   ---------------------------------------------------------------------- */
+const mem = { data: null, edit: null, confirmId: null, seq: 0 };
+const KIND_NAMES = { identity: 'Who you are', preference: 'Likes and preferences', routine: 'Routines', relationship: 'People and pets',
+  event: 'Things that happened', plan: 'Plans', feeling: 'Feelings', other: 'Other' };
+
+function memEl(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (text !== undefined && text !== null) e.textContent = text;
+  return e;
+}
+function memBtn(label, cls, onClick, aria) {
+  const b = memEl('button', cls, label);
+  b.type = 'button';
+  if (aria) b.setAttribute('aria-label', aria);
+  b.addEventListener('click', onClick);
+  return b;
+}
+function memMessage(text, kind) { const el = $('memMsg'); el.textContent = text; el.dataset.kind = kind || ''; }
+function memDate(d, withYear) { try { return d.toLocaleDateString('en-GB', withYear ? { day: 'numeric', month: 'short', year: 'numeric' } : { day: 'numeric', month: 'short' }); } catch (e) { return d.toDateString(); } }
+function memDay(iso) {                               // today, yesterday, or the date
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date(), midnight = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((midnight(now) - midnight(d)) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  return memDate(d, d.getFullYear() !== now.getFullYear());
+}
+const memCap = (t) => t.charAt(0).toUpperCase() + t.slice(1);
+const memPlural = (n, one, many) => n + ' ' + (n === 1 ? one : many);
+
+function updateMemUI() {
+  const on = mind.online, d = mem.data;
+  $('memBody').hidden = !(on && d);
+  const status = $('memStatus');
+  if (!on) { status.textContent = 'Open this page through the mind server to see what Milo remembers.'; return; }
+  if (!d) { status.textContent = 'Loading...'; return; }
+  const active = d.facts.filter((f) => f.status !== 'outdated');
+  status.textContent = active.length
+    ? 'Milo remembers ' + memPlural(active.length, 'thing', 'things') + ' about you' + (active.some((f) => f.pinned) ? ' (' + active.filter((f) => f.pinned).length + ' pinned, so they are always in its mind).' : '.')
+    : 'Milo does not remember anything about you yet. After a talk it writes down what it learned, or you can tell it something below.';
+}
+async function loadMemory() {
+  if (!mind.online) return;
+  const seq = ++mem.seq;
+  try {
+    const data = await api('/api/memory');
+    if (seq !== mem.seq) return;                     // a newer answer is on its way
+    mem.data = data;
+    renderMemory(false);
+  } catch (e) { if (seq === mem.seq) memMessage(e.message, 'error'); }
+  updateMemUI();
+}
+function refreshMemory() { return loadMemory(); }
+
+function renderMemory(force) {
+  const d = mem.data;
+  if (!d) return;
+  updateMemUI();
+  if (force || !(mem.edit || mem.confirmId)) renderMemFacts();      // do not pull a row away while it is being changed
+  renderMemTalks();
+  renderMemDiary();
+  const k = d.keeper || {};
+  const last = String(k.last || '').trim();          // the keeper writes its own status; do not double the full stop
+  $('memKeeper').textContent = 'Memory keeper: ' + (k.running ? 'running' : 'not running') + (last ? '. Status: ' + last + (/[.!?]$/.test(last) ? '' : '.') : '.');
+}
+
+function factById(id) { return mem.data ? mem.data.facts.find((f) => f.id === id) : null; }
+function byImportance(a, b) { return (b.pinned - a.pinned) || (b.importance - a.importance) || String(b.created).localeCompare(String(a.created)); }
+
+function renderMemFacts() {
+  const d = mem.data, box = $('memFacts');
+  box.textContent = '';
+  const active = d.facts.filter((f) => f.status !== 'outdated');
+  const old = d.facts.filter((f) => f.status === 'outdated');
+  const kinds = Object.keys(KIND_NAMES);
+  const known = (f) => (KIND_NAMES[f.kind] ? f.kind : 'other');
+  kinds.forEach((kind) => {
+    const list = active.filter((f) => known(f) === kind).sort(byImportance);
+    if (!list.length) return;
+    const h = memEl('h3', 'mem-kind', KIND_NAMES[kind]);
+    h.append(memEl('span', '', String(list.length)));
+    const ul = memEl('ul', 'mem-list');
+    list.forEach((f) => ul.append(memFactRow(f, false)));
+    box.append(h, ul);
+  });
+  $('memOutdatedTitle').textContent = 'Outdated (' + old.length + ')';
+  $('memOutdated').hidden = !old.length;
+  const ol = $('memOutdatedList');
+  ol.textContent = '';
+  old.sort((a, b) => String(b.updated).localeCompare(String(a.updated))).forEach((f) => ol.append(memFactRow(f, true)));
+}
+
+function memFactRow(f, outdated) {
+  const li = memEl('li', outdated ? 'is-outdated' : '');
+  if (mem.edit && mem.edit.id === f.id) { li.append(memEditForm(f)); return li; }
+  li.append(memEl('div', 'mem-text', f.text));
+  const meta = memEl('div', 'mem-meta');
+  if (f.pinned) meta.append(memEl('span', 'mem-pin', 'Pinned'));
+  meta.append(memEl('span', '', (outdated ? 'Changed ' : 'Learned ') + memDay(outdated ? f.updated : f.created)));
+  if (outdated) {
+    const next = f.replaced_by ? factById(f.replaced_by) : null;
+    if (next) meta.append(memEl('span', '', 'Now: ' + next.text));
+  } else {
+    const imp = memEl('span', 'mem-importance');
+    imp.title = 'How important Milo thinks this is, from 1 (trivia) to 10 (their name)';
+    const bar = memEl('span', 'mem-imp'), fill = document.createElement('i');
+    fill.style.width = (f.importance * 10) + '%';
+    bar.append(fill);
+    imp.append(bar, document.createTextNode('importance ' + f.importance));
+    meta.append(imp);
+  }
+  const foot = memEl('div', 'mem-foot'), actions = memEl('div', 'mem-actions');
+  foot.append(meta, actions);
+  li.append(foot);
+  if (mem.confirmId === f.id) {
+    actions.append(memEl('span', 'mem-ask', 'Forget this for good?'),
+      memBtn('Yes, forget it', 'danger', () => { mem.confirmId = null; memDo('/api/memory/forget', { id: f.id }, 'Forgotten.'); }, 'Yes, forget: ' + f.text),
+      memBtn('Keep it', '', () => { mem.confirmId = null; renderMemory(true); }));
+  } else {
+    if (!outdated) {
+      actions.append(
+        memBtn('Edit', '', () => { mem.edit = { id: f.id, text: f.text, importance: f.importance }; mem.confirmId = null; renderMemory(true); }, 'Edit: ' + f.text),
+        memBtn(f.pinned ? 'Unpin' : 'Pin', '', () => memDo('/api/memory/fact', { id: f.id, pinned: !f.pinned }, f.pinned ? 'Unpinned. Milo may let it fade if it is not important.' : 'Pinned. Milo will always have it in mind.'),
+          (f.pinned ? 'Unpin: ' : 'Pin: ') + f.text));
+    }
+    actions.append(memBtn('Forget', '', () => { mem.confirmId = f.id; mem.edit = null; renderMemory(true); }, 'Forget: ' + f.text));
+  }
+  return li;
+}
+
+function memEditForm(f) {
+  const form = memEl('form', 'mem-edit');
+  form.autocomplete = 'off'; form.noValidate = true;       // the page says what is wrong, in its own words
+  const text = memEl('input'); text.type = 'text'; text.maxLength = 200; text.value = mem.edit.text; text.id = 'memEditText';
+  text.setAttribute('aria-label', 'What Milo remembers');
+  text.addEventListener('input', () => { mem.edit.text = text.value; });
+  text.addEventListener('keydown', (e) => { if (e.key === 'Escape') { mem.edit = null; renderMemory(true); } });
+  const row = memEl('div', 'mem-edit-row');
+  const label = memEl('label', '', 'Importance (1 to 10)'); label.htmlFor = 'memEditImp';
+  const imp = memEl('input'); imp.type = 'number'; imp.min = '1'; imp.max = '10'; imp.step = '1'; imp.value = String(mem.edit.importance); imp.id = 'memEditImp';
+  imp.addEventListener('input', () => { mem.edit.importance = imp.value; });
+  const save = memEl('button', 'primary', 'Save'); save.type = 'submit';
+  row.append(label, imp, save, memBtn('Cancel', '', () => { mem.edit = null; renderMemory(true); }));
+  form.append(text, row);
+  form.addEventListener('submit', (e) => { e.preventDefault(); saveMemEdit(f); });
+  setTimeout(() => { if (document.activeElement !== text && mem.edit && mem.edit.id === f.id) text.focus(); }, 0);
+  return form;
+}
+async function saveMemEdit(f) {
+  const text = String(mem.edit.text).trim(), importance = Number(mem.edit.importance);
+  if (!text) { memMessage('Write what Milo should remember, or press Cancel.', 'error'); return; }
+  if (!Number.isInteger(importance) || importance < 1 || importance > 10) { memMessage('Importance is a whole number from 1 to 10.', 'error'); return; }
+  try {
+    await api('/api/memory/fact', { id: f.id, text: text, importance: importance });
+    mem.edit = null;
+    memMessage('Saved.', '');
+  } catch (e) { memMessage(e.message, 'error'); return; }
+  await refreshMemory();
+  renderMemory(true);
+}
+
+function renderMemTalks() {
+  const ol = $('memTalks');
+  ol.textContent = '';
+  const talks = mem.data.episodes.slice().reverse();
+  if (!talks.length) { ol.append(memEl('li', 'hint', 'No talks noted yet. A few minutes after a talk ends, Milo writes a line about it here.')); return; }
+  talks.forEach((t) => {
+    const li = memEl('li');
+    const meta = memEl('div', 'mem-meta');
+    const start = new Date(t.start), end = new Date(t.end);
+    const day = memDay(t.start);
+    if (day) {
+      let when = memCap(day);
+      try { when += ', ' + start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); } catch (e) { /* keep the day only */ }
+      meta.append(memEl('b', '', when));
+    }
+    const mins = Math.round((end - start) / 60000);
+    if (isFinite(mins) && mins >= 0) meta.append(memEl('span', '', mins < 3 ? 'a few minutes' : mins + ' minutes'));
+    if (t.mood) meta.append(memEl('span', 'mem-pin', t.mood));
+    li.append(meta, memEl('div', 'mem-text', t.summary));
+    ol.append(li);
+  });
+}
+function renderMemDiary() {
+  const ol = $('memDiary');
+  ol.textContent = '';
+  if (!mem.data.diary.length) { ol.append(memEl('li', 'hint', 'No diary yet. Milo writes an entry once a night, when it dreams.')); return; }
+  mem.data.diary.forEach((e) => {
+    const li = memEl('li', 'mem-diary');
+    const parts = String(e.date).split('-').map(Number), day = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
+    const rel = isNaN(day.getTime()) ? '' : memDay(day);
+    const meta = memEl('div', 'mem-meta');
+    if (isNaN(day.getTime())) meta.append(memEl('b', '', String(e.date)));
+    else {
+      let weekday = '';
+      try { weekday = day.toLocaleDateString('en-GB', { weekday: 'long' }); } catch (err) { /* skip it */ }
+      meta.append(memEl('b', '', rel === 'today' || rel === 'yesterday' ? memCap(rel) : weekday), memEl('span', '', memDate(day, day.getFullYear() !== new Date().getFullYear())));
+    }
+    li.append(meta, memEl('div', 'mem-text', e.text));
+    ol.append(li);
+  });
+}
+
+async function memDo(path, body, done) {             // one change, then show the page what the server now holds
+  try { await api(path, body); memMessage(done, ''); }
+  catch (e) { memMessage(e.message, 'error'); }
+  await refreshMemory();
+  renderMemory(true);
+}
+async function addMemory(e) {
+  e.preventDefault();
+  const input = $('memAddText'), text = input.value.trim();
+  if (!text) { memMessage('Write what Milo should remember first.', 'error'); return; }
+  try {
+    await api('/api/memory/fact', { text: text });
+    input.value = '';
+    memMessage('Milo will remember that. It is pinned, so it is always in its mind.', '');
+    log('mind', 'a memory was added by hand');
+  } catch (err) { memMessage(err.message, 'error'); return; }
+  await refreshMemory();
+  renderMemory(true);
+}
+async function memTry(kind) {                        // "Note the last talk now" and "Dream now"
+  const btn = $(kind === 'note' ? 'memNote' : 'memDream'), label = btn.textContent;
+  btn.disabled = true; btn.textContent = kind === 'note' ? 'Noting...' : 'Dreaming...';
+  memMessage('', '');
+  try {
+    const out = await api('/api/memory/' + kind + '-now', {});
+    if (kind === 'note') memMessage(out.noted ? 'Noted ' + memPlural(out.noted, 'talk', 'talks') + '. The new facts are listed above.' : 'There was no new talk to note.', '');
+    else memMessage(out.dreamed ? 'Milo dreamed. Look in the diary above.' : 'Milo did not dream. ' + (out.status || 'There was nothing to tidy yet.'), '');
+  } catch (e) { memMessage(e.message, 'error'); }
+  btn.textContent = label; btn.disabled = false;
+  await refreshMemory();
+  renderMemory(true);
+}
+function openForgetAll(open) {
+  const box = $('memForgetBox');
+  box.hidden = !open;
+  $('memForgetWord').value = '';
+  $('memForgetGo').disabled = true;
+  if (open) $('memForgetWord').focus(); else $('memForgetAll').focus();
+}
+async function forgetEverything(e) {
+  e.preventDefault();
+  if ($('memForgetWord').value.trim().toLowerCase() !== 'forget') return;
+  try {
+    await api('/api/memory/forget-everything', { confirm: 'forget' });
+  } catch (err) { memMessage(err.message, 'error'); return; }
+  openForgetAll(false);
+  mem.edit = null; mem.confirmId = null;
+  mind.transcript = [];                              // the server dropped the conversation too
+  $('chatLog').textContent = '';
+  log('mind', 'memory erased: Milo has forgotten everything about you');
+  memMessage('Milo has forgotten everything about you, and the conversation too.', '');
+  await refreshMemory();
+  renderMemory(true);
+}
+function wireMemory() {
+  $('memAddForm').addEventListener('submit', addMemory);
+  $('memNote').addEventListener('click', () => memTry('note'));
+  $('memDream').addEventListener('click', () => memTry('dream'));
+  $('memForgetAll').addEventListener('click', () => openForgetAll($('memForgetBox').hidden));
+  $('memForgetCancel').addEventListener('click', () => openForgetAll(false));
+  $('memForgetWord').addEventListener('input', () => { $('memForgetGo').disabled = $('memForgetWord').value.trim().toLowerCase() !== 'forget'; });
+  $('memForgetBox').addEventListener('submit', forgetEverything);
+  $('memGroup').addEventListener('toggle', () => { if ($('memGroup').open) refreshMemory(); });
+  updateMemUI();
 }
 
 function poke() {
@@ -2041,7 +2398,7 @@ function frame(now) {
 function init() {
   if (FACE_MODE) { initFace(); return; }
   loadBudget();
-  buildTiles(); buildShells(); buildMeters(); wireSliders(); wireButtons(); wireStage(); wireChat();
+  buildTiles(); buildShells(); buildMeters(); wireSliders(); wireButtons(); wireStage(); wireChat(); wireMemory();
   setToggle('tLife', settings.life, 'Life layer on', 'Life layer off');
   setToggle('tFollow', settings.follow, 'Follow pointer on', 'Follow pointer off');
   setToggle('tSound', settings.sound, 'Sound on', 'Sound off');

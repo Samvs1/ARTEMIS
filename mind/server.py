@@ -28,8 +28,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mind.brain import (BrainError, CHARACTER_FILE, DEFAULT_PROBES, DeepSeekBrain, DemoBrain, Mind,   # noqa: E402
-                        build_system_prompt, clean_speech)
+                        clean_speech)
 from mind.config import ROOT, Settings, load_env_file                                                # noqa: E402
+from mind.memory import FACT_CHARS, KINDS, MemoryStore                                               # noqa: E402
 from mind.personality import MAX_CHARS, Personality, PersonalityError                                # noqa: E402
 from mind.voice import DemoVoice, FishVoice, VoiceError                                              # noqa: E402
 
@@ -84,10 +85,35 @@ class App:
         self.brain = DeepSeekBrain(settings) if settings.use_deepseek else DemoBrain()
         self.voice = FishVoice(settings) if settings.use_fish else DemoVoice()
         self.personality = Personality(CHARACTER_FILE, data_dir / "character.md", data_dir / "character-history.json")
+        # What Milo knows about the owner lives in plain files (data/memory/owner). The page can read and fix them.
+        self.memory = MemoryStore(data_dir / "memory", person="owner")
         # Only the real mind keeps its conversation between runs. The demo mind has nothing worth remembering.
-        self.mind = Mind(self.brain, self.personality, history_file=data_dir / "history.json" if settings.use_deepseek else None)
+        self.mind = Mind(self.brain, self.personality, history_file=data_dir / "history.json" if settings.use_deepseek else None,
+                         memory=self.memory)
+        # The keeper is the part that does the remembering after a talk (it needs the real mind to read the talk).
+        self.keeper = self._make_keeper() if settings.use_deepseek and not settings.mock else None
         self.chat_limit = Limiter(settings.max_chats_per_hour)
         self.tts_limit = Limiter(settings.max_tts_chars_per_hour)
+
+    def _make_keeper(self):
+        try:
+            from mind.keeper import MemoryKeeper
+        except ImportError:
+            log("memory keeper not found: Milo will use what it remembers, but will not learn anything new")
+            return None
+        return MemoryKeeper(self.brain, self.memory, self.mind.messages)
+
+    def memory_overview(self) -> dict:
+        keeper = ({"running": bool(self.keeper.running), "last": str(self.keeper.status)} if self.keeper
+                  else {"running": False, "last": "off in demo mode"})
+        return {
+            "person": self.memory.person,
+            "facts": self.memory.facts(include_outdated=True),
+            "episodes": self.memory.episodes(limit=20),          # the newest last
+            "diary": self.memory.diary(14),                      # the newest first
+            "state": self.memory.state(),
+            "keeper": keeper,
+        }
 
     def health(self) -> dict:
         return {
@@ -96,6 +122,46 @@ class App:
             "brain": {"kind": self.brain.kind, "label": self.brain.label},
             "voice": {"kind": self.voice.kind, "label": self.voice.label},
         }
+
+
+MEMORY_ACTIONS = {
+    "/api/memory/fact": "fact",
+    "/api/memory/forget": "forget",
+    "/api/memory/forget-everything": "forget-everything",
+    "/api/memory/note-now": "note-now",
+    "/api/memory/dream-now": "dream-now",
+}
+
+
+def parse_fact_fields(data: dict, adding: bool) -> tuple[dict, str]:
+    """The fields of a fact sent by the memory page, checked. Returns (fields, problem); problem is "" when all is well."""
+    fields: dict = {}
+    if adding or "text" in data:
+        text = data.get("text")
+        text = " ".join(text.replace("[", "").replace("]", "").split()) if isinstance(text, str) else ""
+        if not text:
+            return {}, "Write what Milo should remember."
+        if len(text) > FACT_CHARS:
+            return {}, f"That is too long for one memory ({len(text)} characters; the limit is {FACT_CHARS}). Try a shorter sentence."
+        fields["text"] = text
+    kind = data.get("kind")
+    if kind is not None:
+        if not isinstance(kind, str) or kind not in KINDS:
+            return {}, "That kind of memory is not known. The kinds are: " + ", ".join(KINDS) + "."
+        fields["kind"] = kind
+    importance = data.get("importance")
+    if importance is not None:
+        if isinstance(importance, str) and importance.strip().isdigit():
+            importance = int(importance)
+        if isinstance(importance, bool) or not isinstance(importance, int) or not 1 <= importance <= 10:
+            return {}, "Importance must be a whole number from 1 (trivia) to 10 (their name)."
+        fields["importance"] = importance
+    pinned = data.get("pinned")
+    if pinned is not None:
+        if not isinstance(pinned, bool):
+            return {}, "Pinned must be true or false."
+        fields["pinned"] = pinned
+    return fields, ""
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -169,7 +235,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_json(200, {"text": self.app.personality.default_text()})
         elif path == "/api/prompt":
             sample = {"local_time": "(the day and time, filled in at every reply)", "lights": True, "mood": "calm"}
-            self.send_json(200, {"prompt": build_system_prompt(self.app.personality.text(), sample)})
+            self.send_json(200, {"prompt": self.app.mind.system_prompt(sample)})
+        elif path == "/api/memory":
+            self.send_json(200, self.app.memory_overview())
         elif path == "/favicon.ico":
             self.send_bytes(204, b"", "image/x-icon")
         else:
@@ -195,6 +263,8 @@ class Handler(BaseHTTPRequestHandler):
             self.handle_personality("reset")
         elif path == "/api/probe":
             self.handle_probe()
+        elif path in MEMORY_ACTIONS:
+            self.handle_memory(MEMORY_ACTIONS[path])
         else:
             self.send_json(404, {"error": "Not found."})
 
@@ -217,6 +287,75 @@ class Handler(BaseHTTPRequestHandler):
         except PersonalityError as e:
             return self.send_json(400, {"error": str(e)})
         self.send_json(200, result)
+
+    def handle_memory(self, action: str) -> None:
+        """The memory page: add or fix a fact, forget one, forget everything, note a talk now, dream now."""
+        try:
+            status, payload = self.memory_action(action, self.read_json() or {})
+        except BrainError as e:
+            status, payload = 502, {"error": str(e)}
+        except ValueError as e:                  # the store refused the words (for example only square brackets)
+            status, payload = 400, {"error": str(e)}
+        except OSError as e:                     # a file could not be written or erased
+            log("memory problem: " + str(e))
+            status, payload = 500, {"error": str(e) or "Milo's memory files could not be changed."}
+        except Exception as e:                   # the keeper has its own care, but the page should still get a plain answer
+            log(f"memory problem: {e}")
+            status, payload = 500, {"error": "Something went wrong with Milo's memory. The server log says more."}
+        self.send_json(status, payload)
+
+    def memory_action(self, action: str, data: dict) -> tuple[int, dict]:
+        """Do one thing to the memory. Returns the status and the answer to send."""
+        memory = self.app.memory
+        gone = (404, {"error": "Milo has no memory like that (it may already be gone)."})
+        if action == "fact":
+            fact_id = data.get("id")
+            if fact_id is not None and not isinstance(fact_id, str):
+                return 400, {"error": "Say which memory to change."}
+            fields, problem = parse_fact_fields(data, adding=fact_id is None)
+            if problem:
+                return 400, {"error": problem}
+            if fact_id is None:
+                fields.setdefault("pinned", True)            # something you tell Milo by hand is always remembered
+                fact = memory.add_fact(source="added on the memory page", **fields)
+                log("memory  a fact was added by hand")
+            else:
+                fact = memory.update_fact(fact_id, **fields)
+                if fact is None:
+                    return gone
+                log("memory  a fact was changed by hand")
+            return 200, {"ok": True, "fact": fact}
+
+        if action == "forget":
+            fact_id = data.get("id")
+            if not isinstance(fact_id, str) or not fact_id.strip():
+                return 400, {"error": "Say which memory to forget."}
+            if not memory.delete_fact(fact_id):
+                return gone
+            log("memory  one fact was forgotten")
+            return 200, {"ok": True}
+
+        if action == "forget-everything":
+            if data.get("confirm") != "forget":
+                return 400, {"error": 'To forget everything, send {"confirm": "forget"}.'}
+            memory.forget_everything()
+            self.app.mind.reset()
+            log("memory  everything about the owner was forgotten, and the conversation")
+            return 200, {"ok": True}
+
+        # note-now and dream-now ask the AI, so they need the keeper (which needs the real mind)
+        keeper = self.app.keeper
+        if keeper is None:
+            return 409, {"error": "Memory needs the real mind (a DeepSeek key)."}
+        if not self.app.chat_limit.allow():
+            return 429, {"error": "That is a lot of asking for one hour. Try again a little later."}
+        if action == "note-now":
+            noted = keeper.note_talks(force=True)
+            log(f"memory  noted {noted} talk(s) on request")
+            return 200, {"ok": True, "noted": noted}
+        dreamed = bool(keeper.dream(force=True))
+        log("memory  dreamed on request" if dreamed else "memory  nothing to dream about")
+        return 200, {"ok": True, "dreamed": dreamed, "status": str(keeper.status)}
 
     def handle_probe(self) -> None:
         """Ask a list of questions with a personality text (even an unsaved draft) and report the replies."""
@@ -298,7 +437,7 @@ def run_check(app: App) -> int:
         try:
             audio, content_type = app.voice.synthesize("Hello from Milo.")
             print(f"  Voice : OK. Fish Audio model '{app.voice.working}' returned {len(audio) // 1024} KB of {content_type}")
-            if not settings.fish_voice:
+            if not app.settings.fish_voice:
                 ok = False
                 print("  Voice : " + NO_VOICE_ID_NOTE)
         except VoiceError as e:
@@ -352,6 +491,17 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  Voice : {voice_line}")
     if settings.use_fish and not settings.mock and not settings.fish_voice:
         print("  NOTE  : " + NO_VOICE_ID_NOTE)
+    if app.keeper:
+        try:
+            memory_where = app.memory.dir.relative_to(ROOT).as_posix()
+        except ValueError:
+            memory_where = str(app.memory.dir)
+        print(f"  Memory: on ({memory_where})")
+        app.keeper.start()
+    elif settings.use_deepseek and not settings.mock:
+        print("  Memory: only what is already saved is used (the memory keeper was not found)")
+    else:
+        print("  Memory: off in demo mode")
     if loaded:
         print(f"  Keys  : read from .env ({', '.join(loaded)})")
     print(f"  Open  : http://{url_host}:{settings.port}")
@@ -363,6 +513,8 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         print("\nStopped.")
     finally:
+        if app.keeper:
+            app.keeper.stop()
         server.server_close()
     return 0
 
