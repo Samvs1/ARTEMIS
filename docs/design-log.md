@@ -57,7 +57,7 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 29 | Branches | `main` is kept in sync with the working branch after each round | The owner allowed creating `main`. GitHub's default branch stays the working branch until the owner switches it in the repository settings. | Decided (R6) |
 | 30 | How the mind drives the body | Stage directions inside the reply | The AI writes tags such as `[emote:happy]`, `[look:left]` and `[sound:curious]` in its reply. The server turns them into actions in order (section 10). | Built (assistant) |
 | 31 | Computer | Windows | Double-click launchers `start-milo.bat` and `check-keys.bat`, and a step-by-step README. Not tested on Windows from the build session. | Decided (R6) |
-| 32 | Naming | Milo invents a nickname for each person | Written into the bible. The nickname lives in the conversation history (the last 40 messages) until there is a memory system, so write favourites into the personality to keep them. | Decided (R6) |
+| 32 | Naming | Milo invents a nickname for each person | Written into the bible. The nickname lives in the conversation history (40 messages are kept, but only the last 12 are sent to the AI) until there is a memory system, so write favourites into the personality to keep them. | Decided (R6) |
 | 33 | Humour | Gentle teasing | Like a friendly cat. This is what the draft does. | Decided (R6) |
 | 34 | Wants and fears | Keep the draft | Closed doors, the vacuum cleaner, the sunbeam and the rest stay. Single ones can be swapped later. | Decided (R6) |
 | 35 | Personality editing | Edited inside the page, with undo and a draft tester | Many iterations are expected. Your version is `data/character.md`; every save is kept; "Try it" runs your unsaved text on a list of situations (section 10). | Decided (owner) |
@@ -68,6 +68,12 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 40 | 3D mock-up of the body | A first Blender model with every part marked printed or bought, in `docs/3d-mockups.md` and `cad/` | The assumed 190 x 160 x 135 mm body holds the parts, with tight spots (row 14). Axle forward of centre for balance; Pi in the body; fixed head. Bought-part sizes are assumed until checked. | Proposed (R8) |
 | 41 | Shell direction | A cool friend, not an animal, with BMO (Adventure Time) vibes. Retro is welcome. No Minimal and no Creature shell | The concept's four shells are narrowed. Three new styles are drawn in `docs/shell-styles.md` (row 42); Classic stays as the baseline. | Decided (owner, R9) |
 | 42 | Shell styles | Retro computer, Mint console (BMO-inspired) and Cassette, on the same hardware and the same 160 x 135 x 190 mm envelope | Not yet picked. Mint is the closest to the brief. They add side cooling slots and small trim parts (`docs/shell-styles.md`). | Proposed (R9) |
+| 43 | Speech to text | Cloud first (OpenAI), with an on-robot fallback (faster-whisper) | `docs/body-design.md`. | Decided (owner, R12) |
+| 44 | Memory approach | A plain, readable file of dated facts per person | Mem0 only if the plain file stops being enough (`docs/inspiration.md`). | Decided (owner, R12) |
+| 45 | People | The owner only at first; memory is laid out per person so a second person can be added; no voice ID yet | Keeps v1 simple. Supersedes the staging note in row 18 for now. | Decided (owner, R12) |
+| 46 | Where the mind server runs | On the Pi | | Decided (owner, R12) |
+| 47 | When to start the robot software | Now, on the owner's computer, before the hardware arrives | The body program runs on Windows or Linux with any microphone and speaker. | Decided (owner, R12) |
+| 48 | Body program design | Three programs: mind server (exists), body (hears, speaks, drives the face), face page in kiosk mode fed by the body | `docs/body-design.md`. | Decided (R12) |
 
 ## 3. Architecture principle: two brains
 
@@ -336,3 +342,10 @@ The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. I
 - The owner asked what is left to make the software work. The plan is in `docs/software-plan.md` (Proposed): prove the real voice loop and its delay first, then a "body" program that hears and speaks without a browser (buildable on the Windows computer before any hardware), then memory and telling people apart, then behaviour, then the Pi, then the motors.
 - Small problems found: the self-started talk budget never refills; the AI is told about 6 chirps while 10 exist; the nickname window is 12 messages, not 40.
 - Five decisions are open (speech to text, memory approach, voice ID now or later, where the mind server lives, start before hardware).
+
+**Round 12: decisions and the first real run**
+
+- Answers: cloud speech to text with a local fallback; plain-file memory; the owner only at first ("don't make it too complicated"); the mind server on the Pi; start now (rows 43 to 47).
+- First real run with DeepSeek, from the cloud session: the key check passes, and the first words of a reply arrive in 0.73 to 0.97 s (a whole reply in about 1.2 s). The voice (Fish Audio) and speech to text are not measured yet; their keys are not in the cloud session.
+- Found: asked "tell me something you learned about me", Milo invented a fact. The character asks for a "things I have learned about you" list that does not exist yet. The memory work must give Milo real facts and tell it not to invent any.
+- The body program design is in `docs/body-design.md` (row 48). Building starts with four parallel pieces: the face link, audio, speech to text with the mind client, and project housekeeping.
