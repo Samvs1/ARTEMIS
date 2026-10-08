@@ -325,3 +325,8 @@ The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. I
 
 - The owner liked the first mock-up and its dimensions, and asked for shell variations: retro is welcome, Minimal and Creature are out, and the robot should be a cool friend with BMO vibes from Adventure Time (row 41).
 - Three styles were built on the same internals: Retro computer, Mint console (BMO-inspired) and Cassette (rows 42, Proposed). All keep 160 x 135 x 190 mm and balance 4 to 5 mm behind the axle. Details, extra printed parts and open questions are in `docs/shell-styles.md`.
+
+**Round 10: memory and recognition**
+
+- The owner asked how much memory and recognition exists. Answer: only the last 40 messages are saved and the last 12 are sent to the AI; there is no long-term memory and no recognition of people (see `docs/inspiration.md` for what is missing).
+- The owner asked for open-source projects to learn from. A reading list on memory, companion robots, voice and recognising people is in `docs/inspiration.md`. Found on the way: Piper (the planned on-device voice, row 28) was archived in October 2025 and moved to a new repository, so re-check it before relying on it. Nothing decided yet.
