@@ -381,6 +381,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(400, {"error": 'Send JSON like {"text": "hello"}.'})
         text = str(data.get("text") or "")
         event = str(data.get("event") or "")
+        detail = str(data.get("detail") or "")[:80]        # e.g. the timer's label; cleaned again by the mind
         state = data.get("state") if isinstance(data.get("state"), dict) else {}
         if not self.app.chat_limit.allow():
             return self.send_json(429, {"error": "That is a lot of chatting for one hour. Milo is taking a short rest."})
@@ -390,7 +391,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         label = self.app.brain.label
         try:
-            for event_out in self.app.mind.chat(text, event, state):
+            for event_out in self.app.mind.chat(text, event, state, detail):
                 self.wfile.write((json.dumps(event_out, ensure_ascii=False) + "\n").encode("utf-8"))
                 self.wfile.flush()
                 if event_out["type"] == "done":

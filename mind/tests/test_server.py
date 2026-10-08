@@ -501,6 +501,23 @@ if __name__ == "__main__":
     unittest.main()
 
 
+class ChatDetailTests(unittest.TestCase):
+    def test_the_timer_label_reaches_the_mind(self):
+        from mind.brain import Mind
+        seen = []
+
+        class Brain:
+            kind, label = "demo", "demo"
+
+            def stream(self, messages):
+                seen.append(messages[-1]["content"])
+                yield "[emote:happy] Tea time!"
+
+        mind = Mind(Brain())
+        list(mind.chat("", "timer_done", {}, "tea"))
+        self.assertIn("for 'tea'", seen[0])
+
+
 class CheckTests(unittest.TestCase):
     """python3 mind/server.py --check (check-keys.bat), with a stand-in voice."""
 
