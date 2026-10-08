@@ -129,7 +129,7 @@ class Personality:
         return self.describe()
 
     def adopt_new_name(self) -> bool:
-        """The robot was called Milo until round 15. A personality saved before then is updated once,
+        """The robot was called Milo until round 16. A personality saved before then is updated once,
         as a new version, so the old one can still be restored from the history."""
         mine = self._mine()
         if not mine or not re.search(r"\bMilo\b", mine):

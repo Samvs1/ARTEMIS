@@ -379,7 +379,10 @@ class ForgetAndPruneTests(StoreCase):
         outside.mkdir()
         (outside / "keep.txt").write_text("precious", encoding="utf-8")
         self.root.mkdir(parents=True)
-        (self.root / "owner").symlink_to(outside, target_is_directory=True)
+        try:
+            (self.root / "owner").symlink_to(outside, target_is_directory=True)
+        except OSError:
+            self.skipTest("this account may not make symlinks (Windows without Developer Mode)")
         store = MemoryStore(self.root, "owner", self.clock)
         with self.assertRaises(ValueError):
             store.forget_everything()

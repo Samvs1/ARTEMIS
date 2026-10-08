@@ -8,6 +8,7 @@ from __future__ import annotations
 import http.client
 import json
 import socket
+import sys
 import threading
 import urllib.parse
 from typing import Iterator
@@ -35,6 +36,13 @@ class _Stream:
                 sock.shutdown(socket.SHUT_RDWR)          # close() alone does not wake a thread that is waiting to read
             except OSError:
                 pass
+            if sys.platform == "win32":
+                # On Windows shutdown() does not wake a waiting read either; closing the handle itself does.
+                # detach() first so the socket object (still held by the response) never closes it twice.
+                try:
+                    socket.close(sock.detach())
+                except OSError:
+                    pass
         try:
             self.conn.close()
         except OSError:
