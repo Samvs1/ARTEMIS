@@ -120,6 +120,7 @@ class PushToTalk:
     """The fallback "wake word": press Enter in the terminal, or call trigger() from code."""
 
     available = True
+    push_to_talk = True
 
     def __init__(self, use_stdin: bool = True) -> None:
         self._lock = threading.Lock()

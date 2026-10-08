@@ -73,7 +73,9 @@ On Windows:
 1. Start the mind first: double-click `start-milo.bat` (with your keys in `.env`).
 2. Make sure `.env` also has `OPENAI_API_KEY=` filled in. That key turns your speech into text.
 3. Double-click `start-body.bat`. The first time it installs two small Python packages. A browser tab shows only Milo's face.
-4. Press **Enter** in the body's window, talk, and wait. Milo answers through your speakers, and the face listens, thinks and talks along. After an answer Milo keeps listening for a few seconds, so you can just carry on.
+4. Press **Enter** in the body's window, wait for the chirp, talk, and wait. Milo answers through your speakers, and the face listens, thinks and talks along. After an answer Milo keeps listening for a few seconds, so you can just carry on.
+
+The body uses Windows' default microphone and speaker. To pick others (a headset, say), run `py -m body --list-devices` and put part of their names in `.env`, for example `MILO_INPUT_DEVICE=Headset Microphone (HyperX` and `MILO_OUTPUT_DEVICE=Headset Earphone (HyperX`. Start the body plainly (double-click, or `py -m body`): if its output is piped into another program, the Enter key no longer reaches it. Each answer logs a `timing` line that shows where the time between the end of your speech and Milo's first word went.
 
 The wake word is optional: install the extras (`py -m pip install -r body\requirements-optional.txt`) and say "Hey Jarvis" for now. A real "Hey Milo" model has to be trained later. Without headphones, Milo can hear itself, so talking over Milo to interrupt is switched off unless you set `MILO_BARGE_IN=true`.
 

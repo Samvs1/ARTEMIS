@@ -366,3 +366,21 @@ The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. I
 - Tried with the real DeepSeek mind: from a five-message chat the keeper noted exactly the right five facts, with dates worked out ("Saturday 10 October"); in a fresh conversation Milo recalled all of them; "Lotte cancelled, next weekend instead" outdated the old fact and added the new one; the dream wrote a diary entry in Milo's voice and set the morning thought "Is Lotte still coming next weekend?".
 - Fixed on the way: `check-keys.bat` crashed when a Fish Audio key was set (a mistake from round 13); a short internet outage no longer makes the keeper give up on a talk.
 - Behaviour tried with the real DeepSeek mind: asked for a tea timer it wrote `[timer:8m tea]` and said "Eight minutes for the tea, coming right up!"; the timer_done event gave "Your tea is ready!"; asked for help focusing it started a 25-minute focus block and at the break suggested a stretch and water; "cancel everything" cancelled the timers. Phases 2 and 3 of `docs/software-plan.md` are done; phases 4 and 5 wait for the hardware.
+
+**Round 15: first real voice run on the owner's computer**
+
+- The owner asked to continue with the first real voice run (software plan, Phase 0 and 1): Milo's body on the owner's Windows computer with a real microphone and speaker, DeepSeek, Fish Audio and OpenAI speech to text, push to talk (no wake word installed).
+- Microphone and speaker: the HyperX headset. Windows' defaults (a game controller's mic and the TV) were the wrong ones, so `MILO_INPUT_DEVICE` and `MILO_OUTPUT_DEVICE` are needed on that computer (README).
+- Speech to text was right 4 times out of 4. No crashes. The voice changed between sentences because `FISH_AUDIO_VOICE_ID` is still not set. **The owner needs to pick a voice at fish.audio.**
+- **Delay from end of speech to Milo's first word: 2.7 to 3.6 s, median about 3.2 s, against the target of about 1 s.** The "thinking" chirp plays after 0.7 s, so something is heard quickly. Where the time goes, per turn (ms):
+
+  | Said | Total | Silence wait | Speech to text | Mind, first sentence | Voice |
+  |---|---|---|---|---|---|
+  | "Hello." | 3602 | 699 | 1657 | 809 | 435 |
+  | "Second turn." | 2706 | 699 | 491 | 734 | 779 |
+  | "Testing, one, two, three." | 3344 | 699 | 929 | 784 | 930 |
+  | "How many more turns do you want me to do?" | 2996 | 699 | 611 | 777 | 907 |
+
+  Speech to text (the whole recording is uploaded after you stop) and the voice (the whole first sentence as WAV, not streamed) are about 60% of it. Ideas, not tried yet: streaming speech to text, streaming the voice, a shorter first sentence, and a shorter silence wait (about 450 ms instead of 700).
+- Fixed: on Windows, interrupting Milo (cancel, or talking over it) waited until the mind had finished its whole answer; the body now stops at once. The body said "Say the wake word" when only Enter works; it now says "Press Enter to talk". A memory test needed symlinks, which Windows only allows in Developer Mode; it is skipped there now. Each spoken turn now logs a `timing` line with the numbers above.
+

@@ -101,6 +101,34 @@ class LoopTests(unittest.TestCase):
         self.assertTrue(levels and levels[-1] == 0.0, "the mouth should move and then close")
         self.assertGreaterEqual(len(speaker.played), 3)     # listen chirp, thinking chirp, at least one sentence
 
+    def test_each_spoken_turn_logs_where_the_time_went(self):
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            self.run_conversation([speech_like_wav(seed=3)], ["hello there"])
+        lines = [l for l in out.getvalue().splitlines() if "end of speech -> first voice" in l]
+        self.assertEqual(len(lines), 1, out.getvalue())
+        for part in ("silence wait 700", "speech to text", "mind first sentence", "voice"):
+            self.assertIn(part, lines[0])
+
+    def test_push_to_talk_says_press_enter_not_the_wake_word(self):
+        from body.__main__ import PacedMic
+        from body.audio import FakeAudioIn, FakeAudioOut
+        from body.config import load_settings
+        from body.loop import Conversation
+        from body.mind_client import MindClient
+        from body.stt import FakeTranscriber, TranscriberChain
+        from body.wake import PushToTalk
+
+        settings = load_settings({"MILO_MIND_URL": self.url})
+        convo = Conversation(settings, PacedMic(FakeAudioIn([], gap_seconds=0), []), FakeAudioOut(),
+                             PushToTalk(use_stdin=False), TranscriberChain([FakeTranscriber([])]), MindClient(self.url), FakeFace())
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            convo.begin()
+        convo.close()
+        self.assertIn("Press Enter to talk.", out.getvalue())
+        self.assertNotIn("wake word", out.getvalue())
+
     def test_two_recordings_are_two_turns_in_one_conversation(self):
         convo, _, _, stt = self.run_conversation([speech_like_wav(seed=1), speech_like_wav(seed=2)], ["hi", "tell me a joke"])
         self.assertEqual(convo.turns, 2)
