@@ -61,10 +61,52 @@ def clean_speech(text: str) -> str:
     return text if re.search(r"[A-Za-z0-9]", text) else ""
 
 
+DURATION_RE = re.compile(r"^(?:(\d{1,2})\s*h)?\s*(?:(\d{1,4})\s*m(?:in)?)?\s*(?:(\d{1,5})\s*s(?:ec)?)?$")
+TIMER_LIMITS = (5, 12 * 3600)          # seconds
+FOCUS_LIMITS = (5, 90)                 # minutes
+
+
+def parse_duration(text: str) -> int | None:
+    """'10m', '1h30m', '90s', '1h' or a bare number of minutes, as seconds; None if it is not a duration."""
+    text = text.strip().lower()
+    if text.isdigit():
+        return int(text) * 60
+    m = DURATION_RE.match(text)
+    if not m or not any(m.groups()):
+        return None
+    h, mins, secs = (int(g) if g else 0 for g in m.groups())
+    return h * 3600 + mins * 60 + secs
+
+
+def parse_timer(value: str) -> dict | None:
+    if value in ("cancel", "stop", "off", "clear"):
+        return {"type": "timer", "cancel": True}
+    first, _, rest = value.partition(" ")
+    seconds = parse_duration(first)
+    if seconds is None or not TIMER_LIMITS[0] <= seconds <= TIMER_LIMITS[1]:
+        return None
+    label = re.sub(r"[^\w '\-]", "", rest).strip()[:40]
+    return {"type": "timer", "seconds": seconds, "label": label}
+
+
+def parse_focus(value: str) -> dict | None:
+    if value in ("stop", "off", "end", "done"):
+        return {"type": "focus", "stop": True}
+    value = value.replace("min", "").replace("m", "").strip()
+    minutes = int(value) if value.isdigit() else (25 if not value else None)
+    if minutes is None:
+        return None
+    return {"type": "focus", "minutes": max(FOCUS_LIMITS[0], min(FOCUS_LIMITS[1], minutes))}
+
+
 def parse_tag(tag: str) -> dict | None:
     """Turn the inside of [brackets] into a body action, or None if it is not one we know."""
     t = tag.strip().lower()
     name, _, value = t.partition(":")
+    if name.strip() == "timer":
+        return parse_timer(value.strip())
+    if name.strip() == "focus":
+        return parse_focus(value.strip())
     name, value = name.strip(), value.strip().replace(" ", "_")
     if name == "emote" and value in EMOTES:
         return {"type": "emote", "name": value}
@@ -175,6 +217,8 @@ Your reply is spoken out loud and shown on your face. You can put stage directio
 - [emote:NAME] changes your face. NAME is one of: calm, happy, curious, surprised, thinking, excited, sleepy.
 - [look:DIRECTION] moves your eyes. DIRECTION is one of: left, right, up, down, center.
 - [sound:NAME] plays a short chirp. NAME is one of: happy, curious, surprised, thinking, excited, sleepy.
+- [timer:DURATION LABEL] starts a timer, for example [timer:10m tea], [timer:90s] or [timer:1h30m oven]. [timer:cancel] stops all timers. Only when they ask for a timer, and say it out loud too ("Ten minutes for the tea!"). You will be told when it ends.
+- [focus:MINUTES] starts focus-buddy mode (25 minutes if you leave the number out): you stay quietly beside them while they work and cheer them on when it ends. [focus:stop] ends it early. Only when they ask for help focusing or working.
 
 ## What you remember
 
@@ -191,7 +235,29 @@ EVENT_PROMPTS = {
         "(Event: you have been alone and quiet for a while and you would like some company. "
         "Say one short, in-character thing to get a little attention. Ask at most one question.)"
     ),
+    "timer_done": (
+        "(Event: the timer you set{detail_for} has just finished. Tell them in one short, cheerful sentence. "
+        "Do not start a new timer.)"
+    ),
+    "focus_break": (
+        "(Event: the {detail}-minute focus block you kept with them has just ended. Cheer them on quietly "
+        "and suggest a short break: stretch, water, a look out of the window. Do not start a new focus block.)"
+    ),
+    "good_morning": (
+        "(Event: it is morning and the lights just came on. Greet them warmly in one or two short sentences. "
+        "If you dreamt about something they said, you may bring it up.)"
+    ),
+    "good_night": (
+        "(Event: it is late and the lights just went off. Say a short, sleepy good night.)"
+    ),
 }
+
+
+def event_prompt(event: str, detail: str = "") -> str:
+    """The instruction for an event Milo did not hear from the person, or "" for an unknown event."""
+    template = EVENT_PROMPTS.get(event, "")
+    detail = clean_speech(TAG_IN_TEXT.sub(" ", detail or ""))[:80]
+    return template.format(detail=detail or "25", detail_for=f" for '{detail}'" if detail else "")
 
 
 def context_block(state: dict, notes: list[str] | None = None) -> str:
@@ -678,8 +744,8 @@ class Mind:
         _, memory_text, notes, _, _ = self.context(user_content, self.clock())
         return build_system_prompt(self.character(), state, memory_text, notes)
 
-    def chat(self, text: str, event: str, state: dict) -> Iterator[dict]:
-        user_content = EVENT_PROMPTS.get(event, "") if event else (text or "").strip()[:600]
+    def chat(self, text: str, event: str, state: dict, detail: str = "") -> Iterator[dict]:
+        user_content = event_prompt(event, detail) if event else (text or "").strip()[:600]
         if not user_content:
             yield {"type": "error", "message": "There was nothing to say."}
             return
