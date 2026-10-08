@@ -6,7 +6,7 @@ The script uses Blender as a Python module, so no Blender window or install is n
 
 ```
 python3 -m venv .venv
-.venv/bin/pip install bpy pillow
+.venv/bin/pip install -r cad/requirements.txt
 .venv/bin/python cad/milo_mockup.py            # every render, plus cad/milo_mockup.blend
 .venv/bin/python cad/milo_mockup.py exploded   # one view: hero, views, exploded, coded, section, plate, bought
 .venv/bin/python cad/milo_mockup.py report     # only the fit and balance report (a few seconds)

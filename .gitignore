@@ -15,3 +15,6 @@ data/
 
 # Blender backup files
 *.blend1
+
+# Claude Code personal settings
+.claude/settings.local.json
