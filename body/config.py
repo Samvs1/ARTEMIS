@@ -34,6 +34,7 @@ class BodySettings:
     output_device: str = ""                       # MILO_OUTPUT_DEVICE
     barge_in: bool = False                        # MILO_BARGE_IN: talk over Milo to interrupt (needs echo cancelling)
     window_seconds: float = 6.0                   # MILO_WINDOW_SECONDS: keep listening after Milo speaks
+    thinking_chirp: bool = True                   # MILO_THINKING_CHIRP: a chirp when Milo has heard you and starts thinking
 
 
 _TRUE = ("1", "true", "yes", "on")
@@ -101,4 +102,5 @@ def load_settings(env: dict | None = None) -> BodySettings:
         output_device=_text(env, "MILO_OUTPUT_DEVICE", d.output_device),
         barge_in=_flag(env, "MILO_BARGE_IN", d.barge_in),
         window_seconds=_number(env, "MILO_WINDOW_SECONDS", d.window_seconds, float, 0.0, 600.0),
+        thinking_chirp=_flag(env, "MILO_THINKING_CHIRP", d.thinking_chirp),
     )

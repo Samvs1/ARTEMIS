@@ -236,15 +236,15 @@ EVENT_PROMPTS = {
         "Say one short, in-character thing to get a little attention. Ask at most one question.)"
     ),
     "timer_done": (
-        "(Event: the timer you set{detail_for} has just finished. Tell them in one short, cheerful sentence. "
+        "(Event: the timer you set{detail_for} has just finished. Tell them in one short sentence, in your own style. "
         "Do not start a new timer.)"
     ),
     "focus_break": (
-        "(Event: the {detail}-minute focus block you kept with them has just ended. Cheer them on quietly "
+        "(Event: the {detail}-minute focus block you kept with them has just ended. Tell them in your own style "
         "and suggest a short break: stretch, water, a look out of the window. Do not start a new focus block.)"
     ),
     "good_morning": (
-        "(Event: it is morning and the lights just came on. Greet them warmly in one or two short sentences. "
+        "(Event: it is morning and the lights just came on. Greet them in one or two short sentences, in your own style. "
         "If you dreamt about something they said, you may bring it up.)"
     ),
     "good_night": (

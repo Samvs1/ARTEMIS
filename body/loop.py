@@ -375,7 +375,8 @@ class Conversation:
             self.barge.reset()
             closed = time.monotonic()
             self._timing = {gen: {"end": closed - self.listener.end_silence_ms / 1000, "closed": closed}}
-        self._play(chirp("thinking"))
+        if self.settings.thinking_chirp:
+            self._play(chirp("thinking"))
         self._worker = threading.Thread(target=self._reply, args=(pcm, gen), name="reply", daemon=True)
         self._worker.start()
 

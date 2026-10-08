@@ -129,6 +129,11 @@ class LoopTests(unittest.TestCase):
         self.assertIn("Press Enter to talk.", out.getvalue())
         self.assertNotIn("wake word", out.getvalue())
 
+    def test_the_thinking_chirp_can_be_switched_off(self):
+        _, with_chirp, _, _ = self.run_conversation([speech_like_wav(seed=4)], ["hello there"])
+        _, without, _, _ = self.run_conversation([speech_like_wav(seed=4)], ["hello there"], MILO_THINKING_CHIRP="false")
+        self.assertEqual(len(without.played), len(with_chirp.played) - 1)
+
     def test_two_recordings_are_two_turns_in_one_conversation(self):
         convo, _, _, stt = self.run_conversation([speech_like_wav(seed=1), speech_like_wav(seed=2)], ["hi", "tell me a joke"])
         self.assertEqual(convo.turns, 2)
