@@ -230,6 +230,34 @@ class FishTests(unittest.TestCase):
         self.assertIn("FISH_AUDIO_VOICE_ID", str(ctx.exception))
         self.assertEqual(len(seen), 1)
 
+    def test_a_busy_moment_is_retried_once_so_no_sentence_is_lost(self):
+        seen = []
+        calls = {"n": 0}
+
+        def behaviour(body, headers):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return 429, json.dumps({"message": "too many requests"}).encode(), "application/json"
+            return 200, MP3ISH, "audio/mpeg"
+
+        with FakeServer(fish_handler(behaviour, seen)) as fake:
+            voice = voice_for(fake.url, fish_voice="abc123")
+            voice.retry_pause = 0
+            audio, _ = voice.synthesize("Hi.")
+        self.assertEqual(len(audio), len(MP3ISH))
+        self.assertEqual(len(seen), 2)
+        self.assertEqual({s["model"] for s in seen}, {"s2.1-pro"})      # the same model (and voice) both times
+
+    def test_busy_twice_gives_up_with_a_plain_message(self):
+        seen = []
+        busy = lambda body, headers: (503, json.dumps({"message": "overloaded"}).encode(), "application/json")
+        with FakeServer(fish_handler(busy, seen)) as fake:
+            voice = voice_for(fake.url)
+            voice.retry_pause = 0
+            with self.assertRaises(VoiceError):
+                voice.synthesize("Hi.")
+        self.assertEqual(len(seen), 2)
+
     def test_pinned_model_is_the_only_one_tried(self):
         seen = []
         bad = lambda body, headers: (422, json.dumps({"message": "invalid model header"}).encode(), "application/json")

@@ -52,6 +52,10 @@ def make_printing_safe() -> None:
             pass
 
 
+NO_VOICE_ID_NOTE = ("No FISH_AUDIO_VOICE_ID is set, so Fish Audio picks a random voice for every sentence. "
+                     "Pick a voice at fish.audio, copy its ID and put it after FISH_AUDIO_VOICE_ID= in .env.")
+
+
 class Limiter:
     """A safety net: at most `per_hour` units per hour, so a bug cannot burn through your credit."""
 
@@ -294,6 +298,9 @@ def run_check(app: App) -> int:
         try:
             audio, content_type = app.voice.synthesize("Hello from Milo.")
             print(f"  Voice : OK. Fish Audio model '{app.voice.working}' returned {len(audio) // 1024} KB of {content_type}")
+            if not settings.fish_voice:
+                ok = False
+                print("  Voice : " + NO_VOICE_ID_NOTE)
         except VoiceError as e:
             ok = False
             print(f"  Voice : FAILED. {e}")
@@ -343,6 +350,8 @@ def main(argv: list[str] | None = None) -> int:
     print("Milo's mind server")
     print(f"  Mind  : {mind_line}")
     print(f"  Voice : {voice_line}")
+    if settings.use_fish and not settings.mock and not settings.fish_voice:
+        print("  NOTE  : " + NO_VOICE_ID_NOTE)
     if loaded:
         print(f"  Keys  : read from .env ({', '.join(loaded)})")
     print(f"  Open  : http://{url_host}:{settings.port}")

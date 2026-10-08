@@ -1045,7 +1045,7 @@ const nextLine = () => LINES[lineIx++ % LINES.length];
 
 // ---- the mind server and the voice ----
 // When the page is opened through mind/server.py, Milo can really think (DeepSeek) and speak (Fish Audio).
-const mind = { online: false, info: null, abort: null, listening: false, rec: null, voiceWarned: false, played: 0, transcript: [] };
+const mind = { online: false, info: null, abort: null, listening: false, rec: null, voiceWarned: false, realVoice: false, played: 0, transcript: [] };
 let voiceNode = null;                              // the sound that is playing right now
 
 // A "speech" is one sentence plus its audio. The audio is requested as soon as the sentence
@@ -1068,7 +1068,9 @@ async function fetchVoice(text) {                  // a decoded sound, or null w
       return null;
     }
     const bytes = await res.arrayBuffer();
-    return await new Promise((ok, fail) => AC.decodeAudioData(bytes, ok, fail));
+    const sound = await new Promise((ok, fail) => AC.decodeAudioData(bytes, ok, fail));
+    mind.realVoice = true;
+    return sound;
   } catch (e) {
     return null;
   } finally { clearTimeout(timer); }
@@ -1108,7 +1110,10 @@ function voiceLevel() {                            // how loud the voice is righ
 
 // Say one sentence. Returns false if something cancelled it.
 async function speakSpeech(sp, wait) {
-  const sound = await sp.audio;                    // the real voice, if there is one
+  let sound = await sp.audio;                      // the real voice, if there is one
+  if (!sound && mind.realVoice && mind.online) {   // one sentence failed: try once more rather than switch voices
+    sound = await fetchVoice(sp.text);
+  }
   if (!(await wait(0))) return false;
   showSubtitle(sp.text);
   if (sp.onStart) sp.onStart();
@@ -1116,7 +1121,8 @@ async function speakSpeech(sp, wait) {
   // No real voice: use the browser's voice, or hum along.
   const est = Math.max(1.8, sp.text.split(/\s+/).length * 0.36);
   L.speakUntil = clock + est + 0.3;
-  const spoke = speakText(sp.text);
+  // Once the real voice has been heard, never switch to the browser's voice: hum the sentence instead.
+  const spoke = mind.realVoice ? Promise.resolve(false) : speakText(sp.text);
   const first = await Promise.race([spoke, sleep(250).then(() => 'pending')]);
   if (first === false) {
     const endAt = performance.now() + est * 1000;
