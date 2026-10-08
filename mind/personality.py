@@ -1,9 +1,9 @@
-"""Milo's personality: the text the mind is told about who Milo is.
+"""Arty's personality: the text the mind is told about who Arty is.
 
 It can come from two places:
 
 - mind/character.md ships with the project. This is the default.
-- data/character.md is your own version. If it exists, Milo uses it instead.
+- data/character.md is your own version. If it exists, Arty uses it instead.
 
 Every save is kept in a history, so you can go back to an older version.
 Nothing needs a restart: the next reply uses whatever is saved.
@@ -11,6 +11,7 @@ Nothing needs a restart: the next reply uses whatever is saved.
 from __future__ import annotations
 
 import json
+import re
 import threading
 import time
 from pathlib import Path
@@ -19,7 +20,7 @@ MAX_CHARS = 20000
 MIN_CHARS = 20
 MAX_VERSIONS = 100
 
-FALLBACK = "You are Milo, a small, curious, friendly robot. Keep replies short, warm and playful."
+FALLBACK = "You are Arty, a small, curious, friendly robot. Keep replies short, warm and playful."
 
 
 class PersonalityError(ValueError):
@@ -56,7 +57,7 @@ class Personality:
             return ""
 
     def text(self) -> str:
-        """What Milo is told right now. Read from disk every time, so edits apply at once."""
+        """What Arty is told right now. Read from disk every time, so edits apply at once."""
         mine = self._mine()
         return mine if mine.strip() else self.default_text()
 
@@ -110,7 +111,7 @@ class Personality:
     def _check(text: str) -> str:
         text = (text or "").replace("\r\n", "\n").strip()
         if len(text) < MIN_CHARS:
-            raise PersonalityError("The personality is empty or far too short. Milo needs at least a sentence or two about who it is.")
+            raise PersonalityError("The personality is empty or far too short. Arty needs at least a sentence or two about who it is.")
         if len(text) > MAX_CHARS:
             raise PersonalityError(f"That is too long ({len(text):,} characters; the limit is {MAX_CHARS:,}). A shorter personality works better anyway.")
         return text
@@ -126,6 +127,17 @@ class Personality:
                 raise PersonalityError(f"The personality could not be saved ({e.strerror or e}).") from e
             self._add_version(text, note)
         return self.describe()
+
+    def adopt_new_name(self) -> bool:
+        """The robot was called Milo until round 15. A personality saved before then is updated once,
+        as a new version, so the old one can still be restored from the history."""
+        mine = self._mine()
+        if not mine or not re.search(r"\bMilo\b", mine):
+            return False
+        text = re.sub(r"\bYou are Milo\b", "You are Artemis (Arty for short)", mine)
+        text = re.sub(r"\bMilo\b", "Arty", text)
+        self.save(text.strip(), "Renamed Milo to Artemis (Arty for short)")
+        return True
 
     def restore(self, version_id: int) -> dict:
         for v in self._read_history():

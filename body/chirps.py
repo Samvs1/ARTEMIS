@@ -1,4 +1,4 @@
-"""Milo's little sounds, made with numpy. They follow the CHIRPS in sim/index.html.
+"""Arty's little sounds, made with numpy. They follow the CHIRPS in sim/index.html.
 
 Each chirp is a few soft sine notes: some glide up or down, some wobble slightly, and the
 "marimba" ones add a short bright overtone at the start. Every chirp is scaled to the same quiet

@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Milo Simulator</title>
+<title>Artemis Simulator</title>
 <script>
-/* ?face=1 shows only Milo's face, full screen (the robot's own screen). &captions=1 also shows what Milo says.
+/* ?face=1 shows only Arty's face, full screen (the robot's own screen). &captions=1 also shows what Arty says.
    The fonts are for the panels, so the face page does not wait for them (its network may be down). */
 (function () {
   var q = new URLSearchParams(location.search), root = document.documentElement;
@@ -16,7 +16,7 @@
 </script>
 <style>
 /* Layout idea: the stage is the hero. On a phone the controls stack underneath it;
-   on a wide screen they sit in a column beside it. One blue (Milo's eye colour)
+   on a wide screen they sit in a column beside it. One blue (Arty's eye colour)
    marks everything you can press. */
 :root{
   --bg:#edf0f4; --panel:#ffffff; --ink:#141a23; --muted:#556074; --line:#d4dae3;
@@ -53,7 +53,7 @@ h2,summary{margin:0 0 10px;font:600 12px/1 var(--font-body);letter-spacing:.09em
   .layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(300px,1fr);gap:28px;align-items:start}
   .stage-col{position:sticky;top:16px}
 }
-/* On a phone the stage stays pinned at the top, so Milo is always in view while you press buttons. */
+/* On a phone the stage stays pinned at the top, so Arty is always in view while you press buttons. */
 @media (max-width:919px){
   .stage-col{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:6px 0 8px}
   .stage-wrap{width:min(100%,calc(40vh * 1.263));margin-inline:auto}
@@ -121,7 +121,7 @@ button.primary{background:var(--accent);border-color:var(--accent);color:var(--a
 .chat:empty{display:none}
 .chat li{padding:8px 12px;border-radius:14px;max-width:88%;overflow-wrap:anywhere;font-size:14px;line-height:1.35}
 .chat .you{justify-self:end;background:var(--accent);color:var(--accent-ink);border-bottom-right-radius:5px}
-.chat .milo{justify-self:start;background:var(--chip);border-bottom-left-radius:5px}
+.chat .arty{justify-self:start;background:var(--chip);border-bottom-left-radius:5px}
 .chat .sys{justify-self:center;max-width:100%;background:none;color:var(--muted);font-size:12px;padding:2px 4px;text-align:center}
 .chat-form{display:flex;gap:8px}
 #chatMic{min-width:7rem;justify-content:center}
@@ -154,7 +154,7 @@ textarea:disabled,select:disabled,.field input:disabled{opacity:.6}
 .sub textarea{margin-top:8px}
 #persPrompt{white-space:pre-wrap;overflow-wrap:anywhere;font:400 12px/1.5 var(--font-mono);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;max-height:340px;overflow:auto;margin:0}
 
-/* What Milo remembers */
+/* What Arty remembers */
 .mem-status{margin:0 0 4px}
 .mem-add-row{display:flex;flex-wrap:wrap;gap:8px}
 .field .mem-add-row input{flex:1 1 220px;width:auto}
@@ -207,7 +207,7 @@ details[open] > summary{margin-bottom:12px}
 footer{color:var(--muted);font-size:13px}
 @media (prefers-reduced-motion: reduce){ .bar i{transition:none} }
 
-/* Face mode (?face=1): the page is just Milo's screen. Everything else stays in the page but is not shown. */
+/* Face mode (?face=1): the page is just Arty's screen. Everything else stays in the page but is not shown. */
 html.face-mode, html.face-mode body{height:100%;margin:0;padding:0;overflow:hidden;background:#04060c;cursor:none;user-select:none;-webkit-user-select:none}
 html.face-mode .app > header, html.face-mode .controls, html.face-mode footer, html.face-mode .readout, html.face-mode .chips{display:none}
 html.face-mode .stage-col::after{display:none}
@@ -220,14 +220,14 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
 <body>
 <main class="app">
   <header>
-    <h1>Milo</h1>
-    <p>A simulator for Milo's face, ears, glow and life layer. Poke it, talk to it, turn the lights off.</p>
+    <h1>Arty</h1>
+    <p>A simulator for Arty's face, ears, glow and life layer. Poke it, talk to it, turn the lights off.</p>
   </header>
 
   <div class="layout">
-    <section class="stage-col" aria-label="Milo's room">
+    <section class="stage-col" aria-label="Arty's room">
       <div class="stage-wrap">
-        <canvas id="stage" role="img" aria-label="Milo, a small robot, looking calm"></canvas>
+        <canvas id="stage" role="img" aria-label="Arty, a small robot, looking calm"></canvas>
         <div id="subtitle" class="subtitle" aria-live="polite" hidden></div>
       </div>
       <div id="chips" class="chips" role="group" aria-label="Timers and focus" hidden></div>
@@ -241,11 +241,11 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
       </div>
 
       <div class="group" id="chatGroup">
-        <h2>Talk to Milo</h2>
+        <h2>Talk to Arty</h2>
         <p id="mindStatus" class="mind-status" role="status" data-state="off">Checking for the mind server</p>
         <ol id="chatLog" class="chat" aria-live="polite" aria-label="Conversation"></ol>
         <form id="chatForm" class="chat-form" autocomplete="off">
-          <input id="chatInput" type="text" aria-label="Say something to Milo" placeholder="Say something" maxlength="300" disabled>
+          <input id="chatInput" type="text" aria-label="Say something to Arty" placeholder="Say something" maxlength="300" disabled>
           <button id="chatSend" class="primary" type="submit" disabled>Send</button>
           <button id="chatMic" class="toggle" type="button" aria-pressed="false" title="Talk instead of typing" disabled>Mic</button>
         </form>
@@ -257,9 +257,9 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
       </div>
 
       <details class="group" id="persGroup">
-        <summary>Milo's personality</summary>
-        <p id="persStatus" class="hint pers-status" role="status">Open this page through the mind server to edit Milo's personality.</p>
-        <label class="sr-only" for="persText">Milo's personality, in plain words</label>
+        <summary>Arty's personality</summary>
+        <p id="persStatus" class="hint pers-status" role="status">Open this page through the mind server to edit Arty's personality.</p>
+        <label class="sr-only" for="persText">Arty's personality, in plain words</label>
         <textarea id="persText" rows="14" spellcheck="true" disabled></textarea>
         <div class="field">
           <label for="persNote">What did you change? (optional, helps you find this version later)</label>
@@ -286,18 +286,18 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
           <button id="persReset" type="button" disabled>Use the shipped default</button>
         </div>
         <details class="sub" id="persPromptBox">
-          <summary>See exactly what Milo is told</summary>
+          <summary>See exactly what Arty is told</summary>
           <p class="hint">Your text comes first, then the rules for moving its body, then a line about the moment (the time, the lights, its mood).</p>
           <pre id="persPrompt"></pre>
         </details>
       </details>
 
       <details class="group" id="memGroup">
-        <summary>What Milo remembers</summary>
-        <p id="memStatus" class="hint mem-status" role="status">Open this page through the mind server to see what Milo remembers.</p>
+        <summary>What Arty remembers</summary>
+        <p id="memStatus" class="hint mem-status" role="status">Open this page through the mind server to see what Arty remembers.</p>
         <div id="memBody" hidden>
           <form id="memAddForm" class="field" autocomplete="off">
-            <label for="memAddText">Tell Milo something to remember</label>
+            <label for="memAddText">Tell Arty something to remember</label>
             <div class="mem-add-row">
               <input id="memAddText" type="text" maxlength="200" placeholder="for example: They are allergic to cats.">
               <button id="memAddBtn" class="primary" type="submit">Remember this</button>
@@ -311,7 +311,7 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
           </details>
           <h3 class="mem-title">Last talks</h3>
           <ol id="memTalks" class="mem-list mem-scroll"></ol>
-          <h3 class="mem-title">Milo's diary</h3>
+          <h3 class="mem-title">Arty's diary</h3>
           <ol id="memDiary" class="mem-list mem-scroll"></ol>
           <h3 class="mem-title">For trying things out</h3>
           <p id="memKeeper" class="hint" style="margin-top:0"></p>
@@ -324,7 +324,7 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
             <button id="memForgetAll" class="danger" type="button">Forget everything about me</button>
           </div>
           <form id="memForgetBox" class="mem-forget" autocomplete="off" hidden>
-            <p>This erases everything Milo remembers about you (what it learned, the last talks and the diary) and the saved conversation. It cannot be undone. Type <b>forget</b> to go ahead.</p>
+            <p>This erases everything Arty remembers about you (what it learned, the last talks and the diary) and the saved conversation. It cannot be undone. Type <b>forget</b> to go ahead.</p>
             <div class="row">
               <label class="sr-only" for="memForgetWord">Type the word forget to confirm</label>
               <input id="memForgetWord" type="text" placeholder="forget" spellcheck="false">
@@ -338,7 +338,7 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
       <div class="group">
         <h2>Try it</h2>
         <div class="row">
-          <button id="btnHey" class="primary" type="button">Say "Hey Milo"</button>
+          <button id="btnHey" class="primary" type="button">Say "Hey Arty"</button>
           <button id="btnPoke" type="button">Poke</button>
           <button id="tLights" class="toggle" type="button" aria-pressed="true">Lights on</button>
           <button id="tPrivacy" class="toggle" type="button" aria-pressed="false">Privacy off</button>
@@ -348,7 +348,7 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
           <button id="tFollow" class="toggle" type="button" aria-pressed="true">Follow pointer on</button>
           <button id="tSound" class="toggle" type="button" aria-pressed="true">Sound on</button>
         </div>
-        <p class="hint">"Hey Milo" plays out a conversation: hear, think, speak. Without the mind server it uses placeholder lines. With it, Milo listens through your microphone and answers for real. Tap Milo's face, ears or body to see how it reacts. Ask the mind for a timer or for help focusing and small chips show the time left under Milo.</p>
+        <p class="hint">"Hey Arty" plays out a conversation: hear, think, speak. Without the mind server it uses placeholder lines. With it, Arty listens through your microphone and answers for real. Tap Arty's face, ears or body to see how it reacts. Ask the mind for a timer or for help focusing and small chips show the time left under Arty.</p>
       </div>
 
       <div class="group">
@@ -375,9 +375,9 @@ html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)
 
       <details class="group" id="hood">
         <summary>Under the hood</summary>
-        <p class="hint" style="margin-top:0">Everything here runs on the robot side: blinks, glances, sleepiness, chirps and what Milo does when it gets bored. The remote mind is not connected yet. The "mind" lines in the log show where it will plug in.</p>
+        <p class="hint" style="margin-top:0">Everything here runs on the robot side: blinks, glances, sleepiness, chirps and what Arty does when it gets bored. The remote mind is not connected yet. The "mind" lines in the log show where it will plug in.</p>
         <div class="meters" id="meters"></div>
-        <ol class="log" id="log" aria-label="What Milo is doing"></ol>
+        <ol class="log" id="log" aria-label="What Arty is doing"></ol>
       </details>
     </section>
   </div>
@@ -428,8 +428,9 @@ function mix(hexA, hexB, t) {
    Remembered in your browser, so reloading keeps your look.
    ====================================================================== */
 const store = {
-  get(k, d) { try { const v = localStorage.getItem('milo.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('milo.' + k, JSON.stringify(v)); } catch (e) { /* storage can be blocked */ } }
+  get(k, d) { try { let v = localStorage.getItem('artemis.' + k); if (v === null) v = localStorage.getItem('milo.' + k);   // saved before the rename (the robot was called Milo)
+    return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('artemis.' + k, JSON.stringify(v)); } catch (e) { /* storage can be blocked */ } }
 };
 
 // The four shells from the concept. Same hardware, different looks.
@@ -456,7 +457,7 @@ if (FACE_MODE) Object.assign(settings, { sound: false, follow: false, life: true
    An eye is a thick curved line: it starts at A, ends at B and bends
    toward C. "th" is how thick the line is. A round eye is a short, thick
    line. A happy eye is a long, thin line that bends upward.
-   Every feeling is a set of numbers. Milo glides between them.
+   Every feeling is a set of numbers. Arty glides between them.
    ====================================================================== */
 const W = 480, H = 380;            // the stage is 480 x 380 units
 const CX = 240, FLOOR = 336;       // robot centre line and floor level
@@ -473,7 +474,7 @@ const mirrorEye = (e) => Object.assign({}, e, { ax: -e.ax, bx: -e.bx, cx: -e.cx,
 
 // mouth: w = half width, q = smile (+) or frown (-), t = thickness, o = how open, r = round "o" size
 // head: roll tilts sideways, pitch nods. ears: a = angle outward in degrees, l = length
-// gx, gy = where the feeling makes Milo look. hue = glow colour shift. glow = glow strength.
+// gx, gy = where the feeling makes Arty look. hue = glow colour shift. glow = glow strength.
 const POSES = {
   calm: {
     L: eye({}),
@@ -569,7 +570,7 @@ function stepSprings(h) {
 
 /* ======================================================================
    5. DRAWING THE FACE
-   The face is drawn on its own small canvas, then copied onto Milo's
+   The face is drawn on its own small canvas, then copied onto Arty's
    screen with a soft glow around it.
    ====================================================================== */
 class FaceRenderer {
@@ -781,7 +782,7 @@ function resize() {
 }
 
 // The colour of the mood glow: the eye colour shifted by the feeling.
-// While Milo listens it pulses white, and while it thinks it pulses violet.
+// While Arty listens it pulses white, and while it thinks it pulses violet.
 function glowColour(P) {
   let h = settings.hue + P.hue, s = 95, l = 60, a = P.glow;
   if (L.pulse.type && clock < L.pulse.until) {
@@ -827,7 +828,7 @@ function drawRobot(g, P, M, lights) {
   const c = glowColour(P);
   const c1 = mix(shell.light, NIGHT, k), c2 = mix(shell.dark, NIGHT, k);
 
-  // glow on the floor and the soft shadow under Milo
+  // glow on the floor and the soft shadow under Arty
   g.save();
   g.translate(CX, FLOOR + 2);
   g.scale(1, 0.2);
@@ -1004,7 +1005,7 @@ function chirp(name, o) {
   CHIRPS[name](AC.currentTime + 0.01);
 }
 
-// Milo's placeholder voice: whatever voice your browser has. The real voice comes later.
+// Arty's placeholder voice: whatever voice your browser has. The real voice comes later.
 function speakText(text) {
   return new Promise((resolve) => {
     const synth = window.speechSynthesis;
@@ -1025,7 +1026,7 @@ function stopSpeech() { try { if (window.speechSynthesis) window.speechSynthesis
 
 /* ======================================================================
    8. THE LIFE LAYER
-   Everything that makes Milo feel alive without any AI: blinking,
+   Everything that makes Arty feel alive without any AI: blinking,
    glancing around, getting bored, getting sleepy, reacting to touch.
    ====================================================================== */
 let clock = 0;                                     // seconds since the page opened
@@ -1044,12 +1045,12 @@ const M = { blink: 0, gx: 0, gy: 0, speak: 0, sparkle: 0, dots: 0, zzz: 0, wig: 
 let lastSway = 0;
 
 // Timers (up to 3) and the focus buddy. They run on the wall clock, so a busy or hidden tab does not make them drift.
-// When one ends it waits in `pending` until Milo is free, then wakes the mind with an event.
+// When one ends it waits in `pending` until Arty is free, then wakes the mind with an event.
 const TIMER_MAX = 3, TIMER_LIMITS = [5, 12 * 3600], FOCUS_LIMITS = [5, 90];     // seconds; minutes (the same limits the mind uses)
 const T = { list: [], next: 1, pending: [], firing: false };
 const FOCUS = { on: false, minutes: 0, endsAt: 0 };
 
-// Milo may start a conversation by itself 5 times a day. The count is kept in the browser and refills at midnight.
+// Arty may start a conversation by itself 5 times a day. The count is kept in the browser and refills at midnight.
 const DAILY_BUDGET = 5;
 function today(d) {
   d = d || new Date();
@@ -1090,12 +1091,12 @@ function setMood(name, o) {
     if (s) chirp(s, { auto: !!o.auto });
   }
   syncTiles();
-  canvas.setAttribute('aria-label', name === 'privacy' ? 'Milo, with its camera shutter closed and head tipped down'
-                                                       : 'Milo, a small robot, looking ' + (name === 'focus' ? 'focused and calm' : name));
+  canvas.setAttribute('aria-label', name === 'privacy' ? 'Arty, with its camera shutter closed and head tipped down'
+                                                       : 'Arty, a small robot, looking ' + (name === 'focus' ? 'focused and calm' : name));
 }
 
-// Scripts are short stories Milo acts out (like the "Hey Milo" demo). A newer
-// action cancels the running one, so Milo never gets stuck in the middle.
+// Scripts are short stories Arty acts out (like the "Hey Arty" demo). A newer
+// action cancels the running one, so Arty never gets stuck in the middle.
 function runScript(body) {
   const my = ++L.seq;
   L.busy = true;
@@ -1132,7 +1133,7 @@ function showSubtitle(text, ms) {
 }
 function hideSubtitle() { clearTimeout(subTimer); if (!L.privacy) $('subtitle').hidden = true; }
 
-// ---- things Milo says (placeholder lines until the real mind is connected) ----
+// ---- things Arty says (placeholder lines until the real mind is connected) ----
 const LINES = [
   "Hi! I was just wondering what's behind that door. Want to find out together?",
   "You're back! I was guarding the sunbeam. It left, though.",
@@ -1143,7 +1144,7 @@ let lineIx = Math.floor(Math.random() * LINES.length);
 const nextLine = () => LINES[lineIx++ % LINES.length];
 
 // ---- the mind server and the voice ----
-// When the page is opened through mind/server.py, Milo can really think (DeepSeek) and speak (Fish Audio).
+// When the page is opened through mind/server.py, Arty can really think (DeepSeek) and speak (Fish Audio).
 const mind = { online: false, info: null, abort: null, listening: false, rec: null, voiceWarned: false, realVoice: false, played: 0, transcript: [] };
 let voiceNode = null;                              // the sound that is playing right now
 
@@ -1241,7 +1242,7 @@ async function sayLine(text, wait) {
 }
 
 // ---- the demo: wake word, then think, then speak ----
-function heyMilo() {
+function heyArty() {
   if (L.privacy) {
     log('life', 'wake word ignored: the microphone is cut');
     showSubtitle("Privacy mode is on. I can't hear you right now.", 2600);
@@ -1251,7 +1252,7 @@ function heyMilo() {
   if (mind.online) { startListening({}); return; }        // with the mind server this is the real thing
   runScript(async (wait) => {
     if (L.mood === 'sleepy') { setMood('calm', { sound: false }); chirp('wake'); if (!(await wait(600))) return; }
-    log('life', 'hears "Hey Milo" (the wake word runs on the robot)');
+    log('life', 'hears "Hey Arty" (the wake word runs on the robot)');
     setMood('curious', { sound: false }); chirp('listen', { force: true }); pulse('listening', 1.3);
     if (!(await wait(1300))) return;
     log('life', 'you stopped talking: Thinking face starts now');
@@ -1265,7 +1266,7 @@ function heyMilo() {
     setMood('curious', { sound: false });
     log('life', 'conversation window open: no wake word needed for 4 s');
     if (!(await wait(4000))) return;
-    log('life', 'window closed: waiting for "Hey Milo" again');
+    log('life', 'window closed: waiting for "Hey Arty" again');
     setMood('calm', { sound: false });
   });
 }
@@ -1306,7 +1307,7 @@ function updateMindUI() {
     status.textContent = 'Mind not connected';
     input.placeholder = 'Mind not connected';
     help.hidden = false;
-    help.textContent = 'To chat, run  python3 mind/server.py  in the project folder and open http://127.0.0.1:8000. The "Hey Milo" demo works without it.';
+    help.textContent = 'To chat, run  python3 mind/server.py  in the project folder and open http://127.0.0.1:8000. The "Hey Arty" demo works without it.';
   } else {
     const i = mind.info;
     status.dataset.state = 'on';
@@ -1394,7 +1395,7 @@ function makePlayer(wait) {
   };
 }
 
-// One turn of conversation. `text` is what the person said; `opts.event` is for things Milo starts itself.
+// One turn of conversation. `text` is what the person said; `opts.event` is for things Arty starts itself.
 function askMind(text, opts) {
   opts = opts || {};
   if (!mind.online) return;
@@ -1404,7 +1405,7 @@ function askMind(text, opts) {
   if (L.mood === 'sleepy') setMood('calm', { sound: false });
   if (text) addChat('you', text);
   mind.voiceWarned = false;
-  const turn = { you: text || '(' + String(opts.event || 'event').replace(/_/g, ' ') + (opts.detail ? ': ' + opts.detail : '') + ')', cues: [], milo: [] };   // for "Copy conversation"
+  const turn = { you: text || '(' + String(opts.event || 'event').replace(/_/g, ' ') + (opts.detail ? ': ' + opts.detail : '') + ')', cues: [], arty: [] };   // for "Copy conversation"
   mind.transcript.push(turn);
   if (mind.transcript.length > 30) mind.transcript.shift();
   runScript(async (wait) => {
@@ -1426,9 +1427,9 @@ function askMind(text, opts) {
       } else if (ev.type === 'say') {
         L.pulse.until = 0;
         if (L.mood === 'thinking') setMood('happy', { sound: false });
-        if (!bubble) bubble = addChat('milo', '');
+        if (!bubble) bubble = addChat('arty', '');
         sawSay = true;
-        player.push({ speech: makeSpeech(ev.text, () => { appendChat(bubble, ev.text); turn.milo.push(ev.text); }) });
+        player.push({ speech: makeSpeech(ev.text, () => { appendChat(bubble, ev.text); turn.arty.push(ev.text); }) });
       } else if (ev.type === 'error') {
         failure = ev.message;
       } else if (ev.type === 'done') {
@@ -1466,12 +1467,12 @@ function askMind(text, opts) {
       if (e.name === 'AbortError') return;
       failure = failure || e.message || 'Something went wrong.';
     }
-    refreshMemory();                                   // the reply is in: show what Milo now holds in mind
+    refreshMemory();                                   // the reply is in: show what Arty now holds in mind
     player.close();
     const finished = await player.done;
     if (!finished || !(await wait(0))) return;
     L.pulse.until = 0;
-    if (failure && !sawSay) {                          // nothing was said: show Milo's confusion
+    if (failure && !sawSay) {                          // nothing was said: show Arty's confusion
       log('mind', 'problem: ' + failure);
       addChat('sys', failure);
       setMood('curious', { sound: false, hold: 8 }); chirp('bored', { force: true });
@@ -1508,7 +1509,7 @@ function startListening(o) {
   if (mind.listening) return true;
   cancelScripts();
   if (!SR) {
-    log('life', 'this browser cannot turn speech into text: type to Milo instead');
+    log('life', 'this browser cannot turn speech into text: type to Arty instead');
     setMood('curious', { sound: false, hold: 6 }); chirp('listen', { force: true });
     showSubtitle("I can only read today. Type to me below.", 3500);
     $('chatInput').focus();
@@ -1520,7 +1521,7 @@ function startListening(o) {
   mind.rec = rec; mind.listening = true; setMic(true);
   if (L.mood === 'sleepy') setMood('calm', { sound: false });
   setMood('curious', { sound: false }); chirp('listen', { force: true }); pulse('listening', 20);
-  log('life', o.window ? 'conversation window open: no wake word needed' : 'hears "Hey Milo" (the wake word runs on the robot)');
+  log('life', o.window ? 'conversation window open: no wake word needed' : 'hears "Hey Arty" (the wake word runs on the robot)');
   rec.onresult = (e) => {
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -1542,7 +1543,7 @@ function startListening(o) {
     const text = finalText.trim();
     if (text) { $('chatInput').value = ''; askMind(text, { viaVoice: true }); }
     else {
-      if (o.window) log('life', 'window closed: waiting for "Hey Milo" again');
+      if (o.window) log('life', 'window closed: waiting for "Hey Arty" again');
       if (L.mood === 'curious') setMood('calm', { sound: false });
     }
   };
@@ -1566,11 +1567,11 @@ function wireChat() {
 
 /* ----------------------------------------------------------------------
    The personality editor.
-   Edit Milo's personality in plain words, try it on some situations, save it.
-   The next thing Milo says uses it. Every save is kept, so nothing is lost.
+   Edit Arty's personality in plain words, try it on some situations, save it.
+   The next thing Arty says uses it. Every save is kept, so nothing is lost.
    ---------------------------------------------------------------------- */
 const pers = { data: null, dirty: false };
-const DEFAULT_SITUATIONS = ['Hi Milo!', 'I had a rough day.', 'What do you think is behind that door?',
+const DEFAULT_SITUATIONS = ['Hi Arty!', 'I had a rough day.', 'What do you think is behind that door?',
   'Can you set a timer for ten minutes?', 'Are you a real person?', 'The vacuum cleaner is coming out.', "I'm going to bed. Goodnight!"];
 
 async function api(path, body) {                    // talk to the mind server: no body means read, a body means do
@@ -1595,7 +1596,7 @@ function updatePersUI() {
   $('persUndo').disabled = !ready || !pers.dirty;
   $('persRestore').disabled = !ready || !d.versions.length;
   const status = $('persStatus');
-  if (!on) { status.textContent = "Open this page through the mind server to edit Milo's personality."; return; }
+  if (!on) { status.textContent = "Open this page through the mind server to edit Arty's personality."; return; }
   if (!d) { status.textContent = 'Loading...'; return; }
   const using = d.source === 'yours' ? 'your saved version' + (d.saved_at ? ' from ' + niceTime(d.saved_at) : '') : 'the shipped default';
   status.textContent = pers.dirty ? 'You have unsaved edits. Chat still uses ' + using + '. "Try it" uses your edits.' : 'Chat is using ' + using + '.';
@@ -1634,11 +1635,11 @@ function adopt(data, message) {                     // show what the server now 
 }
 async function savePersonality() {
   const length = $('persText').value.trim().length;           // the server checks again; this just saves a trip
-  if (length < 20) { persMessage('The personality is empty or far too short. Milo needs at least a sentence or two about who it is.', 'error'); return; }
+  if (length < 20) { persMessage('The personality is empty or far too short. Arty needs at least a sentence or two about who it is.', 'error'); return; }
   if (length > 20000) { persMessage('That is too long (' + length.toLocaleString('en-GB') + ' characters; the limit is 20,000). A shorter personality works better anyway.', 'error'); return; }
   try {
     adopt(await api('/api/personality', { text: $('persText').value, note: $('persNote').value }),
-      'Saved. Milo uses it from the next thing it says. Press "Start over" for a fresh conversation, because the old one still shows the old style.');
+      'Saved. Arty uses it from the next thing it says. Press "Start over" for a fresh conversation, because the old one still shows the old style.');
     $('persNote').value = '';
     log('mind', 'personality saved');
   } catch (e) { persMessage(e.message, 'error'); }
@@ -1646,7 +1647,7 @@ async function savePersonality() {
 async function tryPersonality() {
   const prompts = $('persProbes').value.split('\n').map((s) => s.trim()).filter(Boolean);
   const btn = $('persTry'), label = btn.textContent;
-  btn.disabled = true; btn.textContent = 'Asking Milo...';
+  btn.disabled = true; btn.textContent = 'Asking Arty...';
   persMessage('', '');
   try {
     const out = await api('/api/probe', { character: $('persText').value, prompts: prompts });
@@ -1666,7 +1667,7 @@ function renderProbe(out) {
     if (r.error) {
       const e = document.createElement('div'); e.className = 'pers-warn'; e.textContent = r.error; li.append(e);
     } else {
-      const a = document.createElement('div'); a.className = 'pers-a'; a.textContent = 'Milo: ' + (r.said || '(says nothing)'); li.append(a);
+      const a = document.createElement('div'); a.className = 'pers-a'; a.textContent = 'Arty: ' + (r.said || '(says nothing)'); li.append(a);
       const c = document.createElement('div'); c.className = 'pers-cues';
       c.textContent = r.cues.map((x) => '[' + x.replace(' ', ':') + ']').join(' ') + (r.cues.length ? '   ' : '') + r.notes.join(', '); li.append(c);
       if (r.warnings.length) { const w = document.createElement('div'); w.className = 'pers-warn'; w.textContent = 'Check: ' + r.warnings.join('; '); li.append(w); }
@@ -1693,7 +1694,7 @@ async function copyPersonality() {
   persMessage(ok ? 'Copied. Paste it in the chat to share it.' : 'Your browser blocked copying. The text is selected: press Ctrl+C.', '');
 }
 async function copyConversation() {
-  const text = mind.transcript.map((t) => 'You: ' + t.you + '\nMilo: ' + t.cues.map((c) => '[' + c + ']').join(' ') + (t.cues.length ? ' ' : '') + t.milo.join(' ')).join('\n\n');
+  const text = mind.transcript.map((t) => 'You: ' + t.you + '\nArty: ' + t.cues.map((c) => '[' + c + ']').join(' ') + (t.cues.length ? ' ' : '') + t.arty.join(' ')).join('\n\n');
   if (!text) { persMessage('There is no conversation to copy yet.', ''); return; }
   const ok = await copyToClipboard(text, null);
   persMessage(ok ? 'Copied the conversation, with the stage directions. Paste it in the chat.' : 'Your browser blocked copying. Select the chat text and copy it.', '');
@@ -1703,7 +1704,7 @@ async function startOver() {
   try { await api('/api/reset', {}); } catch (e) { /* the page can still start fresh */ }
   mind.transcript = [];
   $('chatLog').textContent = '';
-  log('mind', 'conversation cleared: Milo starts fresh');
+  log('mind', 'conversation cleared: Arty starts fresh');
 }
 function wirePersonality() {
   $('persProbes').value = store.get('probes', DEFAULT_SITUATIONS.join('\n'));
@@ -1728,9 +1729,9 @@ function wirePersonality() {
 }
 
 /* ----------------------------------------------------------------------
-   What Milo remembers.
+   What Arty remembers.
    Shows the plain-word memory the mind server keeps (facts, last talks, diary) and lets you
-   fix it: tell Milo something, change a fact, pin it, forget it, or forget everything.
+   fix it: tell Arty something, change a fact, pin it, forget it, or forget everything.
    Everything in it was written by an AI, so it is only ever shown as text, never as HTML.
    ---------------------------------------------------------------------- */
 const mem = { data: null, edit: null, confirmId: null, seq: 0 };
@@ -1768,12 +1769,12 @@ function updateMemUI() {
   const on = mind.online, d = mem.data;
   $('memBody').hidden = !(on && d);
   const status = $('memStatus');
-  if (!on) { status.textContent = 'Open this page through the mind server to see what Milo remembers.'; return; }
+  if (!on) { status.textContent = 'Open this page through the mind server to see what Arty remembers.'; return; }
   if (!d) { status.textContent = 'Loading...'; return; }
   const active = d.facts.filter((f) => f.status !== 'outdated');
   status.textContent = active.length
-    ? 'Milo remembers ' + memPlural(active.length, 'thing', 'things') + ' about you' + (active.some((f) => f.pinned) ? ' (' + active.filter((f) => f.pinned).length + ' pinned, so they are always in its mind).' : '.')
-    : 'Milo does not remember anything about you yet. After a talk it writes down what it learned, or you can tell it something below.';
+    ? 'Arty remembers ' + memPlural(active.length, 'thing', 'things') + ' about you' + (active.some((f) => f.pinned) ? ' (' + active.filter((f) => f.pinned).length + ' pinned, so they are always in its mind).' : '.')
+    : 'Arty does not remember anything about you yet. After a talk it writes down what it learned, or you can tell it something below.';
 }
 async function loadMemory() {
   if (!mind.online) return;
@@ -1838,7 +1839,7 @@ function memFactRow(f, outdated) {
     if (next) meta.append(memEl('span', '', 'Now: ' + next.text));
   } else {
     const imp = memEl('span', 'mem-importance');
-    imp.title = 'How important Milo thinks this is, from 1 (trivia) to 10 (their name)';
+    imp.title = 'How important Arty thinks this is, from 1 (trivia) to 10 (their name)';
     const bar = memEl('span', 'mem-imp'), fill = document.createElement('i');
     fill.style.width = (f.importance * 10) + '%';
     bar.append(fill);
@@ -1856,7 +1857,7 @@ function memFactRow(f, outdated) {
     if (!outdated) {
       actions.append(
         memBtn('Edit', '', () => { mem.edit = { id: f.id, text: f.text, importance: f.importance }; mem.confirmId = null; renderMemory(true); }, 'Edit: ' + f.text),
-        memBtn(f.pinned ? 'Unpin' : 'Pin', '', () => memDo('/api/memory/fact', { id: f.id, pinned: !f.pinned }, f.pinned ? 'Unpinned. Milo may let it fade if it is not important.' : 'Pinned. Milo will always have it in mind.'),
+        memBtn(f.pinned ? 'Unpin' : 'Pin', '', () => memDo('/api/memory/fact', { id: f.id, pinned: !f.pinned }, f.pinned ? 'Unpinned. Arty may let it fade if it is not important.' : 'Pinned. Arty will always have it in mind.'),
           (f.pinned ? 'Unpin: ' : 'Pin: ') + f.text));
     }
     actions.append(memBtn('Forget', '', () => { mem.confirmId = f.id; mem.edit = null; renderMemory(true); }, 'Forget: ' + f.text));
@@ -1868,7 +1869,7 @@ function memEditForm(f) {
   const form = memEl('form', 'mem-edit');
   form.autocomplete = 'off'; form.noValidate = true;       // the page says what is wrong, in its own words
   const text = memEl('input'); text.type = 'text'; text.maxLength = 200; text.value = mem.edit.text; text.id = 'memEditText';
-  text.setAttribute('aria-label', 'What Milo remembers');
+  text.setAttribute('aria-label', 'What Arty remembers');
   text.addEventListener('input', () => { mem.edit.text = text.value; });
   text.addEventListener('keydown', (e) => { if (e.key === 'Escape') { mem.edit = null; renderMemory(true); } });
   const row = memEl('div', 'mem-edit-row');
@@ -1884,7 +1885,7 @@ function memEditForm(f) {
 }
 async function saveMemEdit(f) {
   const text = String(mem.edit.text).trim(), importance = Number(mem.edit.importance);
-  if (!text) { memMessage('Write what Milo should remember, or press Cancel.', 'error'); return; }
+  if (!text) { memMessage('Write what Arty should remember, or press Cancel.', 'error'); return; }
   if (!Number.isInteger(importance) || importance < 1 || importance > 10) { memMessage('Importance is a whole number from 1 to 10.', 'error'); return; }
   try {
     await api('/api/memory/fact', { id: f.id, text: text, importance: importance });
@@ -1899,7 +1900,7 @@ function renderMemTalks() {
   const ol = $('memTalks');
   ol.textContent = '';
   const talks = mem.data.episodes.slice().reverse();
-  if (!talks.length) { ol.append(memEl('li', 'hint', 'No talks noted yet. A few minutes after a talk ends, Milo writes a line about it here.')); return; }
+  if (!talks.length) { ol.append(memEl('li', 'hint', 'No talks noted yet. A few minutes after a talk ends, Arty writes a line about it here.')); return; }
   talks.forEach((t) => {
     const li = memEl('li');
     const meta = memEl('div', 'mem-meta');
@@ -1920,7 +1921,7 @@ function renderMemTalks() {
 function renderMemDiary() {
   const ol = $('memDiary');
   ol.textContent = '';
-  if (!mem.data.diary.length) { ol.append(memEl('li', 'hint', 'No diary yet. Milo writes an entry once a night, when it dreams.')); return; }
+  if (!mem.data.diary.length) { ol.append(memEl('li', 'hint', 'No diary yet. Arty writes an entry once a night, when it dreams.')); return; }
   mem.data.diary.forEach((e) => {
     const li = memEl('li', 'mem-diary');
     const parts = String(e.date).split('-').map(Number), day = new Date(parts[0], (parts[1] || 1) - 1, parts[2] || 1);
@@ -1946,11 +1947,11 @@ async function memDo(path, body, done) {             // one change, then show th
 async function addMemory(e) {
   e.preventDefault();
   const input = $('memAddText'), text = input.value.trim();
-  if (!text) { memMessage('Write what Milo should remember first.', 'error'); return; }
+  if (!text) { memMessage('Write what Arty should remember first.', 'error'); return; }
   try {
     await api('/api/memory/fact', { text: text });
     input.value = '';
-    memMessage('Milo will remember that. It is pinned, so it is always in its mind.', '');
+    memMessage('Arty will remember that. It is pinned, so it is always in its mind.', '');
     log('mind', 'a memory was added by hand');
   } catch (err) { memMessage(err.message, 'error'); return; }
   await refreshMemory();
@@ -1963,7 +1964,7 @@ async function memTry(kind) {                        // "Note the last talk now"
   try {
     const out = await api('/api/memory/' + kind + '-now', {});
     if (kind === 'note') memMessage(out.noted ? 'Noted ' + memPlural(out.noted, 'talk', 'talks') + '. The new facts are listed above.' : 'There was no new talk to note.', '');
-    else memMessage(out.dreamed ? 'Milo dreamed. Look in the diary above.' : 'Milo did not dream. ' + (out.status || 'There was nothing to tidy yet.'), '');
+    else memMessage(out.dreamed ? 'Arty dreamed. Look in the diary above.' : 'Arty did not dream. ' + (out.status || 'There was nothing to tidy yet.'), '');
   } catch (e) { memMessage(e.message, 'error'); }
   btn.textContent = label; btn.disabled = false;
   await refreshMemory();
@@ -1986,8 +1987,8 @@ async function forgetEverything(e) {
   mem.edit = null; mem.confirmId = null;
   mind.transcript = [];                              // the server dropped the conversation too
   $('chatLog').textContent = '';
-  log('mind', 'memory erased: Milo has forgotten everything about you');
-  memMessage('Milo has forgotten everything about you, and the conversation too.', '');
+  log('mind', 'memory erased: Arty has forgotten everything about you');
+  memMessage('Arty has forgotten everything about you, and the conversation too.', '');
   await refreshMemory();
   renderMemory(true);
 }
@@ -2064,7 +2065,7 @@ function setPrivacy(on) {
   }
 }
 
-// ---- Milo's inner needs (the "initiative engine") ----
+// ---- Arty's inner needs (the "initiative engine") ----
 function autoLookAround() {
   L.meters.boredom = 0.15;
   runScript(async (wait) => {
@@ -2148,7 +2149,7 @@ function endFocus(fire) {
   renderChips();
 }
 
-// When a timer or a focus block ends, Milo announces it. It waits until it is not in the middle of a talk.
+// When a timer or a focus block ends, Arty announces it. It waits until it is not in the middle of a talk.
 function queueAnnounce(item) { T.pending.push(item); drainAnnounce(); }
 function isFree() { return !L.busy && !mind.listening; }
 async function drainAnnounce() {
@@ -2253,7 +2254,7 @@ function lightsGreeting(on) {
 
 // ---- the meters, across a reload ----
 // Saved every 10 seconds and when the page closes. On the way back they move on by the time that passed, at the
-// same speed as in life(). After a long absence (more than 8 hours) Milo has had a good rest.
+// same speed as in life(). After a long absence (more than 8 hours) Arty has had a good rest.
 const REST_AFTER = 8 * 3600;
 function saveMeters() {
   if (FACE_MODE) return;
@@ -2319,7 +2320,7 @@ function life(dt) {
     if (p >= 1) { L.blinkPhase = -1; M.blink = 0; L.nextBlink = clock + (Math.random() < 0.18 ? 0.22 : rand(2.4, 5.8)); }
   }
 
-  // where Milo looks
+  // where Arty looks
   const G = L.gaze;
   if (L.privacy) { G.tx = 0; G.ty = 0.9; }
   else if (L.lookUntil > clock) { /* a script is steering the eyes */ }
@@ -2431,7 +2432,7 @@ function buildShells() {
   });
 }
 function lookText() {
-  return 'Milo look: shell=' + settings.shell + ', glow hue=' + settings.hue + ', eye size=' + settings.eyeSize.toFixed(2) + ', eye spacing=' + settings.eyeGap.toFixed(2);
+  return 'Arty look: shell=' + settings.shell + ', glow hue=' + settings.hue + ', eye size=' + settings.eyeSize.toFixed(2) + ', eye spacing=' + settings.eyeGap.toFixed(2);
 }
 function syncLook() {
   for (const k in shellButtons) shellButtons[k].setAttribute('aria-pressed', String(k === settings.shell));
@@ -2486,7 +2487,7 @@ function toStage(e) {
   return { x: (e.clientX - r.left) / r.width * W, y: (e.clientY - r.top) / r.height * H };
 }
 function wireStage() {
-  // Milo watches the pointer anywhere on the page, not only over the stage.
+  // Arty watches the pointer anywhere on the page, not only over the stage.
   window.addEventListener('pointermove', (e) => { const p = toStage(e); L.pointer.x = p.x; L.pointer.y = p.y; L.pointer.t = clock; }, { passive: true });
   document.documentElement.addEventListener('mouseleave', () => { L.pointer.t = -99; });
   canvas.addEventListener('pointerdown', (e) => {
@@ -2500,14 +2501,14 @@ function wireStage() {
 }
 
 function wireButtons() {
-  $('btnHey').addEventListener('click', heyMilo);
+  $('btnHey').addEventListener('click', heyArty);
   $('btnPoke').addEventListener('click', poke);
   $('tLights').addEventListener('click', () => { audio(); setLights(!L.lights); });
   $('tPrivacy').addEventListener('click', () => { audio(); setPrivacy(!L.privacy); });
   $('tLife').addEventListener('click', () => {
     settings.life = !settings.life; store.set('life', settings.life);
     setToggle('tLife', settings.life, 'Life layer on', 'Life layer off');
-    log('life', settings.life ? 'life layer running' : 'life layer paused: Milo only does what you ask');
+    log('life', settings.life ? 'life layer running' : 'life layer paused: Arty only does what you ask');
   });
   $('tFollow').addEventListener('click', () => {
     settings.follow = !settings.follow; store.set('follow', settings.follow);
@@ -2549,7 +2550,7 @@ function restoreFace() {                           // a poke or a feeling has wo
 }
 function faceTick() {                              // offline: now and then glance aside, as if wondering where everyone went
   if (FS.state === 'offline' && clock > FS.nextHuh && !L.privacy) {
-    window.milo.lookAt(pick([-0.8, 0.8]), 0.15, 1.1);
+    window.artemis.lookAt(pick([-0.8, 0.8]), 0.15, 1.1);
     FS.nextHuh = clock + rand(4, 8);
   }
 }
@@ -2638,7 +2639,7 @@ function init() {
 }
 
 // What the remote mind will call later. These are the "tools" from the design log.
-window.milo = {
+window.artemis = {
   version: 'sim-0.1',
   emote: (name, o) => setMood(name, Object.assign({ hold: 0 }, o || {})),
   lookAt: (x, y, secs) => { L.gaze.tx = clamp(x, -1, 1); L.gaze.ty = clamp(y, -1, 1); L.lookUntil = clock + (secs || 1.5); },

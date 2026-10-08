@@ -159,11 +159,11 @@ class Rig:
         self.speaker, self.face, self.wake = speaker or FakeSpeaker(), FakeFace(), FakeWake()
         self.stt = FakeTranscriber()
         self.chirps = {chirp(name): name for name in NAMES}
-        settings = load_settings({"MILO_MIND_URL": "http://127.0.0.1:1"})
+        settings = load_settings({"ARTEMIS_MIND_URL": "http://127.0.0.1:1"})
         self.convo = Conversation(settings, None, self.speaker, self.wake, TranscriberChain([self.stt]), self.mind,
                                   self.face, clock=self.clock, offline=offline)
         test.addCleanup(self.convo.close)
-        self.sentences = 0                                  # how many finished sentences Milo took up to think about
+        self.sentences = 0                                  # how many finished sentences Arty took up to think about
         take_up = self.convo._think
 
         def counting_think(pcm):
@@ -192,20 +192,20 @@ class Rig:
 
     # ---- driving it
     def wake_up(self) -> None:
-        """The wake word, if Milo is resting (while it is already listening, the person just talks)."""
+        """The wake word, if Arty is resting (while it is already listening, the person just talks)."""
         if self.convo.state == IDLE:
             self.wake.trigger()
             self.convo.on_frame(SILENCE)
 
     def say(self, text: str) -> None:
-        """Say something to a listening Milo: a second of quiet, a sentence, then quiet until the sentence is over."""
+        """Say something to a listening Arty: a second of quiet, a sentence, then quiet until the sentence is over."""
         self.stt.queue.append(text)
         before = self.sentences
         for frame in [SILENCE] * 33 + speech_frames() + [SILENCE] * 60:
             self.convo.on_frame(frame)
-            if self.sentences > before:                     # (the fakes are so quick that Milo may be listening again already)
+            if self.sentences > before:                     # (the fakes are so quick that Arty may be listening again already)
                 return
-        raise AssertionError("Milo did not take the sentence")
+        raise AssertionError("Arty did not take the sentence")
 
     def settle(self, timeout: float = 10.0) -> None:
         """Wait until the reply (or event reply) has been spoken to the end."""
@@ -214,7 +214,7 @@ class Rig:
             if not self.convo.busy() and self.convo.state in (LISTENING, IDLE):
                 return
             time.sleep(0.005)
-        raise AssertionError(f"Milo did not finish: state {self.convo.state}, faces {self.face.states()}")
+        raise AssertionError(f"Arty did not finish: state {self.convo.state}, faces {self.face.states()}")
 
     def talk(self, text: str) -> None:
         self.wake_up()
@@ -222,17 +222,17 @@ class Rig:
         self.settle()
 
     def go_idle(self) -> None:
-        """Let the listening window run out (a few seconds of quiet frames). Milo is then resting, unless an
+        """Let the listening window run out (a few seconds of quiet frames). Arty is then resting, unless an
         ended timer was waiting for exactly that and has started its announcement."""
         if self.convo.state != LISTENING:
             return
         mark = len(self.face.events)
         for _ in range(400):
             self.convo.on_frame(SILENCE)
-            # (not the state itself: with these quick fakes an announcement may be over, and Milo listening again, already)
+            # (not the state itself: with these quick fakes an announcement may be over, and Arty listening again, already)
             if any(e["type"] == "state" and e["name"] != "listening" for e in self.face.events[mark:]):
                 return
-        raise AssertionError("Milo never stopped listening")
+        raise AssertionError("Arty never stopped listening")
 
     def probe(self) -> None:
         """Wait for a background check of the mind, if one is running."""
@@ -338,7 +338,7 @@ class TimerTests(unittest.TestCase):
 
         rig.jump(599)
         self.assertEqual(len(rig.mind.calls), calls, "not yet")
-        rig.jump(2)                                                 # the timer has ended and Milo is idle: no wake word needed
+        rig.jump(2)                                                 # the timer has ended and Arty is idle: no wake word needed
         rig.settle()
 
         asked = rig.mind.calls[-1]
@@ -378,7 +378,7 @@ class TimerTests(unittest.TestCase):
         gate.set()
         rig.settle()
 
-    def test_a_timer_that_ends_during_a_talk_waits_until_milo_is_idle(self):
+    def test_a_timer_that_ends_during_a_talk_waits_until_arty_is_idle(self):
         gate = threading.Event()
         self.addCleanup(gate.set)
         rig = Rig(self, [
@@ -391,7 +391,7 @@ class TimerTests(unittest.TestCase):
         rig.say("what time is it")
         self.assertEqual(rig.convo.state, "thinking")
 
-        rig.jump(31)                                                # the egg is done while Milo is busy
+        rig.jump(31)                                                # the egg is done while Arty is busy
         self.assertEqual(len(rig.mind.calls), 2, "it must wait")
         gate.set()
         rig.settle()
@@ -441,7 +441,7 @@ class TimerTests(unittest.TestCase):
         rig.talk("a timer")
         rig.wake_up()
         rig.say("never mind the timer")
-        rig.jump(31)                                                # ended, but Milo is busy
+        rig.jump(31)                                                # ended, but Arty is busy
         gate.set()
         rig.settle()
         rig.go_idle()
@@ -531,7 +531,7 @@ class FocusTests(unittest.TestCase):
         rig.settle()
         self.assertEqual(len(rig.mind.calls), 2, "no focus_break after a stop")
 
-    def test_a_block_that_ends_during_a_talk_waits_until_milo_is_idle(self):
+    def test_a_block_that_ends_during_a_talk_waits_until_arty_is_idle(self):
         gate = threading.Event()
         self.addCleanup(gate.set)
         rig = Rig(self, [
@@ -625,7 +625,7 @@ class OfflineTests(unittest.TestCase):
         self.assertEqual(rig.heard(), ["listen", "sleepy"])
 
     def test_a_mind_that_drops_during_a_talk_means_offline_and_it_comes_back_by_itself(self):
-        rig = Rig(self, [[MindError("Could not reach Milo's mind at http://x (refused). Is the mind server running?")]], healthy=False)
+        rig = Rig(self, [[MindError("Could not reach Arty's mind at http://x (refused). Is the mind server running?")]], healthy=False)
         rig.wake_up()
         rig.say("hello")
         rig.settle()
@@ -680,7 +680,7 @@ class OfflineTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             wav = Path(tmp) / "hello.wav"
             wav.write_bytes(speech_like_wav())
-            with mock.patch.dict(os.environ, {"MILO_MIND_URL": "http://127.0.0.1:1"}):
+            with mock.patch.dict(os.environ, {"ARTEMIS_MIND_URL": "http://127.0.0.1:1"}):
                 code = main(["--fake-audio", str(wav), "--no-face"])
         self.assertEqual(code, 0)
         said = self.out.getvalue()

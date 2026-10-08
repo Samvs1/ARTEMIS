@@ -1,4 +1,4 @@
-"""Milo's ears and mouth: microphone in, speaker out, and fakes for tests.
+"""Arty's ears and mouth: microphone in, speaker out, and fakes for tests.
 
 Inside the body all audio is 16 kHz, mono, 16-bit, in frames of 480 samples (30 ms) as bytes.
 Playback takes 16-bit WAV bytes at any rate and any number of channels.
@@ -222,7 +222,7 @@ class AudioIn:
             except Exception as exc:
                 last_error = exc
         raise AudioError(f"I could not open the microphone ({last_error}). "
-                         "Check that it is plugged in, or choose one with MILO_INPUT_DEVICE (see --list-devices).")
+                         "Check that it is plugged in, or choose one with ARTEMIS_INPUT_DEVICE (see --list-devices).")
 
     def _on_audio(self, indata, frames, time_info, status) -> None:
         """Called by the sound system on its own thread: just hand the bytes over."""
@@ -326,7 +326,7 @@ class AudioOut:
             self._rate = int(info["default_samplerate"])
             name = info["name"]
         except Exception as exc:
-            raise AudioError(f"I could not find a speaker ({exc}). Choose one with MILO_OUTPUT_DEVICE (see --list-devices).") from None
+            raise AudioError(f"I could not find a speaker ({exc}). Choose one with ARTEMIS_OUTPUT_DEVICE (see --list-devices).") from None
         log("audio", f"speaker: {name} at {self._rate} Hz")
 
     def _open(self):
@@ -453,7 +453,7 @@ def list_devices() -> str:
         default_in, default_out = sd.default.device
     except Exception as exc:
         return f"I could not ask the sound system for its devices ({exc})."
-    lines = ["Sound devices (choose one with MILO_INPUT_DEVICE / MILO_OUTPUT_DEVICE using part of its name):"]
+    lines = ["Sound devices (choose one with ARTEMIS_INPUT_DEVICE / ARTEMIS_OUTPUT_DEVICE using part of its name):"]
     for index, dev in enumerate(devices):
         marks = []
         if dev["max_input_channels"] > 0:

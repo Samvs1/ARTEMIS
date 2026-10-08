@@ -1,6 +1,6 @@
-# Milo: software plan (R11)
+# Artemis: software plan (R11)
 
-What is left to make Milo work as software, in the order I would do it. Status: **Proposed**. Nothing here is built yet.
+What is left to make Arty work as software, in the order I would do it. Status: **Proposed**. Nothing here is built yet.
 
 ## Status (round 14)
 
@@ -31,7 +31,7 @@ Never tried: real DeepSeek and Fish Audio calls, and the real delay from end of 
 
 Small problems found while reading:
 
-- The talk budget for self-started chat (5) never refills, so Milo goes quiet for good after five.
+- The talk budget for self-started chat (5) never refills, so Arty goes quiet for good after five.
 - The AI is told about 6 chirps, but the server accepts 10.
 - `OPENAI_API_KEY` is in `.env.example` but no code uses it yet. It would be used for speech to text.
 - The design log says nicknames last 40 messages; in practice it is 12.
@@ -53,7 +53,7 @@ Sizes: S = an afternoon of agent work, M = a day or two, L = several days. "Who"
 
 Why first: if the voice round trip is three seconds instead of one, that changes the choices below (for example streaming the voice, or a faster speech-to-text).
 
-### Phase 1: the "body" program (Milo hears and speaks without a browser)
+### Phase 1: the "body" program (Arty hears and speaks without a browser)
 
 A Python program that does what the browser does today, so the same code later runs on the Pi.
 
@@ -62,12 +62,12 @@ A Python program that does what the browser does today, so the same code later r
 | 1.1 | Decide the link between the body program, the face page and the mind server (proposal: the body program drives the face over a local WebSocket; the mind server stays as it is) | S | me | – |
 | 1.2 | Audio in and out: microphone capture, voice activity detection, playing the voice, the loudness level for the mouth | M | Sonnet | 1.1 |
 | 1.3 | Speech to text, cloud first (OpenAI's transcription, the key exists), with a slot for on-device later | M | Sonnet | 1.2, decision A |
-| 1.4 | Wake word "Hey Milo" (openWakeWord, which can train a custom word), with push-to-talk as fallback | M | Sonnet | 1.2 |
-| 1.5 | Conversation loop: wake, listen, think face, stream the reply, speak sentence by sentence, keep listening a few seconds, stop when you talk over Milo | M | me | 1.2–1.4 |
+| 1.4 | Wake word "Hey Arty" (openWakeWord, which can train a custom word), with push-to-talk as fallback | M | Sonnet | 1.2 |
+| 1.5 | Conversation loop: wake, listen, think face, stream the reply, speak sentence by sentence, keep listening a few seconds, stop when you talk over Arty | M | me | 1.2–1.4 |
 | 1.6 | Face-only mode of the simulator page (no room, no body drawing, 800 x 480, full screen) that takes orders from the body program | M | Sonnet | 1.1 |
 | 1.7 | Chirps as short sound files played by the body program, not the browser | S | Sonnet | 1.2 |
 
-Result: on your computer, say "Hey Milo", talk, interrupt, and see the face react, with no buttons.
+Result: on your computer, say "Hey Arty", talk, interrupt, and see the face react, with no buttons.
 
 ### Phase 2: memory and people
 
@@ -76,7 +76,7 @@ Result: on your computer, say "Hey Milo", talk, interrupt, and see the face reac
 | 2.1 | Timestamps on every saved message, and the time since the last talk in the prompt ("you last spoke yesterday evening") | S | Sonnet | – |
 | 2.2 | Long-term memory v1: a plain, readable file of dated facts per person ("things I have learned about you"). After each conversation the AI picks out what is worth keeping; relevant facts go into the prompt | M | me designs, Sonnet builds | decision B |
 | 2.3 | Nightly "dreaming": merge the day's facts, drop duplicates, update what changed (the Graphiti idea of "no longer true"), write a short diary entry | M | Sonnet | 2.2 |
-| 2.4 | Memory page: read, correct and delete what Milo knows; a "forget everything about me" button | M | Sonnet | 2.2 |
+| 2.4 | Memory page: read, correct and delete what Arty knows; a "forget everything about me" button | M | Sonnet | 2.2 |
 | 2.5 | Telling people apart by voice: enrol each person with a short recording; the body program says who is talking; the prompt and the memory use that person | M–L | me designs, Sonnet builds | Phase 1, decision C |
 | 2.6 | Private by default: each person's facts are only used with that person; household facts are shared; a polite guest mode for unknown voices | M | me | 2.2, 2.5 |
 
@@ -87,7 +87,7 @@ Result: on your computer, say "Hey Milo", talk, interrupt, and see the face reac
 | 3.1 | More self-started events beyond "wants company": good morning, you are back (voice heard after a long quiet), good night; each with a daily budget | M | Sonnet | Phase 1 |
 | 3.2 | Perks: timers and focus-buddy mode (works beside you in 25-minute blocks, cheers at breaks) | M | Sonnet | 3.1 |
 | 3.3 | Keep the meters and the budget across restarts | S | Sonnet | – |
-| 3.4 | Offline behaviour: if the internet drops, Milo still blinks, chirps and looks sleepy or confused instead of dead | S | Sonnet | Phase 1 |
+| 3.4 | Offline behaviour: if the internet drops, Arty still blinks, chirps and looks sleepy or confused instead of dead | S | Sonnet | Phase 1 |
 | 3.5 | Personality tuning with real conversations (your part; I help) | ongoing | you plus me | 0.1 |
 
 ### Phase 4: on the Pi (when List A arrives)
@@ -95,7 +95,7 @@ Result: on your computer, say "Hey Milo", talk, interrupt, and see the face reac
 | # | Work | Size | Who | Needs |
 |---|------|------|-----|-------|
 | 4.1 | Install script: system packages, the three programs as services that start on boot, the face in kiosk mode, the screen rotated | M | Sonnet | Pi in hand |
-| 4.2 | The XVF3800 mic array: capture through its echo cancelling, play through its output, check that you can interrupt Milo | M | me with you | Hardware |
+| 4.2 | The XVF3800 mic array: capture through its echo cancelling, play through its output, check that you can interrupt Arty | M | me with you | Hardware |
 | 4.3 | Real latency and CPU check on the Pi; move parts to the cloud or to the PC if needed | S | me | 4.1, 4.2 |
 | 4.4 | Mic-kill and privacy: the face and the mind must know when the microphone is off | S | Sonnet | 4.2 |
 
@@ -103,7 +103,7 @@ Result: on your computer, say "Hey Milo", talk, interrupt, and see the face reac
 
 | # | Work | Size | Who | Needs |
 |---|------|------|-----|-------|
-| 5.1 | Pico 2 firmware: motors with encoders, cliff and front distance sensors, motion sensor; **cliff and bump stops handled on the Pico itself**, so a slow Pi can never drive Milo off a table | L | Sonnet, reviewed by me | Hardware |
+| 5.1 | Pico 2 firmware: motors with encoders, cliff and front distance sensors, motion sensor; **cliff and bump stops handled on the Pico itself**, so a slow Pi can never drive Arty off a table | L | Sonnet, reviewed by me | Hardware |
 | 5.2 | Link protocol between Pi and Pico (USB serial, small messages, a heartbeat that stops the motors if the Pi goes quiet) | M | me | 5.1 |
 | 5.3 | `[move:…]` and "turn to who is speaking" (the mic array knows the direction) | M | Sonnet | 5.1, 5.2 |
 

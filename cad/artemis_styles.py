@@ -1,13 +1,13 @@
-"""Shell styles for the Milo mock-up.
+"""Shell styles for the Arty mock-up.
 
 Every style uses the same internals and the same outer envelope as the classic body
 (160 x 135 x 190 mm), so any of them could be printed over the same hardware. A style
 changes the shell curvature, the colours, the trim and control parts, and the look of the
-face. Run (same environment as milo_mockup.py):
+face. Run (same environment as artemis_mockup.py):
 
-    python cad/milo_styles.py                 # every style, three views each, plus the comparison sheet
-    python cad/milo_styles.py retro           # one style
-    python cad/milo_styles.py report          # fit and weight report for every style (fast)
+    python cad/artemis_styles.py                 # every style, three views each, plus the comparison sheet
+    python cad/artemis_styles.py retro           # one style
+    python cad/artemis_styles.py report          # fit and weight report for every style (fast)
 """
 import math
 import os
@@ -15,8 +15,8 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import milo_mockup as mm  # noqa: E402  (imports bpy first)
-from milo_mockup import PARTS, box, boolean, cyl, join, mat, reg, v  # noqa: E402
+import artemis_mockup as mm  # noqa: E402  (imports bpy first)
+from artemis_mockup import PARTS, box, boolean, cyl, join, mat, reg, v  # noqa: E402
 import bmesh  # noqa: E402
 import bpy  # noqa: E402
 from mathutils import Vector  # noqa: E402
@@ -283,7 +283,7 @@ def render_style(name, views=("3q", "front", "back"), samples=None):
     done = []
     for view in views:
         style.apply()
-        sc, _ = mm.setup_scene("real", samples=samples or int(os.environ.get("MILO_SAMPLES", 48)))
+        sc, _ = mm.setup_scene("real", samples=samples or int(os.environ.get("ARTEMIS_SAMPLES", 48)))
         mm.floor_and_lights()
         sc.view_settings.exposure = style.exposure
         if view == "3q":
@@ -323,7 +323,7 @@ def compare_sheet(names=None):
             sheet.paste(im, (ci * col_w + (col_w - im.width) // 2, head + ri * row_h + (row_h - im.height) // 2))
             if ci == 0:
                 dr.text((12, head + ri * row_h + 8), labels[vname], fill=(70, 70, 70), font=fs)
-    out = os.path.join(mm.IMG_DIR, "milo-styles.png")
+    out = os.path.join(mm.IMG_DIR, "artemis-styles.png")
     sheet.save(out)
     print("wrote", out)
 

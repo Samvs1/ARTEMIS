@@ -1,19 +1,19 @@
 """The conversation: wake, listen, think, speak, keep listening a moment, rest.
 
 One thread reads the microphone and drives the states. The thinking (speech to text and the
-mind's reply) runs in a worker thread, and everything Milo plays goes through one speaker
+mind's reply) runs in a worker thread, and everything Arty plays goes through one speaker
 thread, so the microphone is never starved and an interruption can stop everything at once.
 
     idle --wake--> listening --utterance--> thinking --first sentence--> speaking --done--> listening (window) --silence--> idle
                       ^                                                       |
-                      +---------------- you talk over Milo (barge-in) --------+
+                      +---------------- you talk over Arty (barge-in) --------+
 
 Three more things share the same loop:
 
 * Timers and the focus block. The mind writes them into the reply stream ({"type": "timer", ...} and
   {"type": "focus", ...}); the Scheduler keeps them and every microphone frame asks it what has ended.
-  When one has, and Milo is idle, the body starts a reply by itself (no wake word, no speech to text):
-  the event "timer_done" (detail: the label) or "focus_break" (detail: the minutes). When Milo is busy the
+  When one has, and Arty is idle, the body starts a reply by itself (no wake word, no speech to text):
+  the event "timer_done" (detail: the label) or "focus_break" (detail: the minutes). When Arty is busy the
   event waits until the talk is over. During a focus block the resting face is "focus" instead of "idle".
 * No mind. If the mind does not answer, the body keeps running with the "offline" face. The wake word still
   chirps (listen, then sleepy) and every 10 seconds a background check asks the mind again; when it answers,
@@ -144,13 +144,13 @@ class Conversation:
         self.clock = clock
         vad = vad or VoiceDetector()
         self.listener = Utterances(vad)
-        self.barge = Utterances(vad, start_frames=8)    # a little stricter: Milo's own voice must not trigger it
+        self.barge = Utterances(vad, start_frames=8)    # a little stricter: Arty's own voice must not trigger it
         self.state = IDLE
         self.mood = "calm"
         self.turns = 0
         self.scheduler = Scheduler(clock)
         self.offline = offline                          # the mind does not answer: run on without it
-        self._pending: list[tuple[str, str]] = []       # ended timers and focus blocks waiting for Milo to be idle
+        self._pending: list[tuple[str, str]] = []       # ended timers and focus blocks waiting for Arty to be idle
         self._next_check = clock() + MIND_CHECK_SECONDS
         self._probing = False
         self._probe_thread: threading.Thread | None = None
@@ -165,7 +165,7 @@ class Conversation:
 
     # ---------------------------------------------------------------- the microphone loop
     def begin(self) -> None:
-        """Show the resting face and say that Milo is ready (run() does this first)."""
+        """Show the resting face and say that Arty is ready (run() does this first)."""
         self._set_state(IDLE)
         if self.offline:
             log("body", "ready, but without the mind: showing the offline face and checking again every 10 seconds.")
@@ -202,7 +202,7 @@ class Conversation:
         elif self.settings.barge_in:                    # thinking or speaking
             self.barge.feed(frame)
             if self.barge.speaking():
-                log("hears", "you talked over Milo: stopping")
+                log("hears", "you talked over Arty: stopping")
                 self.interrupt()
                 self.start_listening(chime=False)
         self.tick()                                     # after the wake word, so the person always comes first
@@ -258,13 +258,13 @@ class Conversation:
         self.face.send({"type": "state", "name": shown})
 
     def _resting_face(self) -> str:
-        """What the face shows while Milo waits: offline, focus or idle."""
+        """What the face shows while Arty waits: offline, focus or idle."""
         if self.offline:
             return "offline"
         return "focus" if self.scheduler.focus_active() else "idle"
 
     def _refresh_resting_face(self) -> None:
-        """The reason for the resting face changed (focus started or ended, the mind came back): show it if Milo is resting."""
+        """The reason for the resting face changed (focus started or ended, the mind came back): show it if Arty is resting."""
         with self._lock:
             if self.state != IDLE:
                 return
@@ -302,7 +302,7 @@ class Conversation:
             self._refresh_resting_face()
 
     def _start_pending(self) -> None:
-        """Start the reply for an ended timer or focus block, if Milo is idle. Otherwise it keeps waiting."""
+        """Start the reply for an ended timer or focus block, if Arty is idle. Otherwise it keeps waiting."""
         with self._lock:
             if not self._pending or self.state != IDLE or self.busy():
                 return
@@ -325,7 +325,7 @@ class Conversation:
             if not already:
                 self._next_check = self.clock() + MIND_CHECK_SECONDS
         if not already:
-            log("body", f"offline. Milo keeps running and looks again every {int(MIND_CHECK_SECONDS)} seconds.")
+            log("body", f"offline. Arty keeps running and looks again every {int(MIND_CHECK_SECONDS)} seconds.")
 
     def _wake_without_mind(self) -> None:
         """The wake word while offline: the usual chirp, then a sleepy one, and no thinking."""
@@ -396,7 +396,7 @@ class Conversation:
         self._speak_reply(gen, text=text)
 
     def _event_reply(self, event: str, detail: str, gen: int) -> None:
-        """Something that happened (a timer ended): Milo starts talking by itself, no wake word and no speech to text."""
+        """Something that happened (a timer ended): Arty starts talking by itself, no wake word and no speech to text."""
         log("body", f"telling them about it ({event}{', ' + detail if detail else ''})")
         self._speak_reply(gen, event=event, detail=detail)
 

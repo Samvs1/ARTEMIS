@@ -1,8 +1,8 @@
-"""Milo's voice.
+"""Arty's voice.
 
 FishVoice sends text to Fish Audio and gets speech back. DemoVoice makes a soft
 babble of marimba-like blips, one per word, so the whole audio path can be tried
-without a key (and it fits Milo's chirpy sound).
+without a key (and it fits Arty's chirpy sound).
 """
 from __future__ import annotations
 

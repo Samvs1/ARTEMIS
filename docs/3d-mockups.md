@@ -1,28 +1,28 @@
-# Milo: 3D mock-ups (R8)
+# Artemis: 3D mock-ups (R8)
 
 First 3D mock-up of the body, with every part marked as **printed** or **bought**. It is built from the decisions in the design log and the parts in `docs/shopping-lists.md` (List B, stage 2), and it is meant to answer one question early: *does the assumed 190 x 160 x 135 mm body hold the parts?* (design log row 14, "verify with a CAD mock-up before committing").
 
 **Status: Proposed.** Nothing here is chosen by the owner yet. Most bought-part sizes are my estimates (marked *assumed*), so check them against the real parts before ordering or printing.
 
-**How it was made.** No Blender connector was available in the build session, so the model is a Python script that drives Blender itself (`cad/milo_mockup.py`, Blender 5.2 as the `bpy` module, run headless). Everything below is regenerated from that script: change a number, run it again, and the renders, the weights and the fit report follow. `cad/milo_mockup.blend` is the scene to open in Blender. See `cad/README.md`.
+**How it was made.** No Blender connector was available in the build session, so the model is a Python script that drives Blender itself (`cad/artemis_mockup.py`, Blender 5.2 as the `bpy` module, run headless). Everything below is regenerated from that script: change a number, run it again, and the renders, the weights and the fit report follow. `cad/artemis_mockup.blend` is the scene to open in Blender. See `cad/README.md`.
 
 See also `docs/shell-styles.md` for the Retro, Mint console and Cassette shell variations (round 9).
 
 ## The robot
 
-![Milo mock-up, three quarter view](img/3d/milo-hero.png)
+![Arty mock-up, three quarter view](img/3d/artemis-hero.png)
 
 Same character as the concept render, built from what is decided so far: floor roamer with two wheels and a rear skid, a 4 inch landscape screen for the face, microphones on top, speaker and USB-C at the back. The ears, glow, camera and neck tilt are parked (row 37), so the head is fixed to the body for now.
 
-![Front, side, back and top views](img/3d/milo-views.png)
+![Front, side, back and top views](img/3d/artemis-views.png)
 
 ## What is printed and what is bought
 
-![Printed parts in orange, bought parts in blue](img/3d/milo-coded.png)
+![Printed parts in orange, bought parts in blue](img/3d/artemis-coded.png)
 
-![Exploded view with part numbers: P = printed, B = bought](img/3d/milo-exploded.png)
+![Exploded view with part numbers: P = printed, B = bought](img/3d/artemis-exploded.png)
 
-![Cutaway, seen from the right](img/3d/milo-section.png)
+![Cutaway, seen from the right](img/3d/artemis-section.png)
 
 The cutaway shows the stack: battery cells at the bottom, the battery board and Pi above, the speaker at the back, the controller board at the front; in the head the screen at the front and the microphone array under the roof.
 
@@ -30,7 +30,7 @@ The cutaway shows the stack: battery cells at the bottom, the battery board and 
 
 Per the "fewer, bigger prints" decision (row 19), the body is two big shells and the head is two pieces. Every piece fits a 220 mm print bed. Weights are estimates for PETG or PLA with three walls and a little infill; the real weight will probably be 300 to 400 g in total.
 
-![Printed parts laid out in print orientation](img/3d/milo-plate.png)
+![Printed parts laid out in print orientation](img/3d/artemis-plate.png)
 
 | # | Part | Pieces | Size (mm) | About | Notes |
 |---|------|--------|-----------|-------|-------|
@@ -48,7 +48,7 @@ Per the "fewer, bigger prints" decision (row 19), the body is two big shells and
 
 These are the parts of List A and List B (stage 2) that sit inside the body. The "From" column says where they come from in `docs/shopping-lists.md`.
 
-![Bought parts, to scale](img/3d/milo-bought.png)
+![Bought parts, to scale](img/3d/artemis-bought.png)
 
 | # | Part | Pieces | Size (mm) | From |
 |---|------|--------|-----------|------|

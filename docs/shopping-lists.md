@@ -1,37 +1,37 @@
-# Milo: Shopping Lists
+# Artemis: Shopping Lists
 
 Two lists:
 
-- **List A is the first prototype, "Desk Milo"**: a talking face on your desk. This is what to buy now.
-- **List B is the final robot, "Milo"**: List A plus a body. It is a draft. Do not buy from it yet, because the prototype will teach us what to change.
+- **List A is the first prototype, "Desk Arty"**: a talking face on your desk. This is what to buy now.
+- **List B is the final robot, "Arty"**: List A plus a body. It is a draft. Do not buy from it yet, because the prototype will teach us what to change.
 
 The rule for now (decided in round 7): get the basics working first. That means a real face, a real voice and a real microphone on a real Raspberry Pi. Wheels, a battery, sensors and a dock come after that. The ears or antennae, the mood glow, the camera and the neck tilt are parked until the basics work.
 
 **About the prices.** They come from shop listings and news posts I read in early October 2026. They are euro with VAT where the shop shows it, shipping not included, and they are not quotes. Raspberry Pi has raised its prices several times since December 2025 because of the memory shortage (most recently, in October, for the 2 GB boards), so older prices on the web are too low. A 4 GB Pi 5 far below 100 euro is old, a different board, or a seller to avoid. Check the shop page on the day you order.
 
-## List A: first prototype, "Desk Milo" (buy now)
+## List A: first prototype, "Desk Arty" (buy now)
 
 What it proves:
 
-- Milo's face on the real screen.
-- The whole talking loop on real hardware: wake word, listening, the mind (DeepSeek), the voice (Fish Audio), and no echo of Milo's own voice.
-- The real delay between you finishing a sentence and Milo's first sound (the target is about one second).
+- Arty's face on the real screen.
+- The whole talking loop on real hardware: wake word, listening, the mind (DeepSeek), the voice (Fish Audio), and no echo of Arty's own voice.
+- The real delay between you finishing a sentence and Arty's first sound (the target is about one second).
 
 | # | Part | What it is for | About | Need |
 |---|------|----------------|-------|------|
-| 1 | Raspberry Pi 5, 4 GB | The computer in Milo's head: runs the face, the audio and the speech software | €117 to 140 | Yes |
+| 1 | Raspberry Pi 5, 4 GB | The computer in Arty's head: runs the face, the audio and the speech software | €117 to 140 | Yes |
 | 2 | Official 27 W USB-C power supply, EU plug | The Pi 5 wants 5 V and 5 A. A weaker charger makes it limit the power for USB devices, which the mic array uses | €14 to 15 | Yes |
 | 3 | Active Cooler (small fan and heatsink for the Pi 5) | Stops the Pi slowing down when the browser and the speech software run together | €5 to 6 | Yes |
 | 4 | microSD card, 64 GB, A2 speed class, known brand | The Pi's disk | €10 to 15 | Yes |
 | 5 | microSD card reader for your Windows PC | To put the operating system on the card. Skip it if your PC has an SD slot | €0 to 8 | Maybe |
 | 6 | Waveshare 4 inch capacitive touch display, 480 x 800, DSI cable connection | The face. This is the screen the final robot will use too | €25 to 69 | Yes |
 | 7 | Display cable for the Pi 5 (22 pin to 15 pin, about 12 cm) | The Pi 5's display plug is smaller than on older Pis. Some shops include the right cable, some do not | €0 to 6 | Check |
-| 8 | reSpeaker XVF3800 USB 4-microphone array, plain USB version | Four microphones with echo cancellation and direction finding. It hears you over Milo's own voice, so you can interrupt, and it knows roughly where you are | €47 to 58 | Yes |
-| 9 | Small speaker with a 3.5 mm cable, powered over USB | Milo's voice. It plugs into the mic array's headphone jack, so the array knows what is playing and can cancel it | €10 to 15 | Yes |
+| 8 | reSpeaker XVF3800 USB 4-microphone array, plain USB version | Four microphones with echo cancellation and direction finding. It hears you over Arty's own voice, so you can interrupt, and it knows roughly where you are | €47 to 58 | Yes |
+| 9 | Small speaker with a 3.5 mm cable, powered over USB | Arty's voice. It plugs into the mic array's headphone jack, so the array knows what is playing and can cancel it | €10 to 15 | Yes |
 | 10 | Micro-HDMI to HDMI cable | The fallback: if the DSI screen fights you, use any monitor or TV for setup | €5 to 10 | Optional |
 | 11 | Small 4 or 8 ohm, 3 W speaker with a JST plug | The mic array also has a speaker plug (JST, up to 5 W). This is how a speaker would be wired inside the final robot. Check Seeed's wiki for the plug type and impedance before buying | €3 to 8 | Optional |
 
-**Total for the core (rows 1 to 4, 6, 8, 9): about €228 to 318.** With every extra: about €240 to 350. Most of the spread is the Pi's price and where you buy the screen. For comparison, a "lite" version that uses a monitor you already own, a cheap USB microphone and any speaker would be about €170 to 225, but it throws away the parts that are the real thing and gives Milo no echo cancellation, so Milo could not be interrupted.
+**Total for the core (rows 1 to 4, 6, 8, 9): about €228 to 318.** With every extra: about €240 to 350. Most of the spread is the Pi's price and where you buy the screen. For comparison, a "lite" version that uses a monitor you already own, a cheap USB microphone and any speaker would be about €170 to 225, but it throws away the parts that are the real thing and gives Arty no echo cancellation, so Arty could not be interrupted.
 
 Notes on the rows:
 
@@ -51,7 +51,7 @@ Before you pay:
 If something fights you:
 
 - The DSI screen: use any monitor with the micro-HDMI cable (row 10) while we sort it out.
-- The mic array: use any USB microphone, with the microphone muted while Milo talks. It works, but Milo cannot be interrupted.
+- The mic array: use any USB microphone, with the microphone muted while Arty talks. It works, but Arty cannot be interrupted.
 
 When the box arrives, in order:
 
@@ -70,11 +70,11 @@ A quick look, not a full price comparison. Dutch and Belgian VAT are both 21%, a
 - **The display cable.** Waveshare sells 22-pin to 15-pin cables for the Pi 5 in 200, 300 and 500 mm for a few euro. A 12 cm to 20 cm one suits the desk rig. Check which cable is in the box before buying one.
 - **Other shops seen:** Tinytronics (NL; Pi 5 4 GB €132 with a long lead time, 27 W power supply €13.50), Mouser Belgium (XVF3800 for €47.21, VAT status unclear), Opencircuit and OpenELAB.
 
-## List B: final robot, "Milo" (draft, do not buy yet)
+## List B: final robot, "Arty" (draft, do not buy yet)
 
-Milo = everything in List A, plus the parts below. Almost all of List A is reused. Nothing in List A is wasted.
+Arty = everything in List A, plus the parts below. Almost all of List A is reused. Nothing in List A is wasted.
 
-### Stage 2: the body (Milo rolls)
+### Stage 2: the body (Arty rolls)
 
 | Group | Part | About |
 |-------|------|-------|
@@ -86,13 +86,13 @@ Milo = everything in List A, plus the parts below. Almost all of List A is reuse
 | Body | 3D printing at a print service (or only filament at a makerspace), screws, standoffs and heat-set inserts | €40 to 85 |
 | Wiring | Connectors, cables, a small prototype board | €10 to 20 |
 
-**Stage 2 adds about €170 to 345 on top of List A.** Together that is about €400 to 665. The middle of those ranges is about €530, which is a little above the original 250 to 500 budget. The ways to trim are: use a makerspace for printing, use small N20 motors if Milo stays under about 600 g on hard floors, skip the dock at first and charge by hand, and leave the camera out.
+**Stage 2 adds about €170 to 345 on top of List A.** Together that is about €400 to 665. The middle of those ranges is about €530, which is a little above the original 250 to 500 budget. The ways to trim are: use a makerspace for printing, use small N20 motors if Arty stays under about 600 g on hard floors, skip the dock at first and charge by hand, and leave the camera out.
 
 Open choices that change this list:
 
-- **Weight and floors.** With a Pi 5, a screen and four cells Milo may weigh 0.8 to 1 kg. Small N20 motors would struggle on carpet or over a door threshold, so the motors are chosen after we weigh the prototype.
+- **Weight and floors.** With a Pi 5, a screen and four cells Arty may weigh 0.8 to 1 kg. Small N20 motors would struggle on carpet or over a door threshold, so the motors are chosen after we weigh the prototype.
 - **Chassis.** Print our own, or start from a kit. Kits seen: Pololu Romi €35.86 (70 mm wheels, no encoders in the box, via [Voelkner](https://www.voelkner.de/products/12152010/Pololu-Romi-Chassis-Kit-Black.html)) and DFRobot Turtle €42.24 (65 mm wheels, encoders not listed, via [Voelkner](https://www.voelkner.de/products/12151788/DFRobot-Turtle-2WD-Mobile-Roboter-Plattform-fuer-Arduino.html)). I found no kit near €40 that includes encoders.
-- **Battery.** The board above gives a battery gauge over I2C (Milo can know it is tired) and shuts the Pi down safely. Lithium cells are the one part of this project that can hurt: buy named-brand cells from a reputable seller and we will review the battery plan together before you order. Prices seen: [Waveshare UPS HAT (E)](https://www.waveshare.com/ups-hat-e.htm) $32.99, [The Pi Hut](https://thepihut.com/products/21700-ups-hat-e-for-raspberry-pi-5-4-3) £31.70. I found no euro price. The alternative is Geekworm's [X1202](https://geekworm.com/collections/raspberry-pi/products/x1202) for four 18650 cells (about $49).
+- **Battery.** The board above gives a battery gauge over I2C (Arty can know it is tired) and shuts the Pi down safely. Lithium cells are the one part of this project that can hurt: buy named-brand cells from a reputable seller and we will review the battery plan together before you order. Prices seen: [Waveshare UPS HAT (E)](https://www.waveshare.com/ups-hat-e.htm) $32.99, [The Pi Hut](https://thepihut.com/products/21700-ups-hat-e-for-raspberry-pi-5-4-3) £31.70. I found no euro price. The alternative is Geekworm's [X1202](https://geekworm.com/collections/raspberry-pi/products/x1202) for four 18650 cells (about $49).
 - **Screen.** Keep the 4 inch panel, or move to a bigger or round one once we know the head size.
 
 ### Stage 3: comfort and polish

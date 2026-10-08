@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Milo's mind server.
+"""Arty's mind server.
 
 Run it from the project folder:
 
@@ -7,7 +7,7 @@ Run it from the project folder:
     python3 mind/server.py --mock     ignore any keys and use the demo mind and the babble voice
     python3 mind/server.py --check    test your keys with one tiny request each, then exit
 
-Then open http://127.0.0.1:8000 in your browser. The page is the Milo simulator, now with a
+Then open http://127.0.0.1:8000 in your browser. The page is the Arty simulator, now with a
 chat box. The keys stay in this program. The browser never sees them.
 
 It uses only what comes with Python, so there is nothing to install.
@@ -80,12 +80,17 @@ class App:
     """Everything the server needs: the settings, the mind and the voice."""
 
     def __init__(self, settings: Settings, data_dir: Path | None = None) -> None:
-        data_dir = data_dir or Path(os.environ.get("MILO_DATA_DIR") or DATA_DIR)
+        data_dir = data_dir or Path(os.environ.get("ARTEMIS_DATA_DIR") or DATA_DIR)
         self.settings = settings
         self.brain = DeepSeekBrain(settings) if settings.use_deepseek else DemoBrain()
         self.voice = FishVoice(settings) if settings.use_fish else DemoVoice()
         self.personality = Personality(CHARACTER_FILE, data_dir / "character.md", data_dir / "character-history.json")
-        # What Milo knows about the owner lives in plain files (data/memory/owner). The page can read and fix them.
+        try:
+            if self.personality.adopt_new_name():
+                log("your saved personality used the old name Milo; it now says Artemis (Arty). The old version is in the history.")
+        except PersonalityError as e:
+            log(f"could not update the old name in your saved personality: {e}")
+        # What Arty knows about the owner lives in plain files (data/memory/owner). The page can read and fix them.
         self.memory = MemoryStore(data_dir / "memory", person="owner")
         # Only the real mind keeps its conversation between runs. The demo mind has nothing worth remembering.
         self.mind = Mind(self.brain, self.personality, history_file=data_dir / "history.json" if settings.use_deepseek else None,
@@ -99,7 +104,7 @@ class App:
         try:
             from mind.keeper import MemoryKeeper
         except ImportError:
-            log("memory keeper not found: Milo will use what it remembers, but will not learn anything new")
+            log("memory keeper not found: Arty will use what it remembers, but will not learn anything new")
             return None
         return MemoryKeeper(self.brain, self.memory, self.mind.messages)
 
@@ -140,7 +145,7 @@ def parse_fact_fields(data: dict, adding: bool) -> tuple[dict, str]:
         text = data.get("text")
         text = " ".join(text.replace("[", "").replace("]", "").split()) if isinstance(text, str) else ""
         if not text:
-            return {}, "Write what Milo should remember."
+            return {}, "Write what Arty should remember."
         if len(text) > FACT_CHARS:
             return {}, f"That is too long for one memory ({len(text)} characters; the limit is {FACT_CHARS}). Try a shorter sentence."
         fields["text"] = text
@@ -165,7 +170,7 @@ def parse_fact_fields(data: dict, adding: bool) -> tuple[dict, str]:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "MiloMind/" + VERSION
+    server_version = "ArtemisMind/" + VERSION
     protocol_version = "HTTP/1.0"      # the connection closes after each reply, which is what streaming needs
 
     @property
@@ -246,7 +251,7 @@ class Handler(BaseHTTPRequestHandler):
     # ---- POST ----
     def do_POST(self) -> None:
         if not (self.host_ok() and self.origin_ok()):
-            return self.send_json(403, {"error": "This request did not come from the Milo page."})
+            return self.send_json(403, {"error": "This request did not come from the Arty page."})
         path = self.path.split("?", 1)[0]
         if path == "/api/chat":
             self.handle_chat()
@@ -298,16 +303,16 @@ class Handler(BaseHTTPRequestHandler):
             status, payload = 400, {"error": str(e)}
         except OSError as e:                     # a file could not be written or erased
             log("memory problem: " + str(e))
-            status, payload = 500, {"error": str(e) or "Milo's memory files could not be changed."}
+            status, payload = 500, {"error": str(e) or "Arty's memory files could not be changed."}
         except Exception as e:                   # the keeper has its own care, but the page should still get a plain answer
             log(f"memory problem: {e}")
-            status, payload = 500, {"error": "Something went wrong with Milo's memory. The server log says more."}
+            status, payload = 500, {"error": "Something went wrong with Arty's memory. The server log says more."}
         self.send_json(status, payload)
 
     def memory_action(self, action: str, data: dict) -> tuple[int, dict]:
         """Do one thing to the memory. Returns the status and the answer to send."""
         memory = self.app.memory
-        gone = (404, {"error": "Milo has no memory like that (it may already be gone)."})
+        gone = (404, {"error": "Arty has no memory like that (it may already be gone)."})
         if action == "fact":
             fact_id = data.get("id")
             if fact_id is not None and not isinstance(fact_id, str):
@@ -316,7 +321,7 @@ class Handler(BaseHTTPRequestHandler):
             if problem:
                 return 400, {"error": problem}
             if fact_id is None:
-                fields.setdefault("pinned", True)            # something you tell Milo by hand is always remembered
+                fields.setdefault("pinned", True)            # something you tell Arty by hand is always remembered
                 fact = memory.add_fact(source="added on the memory page", **fields)
                 log("memory  a fact was added by hand")
             else:
@@ -384,7 +389,7 @@ class Handler(BaseHTTPRequestHandler):
         detail = str(data.get("detail") or "")[:80]        # e.g. the timer's label; cleaned again by the mind
         state = data.get("state") if isinstance(data.get("state"), dict) else {}
         if not self.app.chat_limit.allow():
-            return self.send_json(429, {"error": "That is a lot of chatting for one hour. Milo is taking a short rest."})
+            return self.send_json(429, {"error": "That is a lot of chatting for one hour. Arty is taking a short rest."})
         self.send_response(200)
         self.send_header("Content-Type", "application/x-ndjson; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
@@ -410,7 +415,7 @@ class Handler(BaseHTTPRequestHandler):
         if fmt not in ("mp3", "wav"):
             return self.send_json(400, {"error": 'The audio format must be "mp3" or "wav".'})
         if not self.app.tts_limit.allow(len(text)):
-            return self.send_json(429, {"error": "Milo has spoken a lot this hour. Try again later."})
+            return self.send_json(429, {"error": "Arty has spoken a lot this hour. Try again later."})
         started = time.monotonic()
         try:
             audio, content_type = self.app.voice.synthesize(text, fmt)
@@ -436,7 +441,7 @@ def run_check(app: App) -> int:
         print("  Mind  : demo mind. No DEEPSEEK_API_KEY was found, so there is nothing to check.")
     if app.settings.use_fish:
         try:
-            audio, content_type = app.voice.synthesize("Hello from Milo.")
+            audio, content_type = app.voice.synthesize("Hello from Arty.")
             print(f"  Voice : OK. Fish Audio model '{app.voice.working}' returned {len(audio) // 1024} KB of {content_type}")
             if not app.settings.fish_voice:
                 ok = False
@@ -451,7 +456,7 @@ def run_check(app: App) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Milo's mind server")
+    parser = argparse.ArgumentParser(description="Arty's mind server")
     parser.add_argument("--mock", action="store_true", help="ignore any keys and use the demo mind and the babble voice")
     parser.add_argument("--check", action="store_true", help="test your keys with one tiny request each, then exit")
     parser.add_argument("--host", help="address to listen on (default 127.0.0.1, this computer only)")
@@ -487,7 +492,7 @@ def main(argv: list[str] | None = None) -> int:
     if settings.mock:
         mind_line, voice_line = "demo mind (--mock)", "babble voice (--mock)"
     url_host = "127.0.0.1" if settings.host in ("0.0.0.0", "") else settings.host
-    print("Milo's mind server")
+    print("Arty's mind server")
     print(f"  Mind  : {mind_line}")
     print(f"  Voice : {voice_line}")
     if settings.use_fish and not settings.mock and not settings.fish_voice:

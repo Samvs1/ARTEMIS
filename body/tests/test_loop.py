@@ -75,7 +75,7 @@ class LoopTests(unittest.TestCase):
         from body.mind_client import MindClient
         from body.stt import FakeTranscriber, TranscriberChain
 
-        settings = load_settings({"MILO_MIND_URL": self.url, **overrides})
+        settings = load_settings({"ARTEMIS_MIND_URL": self.url, **overrides})
         ref = []
         mic = PacedMic(FakeAudioIn(recordings, gap_seconds=1.0), ref)
         speaker, face = FakeAudioOut(), FakeFace()
@@ -119,7 +119,7 @@ class LoopTests(unittest.TestCase):
         from body.mind_client import MindClient
         from body.stt import FakeTranscriber, TranscriberChain
 
-        settings = load_settings({"MILO_MIND_URL": "http://127.0.0.1:1"})
+        settings = load_settings({"ARTEMIS_MIND_URL": "http://127.0.0.1:1"})
         ref = []
         face = FakeFace()
         convo = Conversation(settings, PacedMic(FakeAudioIn([speech_like_wav()]), ref), FakeAudioOut(), AutoWake(),

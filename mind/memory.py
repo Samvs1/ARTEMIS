@@ -1,10 +1,10 @@
-"""Milo's memory: the store. There is no AI in this file.
+"""Arty's memory: the store. There is no AI in this file.
 
-It keeps what Milo knows about a person in plain files you can open and read:
+It keeps what Arty knows about a person in plain files you can open and read:
 
     <root>/<person>/facts.json     short dated sentences about the person
     <root>/<person>/episodes.json  one or two sentences per talk
-    <root>/<person>/diary/         Milo's diary, one text file per day
+    <root>/<person>/diary/         Arty's diary, one text file per day
     <root>/<person>/state.json     small notes the memory keeper needs
 
 It also picks which facts go into one reply (recall) and writes them as the text
@@ -155,7 +155,7 @@ def _write_atomic(path: Path, text: str) -> None:
             tmp.unlink()
         except OSError:
             pass
-        raise MemoryStoreError(f"Milo's memory could not be saved ({e.strerror or e}).") from e
+        raise MemoryStoreError(f"Arty's memory could not be saved ({e.strerror or e}).") from e
 
 
 def _json_default(value):
@@ -312,7 +312,7 @@ class MemoryStore:
         if path in self._warned:
             return
         self._warned.add(path)
-        _log(f"Milo's memory file {path} {what}. It is treated as empty; before anything is saved over it, "
+        _log(f"Arty's memory file {path} {what}. It is treated as empty; before anything is saved over it, "
              f"a copy is kept as {path.name}.broken.")
 
     def _read_json(self, path: Path) -> dict | None:
@@ -626,14 +626,14 @@ class MemoryStore:
         with self._lock:
             root, target = self.root.resolve(), self.dir.resolve()
             if target == root or root not in target.parents:
-                raise ValueError("Refusing to erase anything outside Milo's memory folder.")
+                raise ValueError("Refusing to erase anything outside Arty's memory folder.")
             if self.dir.is_symlink():
                 self.dir.unlink()
             elif self.dir.exists():
                 try:
                     shutil.rmtree(target)
                 except OSError as e:
-                    raise MemoryStoreError(f"Milo's memory could not be erased ({e.strerror or e}).") from e
+                    raise MemoryStoreError(f"Arty's memory could not be erased ({e.strerror or e}).") from e
             self._warned.clear()
             self._backup.clear()
 
@@ -685,7 +685,7 @@ class MemoryStore:
 
     # ---- the prompt text ----
     def render(self, facts: list[dict], episodes: list[dict], now: datetime | None = None) -> str:
-        """The two sections of the prompt: what Milo remembers, and its last talks. Empty sections are left out."""
+        """The two sections of the prompt: what Arty remembers, and its last talks. Empty sections are left out."""
         now = _aware(now) if now else self._now()
         sections = []
 

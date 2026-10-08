@@ -85,7 +85,7 @@ class KeeperCase(unittest.TestCase):
         self.keeper = MemoryKeeper(self.brain, self.store, lambda: [dict(m) for m in self.history], self.clock)
 
     def talk(self, start, *lines, **extra):
-        """Messages one minute apart from minute `start`, alternating person and Milo."""
+        """Messages one minute apart from minute `start`, alternating person and Arty."""
         for i, text in enumerate(lines):
             self.history.append(msg("user" if i % 2 == 0 else "assistant", text, start + i, **extra))
         return start + len(lines) - 1
@@ -180,7 +180,7 @@ class NoteTests(KeeperCase):
         self.assertLess(text.index("Pinned facts"), text.index(f"{pinned} |"))
         self.assertGreater(text.index("Pinned facts"), text.index(f"{coffee} |"))       # the pinned one is not in the first list
         self.assertIn("18:00 They: I had my coffee already.", text)
-        self.assertIn("18:01 Milo: Good morning!", text)
+        self.assertIn("18:01 Arty: Good morning!", text)
         self.assertIn("18:02 They: Yes.", text)
         for stage_direction in ("[emote", "[look", "*waves*", "\U0001F600"):
             self.assertNotIn(stage_direction, text)
@@ -194,7 +194,7 @@ class NoteTests(KeeperCase):
             self.assertIn(needle, DREAM_PROMPT)
 
     def test_an_unfinished_talk_waits(self):
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.clock.now = T0 + timedelta(minutes=1 + 3)          # three minutes after the last message
         self.assertEqual(self.keeper.note_talks(), 0)
         self.assertEqual(self.brain.calls, [])
@@ -220,7 +220,7 @@ class NoteTests(KeeperCase):
         self.assertEqual(self.brain.calls, [])
 
     def test_force_notes_everything_waiting(self):
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.clock.now = T0 + timedelta(minutes=2)
         self.assertEqual(self.keeper.note_talks(), 0)
         self.brain.queue(answer("We said hello."))
@@ -234,7 +234,7 @@ class NoteTests(KeeperCase):
         self.assertEqual(self.brain.calls, [])
 
     def test_a_noted_talk_is_not_noted_again_and_new_messages_are(self):
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.brain.queue(answer("We said hello."), answer("We talked again."))
         self.assertEqual(self.keeper.note_talks(), 1)
         self.assertEqual(self.keeper.note_talks(), 0)
@@ -244,10 +244,10 @@ class NoteTests(KeeperCase):
         self.clock.now = T0 + timedelta(minutes=300)
         self.assertEqual(self.keeper.note_talks(), 1)
         self.assertEqual(len(self.store.episodes()), 2)
-        self.assertNotIn("Hello Milo", self.brain.user_text())          # only the new messages were sent
+        self.assertNotIn("Hello Arty", self.brain.user_text())          # only the new messages were sent
         self.assertIn("I am back.", self.brain.user_text())
 
-    def test_events_started_by_milo_are_not_in_the_transcript_but_move_noted_until(self):
+    def test_events_started_by_arty_are_not_in_the_transcript_but_move_noted_until(self):
         self.history += [
             msg("user", "(Event: you have been alone and quiet for a while)", 0, event="wants_company"),
             msg("assistant", "[emote:curious] Psst. Tell me something small?", 0),
@@ -259,12 +259,12 @@ class NoteTests(KeeperCase):
         self.assertEqual(self.keeper.note_talks(), 1)
         text = self.brain.user_text()
         self.assertNotIn("Event", text)
-        self.assertIn("18:00 Milo: Psst. Tell me something small?", text)
+        self.assertIn("18:00 Arty: Psst. Tell me something small?", text)
         self.assertIn("18:01 They: A pigeon sat on my window.", text)
         self.assertEqual(self.store.episodes()[0]["turns"], 3)
         self.assertEqual(self.noted_until(), (T0 + timedelta(minutes=3)).isoformat())
 
-    def test_a_talk_where_only_milo_spoke_is_skipped_without_asking(self):
+    def test_a_talk_where_only_arty_spoke_is_skipped_without_asking(self):
         self.history += [
             msg("user", "(Event: you would like some company)", 0, event="wants_company"),
             msg("assistant", "Psst. Anyone there?", 0),
@@ -318,7 +318,7 @@ class NoteTests(KeeperCase):
     def test_messages_without_a_time_are_old_and_ignored(self):
         self.history += [{"role": "user", "content": "from before times were kept"},
                          {"role": "assistant", "content": "an old reply"}]
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.brain.queue(answer())
         self.assertEqual(self.keeper.note_talks(), 1)
         self.assertNotIn("before times", self.brain.user_text())
@@ -426,13 +426,13 @@ class NoteTests(KeeperCase):
         for wrapped in ("```json\n" + answer("Fenced.") + "\n```", "Here you go:\n" + answer("Chatty.") + "\nAnything else?"):
             with self.subTest(wrapped=wrapped[:12]):
                 self.setUp()
-                self.talk(0, "Hello Milo.", "Hi!")
+                self.talk(0, "Hello Arty.", "Hi!")
                 self.brain.queue(wrapped)
                 self.assertEqual(self.keeper.note_talks(), 1)
                 self.assertIn(self.store.episodes()[0]["summary"], ("Fenced.", "Chatty."))
 
     def test_a_summary_with_stage_directions_is_cleaned(self):
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.brain.queue(answer("I said [emote:happy] hello to them."))
         self.keeper.note_talks()
         self.assertEqual(self.store.episodes()[0]["summary"], "I said emote:happy hello to them.")
@@ -451,7 +451,7 @@ class NoteTests(KeeperCase):
         self.assertEqual(self.store.episodes()[0]["summary"], "We talked about their sister's visit.")
 
     def test_garbage_is_retried_then_given_up_after_three_tries(self):
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.brain.queue("I am sorry, I cannot do that.", "{not json", "[]")
         self.keeper.tick()
         self.assertEqual((self.store.episodes(), self.noted_until()), ([], None))
@@ -473,7 +473,7 @@ class NoteTests(KeeperCase):
         self.assertEqual(len(self.store.episodes()), 1)
 
     def test_other_errors_count_like_garbage(self):
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.brain.queue(ValueError("odd answer"), RuntimeError("boom"), TimeoutError())
         self.assertEqual(self.keeper.note_talks(), 0)
         self.assertEqual(self.keeper.note_talks(), 0)
@@ -487,7 +487,7 @@ class NoteTests(KeeperCase):
             with self.subTest(nonsense=nonsense[:20]):
                 self.setUp()
                 self.store.add_fact("They like tea.", "preference", 4)
-                self.talk(0, "Hello Milo.", "Hi!")
+                self.talk(0, "Hello Arty.", "Hi!")
                 self.brain.queue(nonsense)
                 self.assertEqual(self.keeper.note_talks(), 0)
                 self.assertEqual(self.store.episodes(), [])
@@ -495,7 +495,7 @@ class NoteTests(KeeperCase):
                 self.assertEqual(len(self.store.facts()), 1)
 
     def test_a_good_answer_after_a_failure_resets_the_tries(self):
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.brain.queue("garbage", "garbage", answer("It worked."))
         self.keeper.note_talks()
         self.keeper.note_talks()
@@ -518,7 +518,7 @@ class NoteTests(KeeperCase):
         self.assertIn("Could not", keeper.status)
 
     def test_tick_notes_finished_talks(self):
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.brain.queue(answer("We said hello."))
         self.keeper.tick()
         self.assertEqual(self.store.episodes()[0]["summary"], "We said hello.")
@@ -536,7 +536,7 @@ class NoteTests(KeeperCase):
 
         slow = Slow(answer("Noted once."))
         keeper = MemoryKeeper(slow, self.store, lambda: list(self.history), self.clock)
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         results = {}
         first = threading.Thread(target=lambda: results.update(first=keeper.note_talks(force=True)))
         first.start()
@@ -555,7 +555,7 @@ class NoteTests(KeeperCase):
 
     def test_demo_mind_output_is_handled(self):
         keeper = MemoryKeeper(DemoBrain(), self.store, lambda: list(self.history), self.clock)
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.assertEqual(keeper.note_talks(), 1)
         [episode] = self.store.episodes()
         self.assertEqual(episode["summary"], "We had a little demo chat.")
@@ -892,7 +892,7 @@ class ThreadTests(KeeperCase):
         return False
 
     def test_start_notes_a_talk_and_stop_ends_the_thread_quickly(self):
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.brain.queue(answer("We said hello."))
         self.assertFalse(self.keeper.running)
         self.keeper.start()
@@ -907,7 +907,7 @@ class ThreadTests(KeeperCase):
     def test_it_keeps_ticking_and_picks_up_later_talks(self):
         self.keeper.start()
         self.brain.queue(answer("Later."))
-        self.history.extend([msg("user", "Hello Milo.", 0), msg("assistant", "Hi!", 1)])      # both at once
+        self.history.extend([msg("user", "Hello Arty.", 0), msg("assistant", "Hi!", 1)])      # both at once
         self.assertTrue(self.wait_for(lambda: self.store.episodes()))
         self.assertEqual(self.store.episodes()[0]["summary"], "Later.")
 
@@ -936,7 +936,7 @@ class ThreadTests(KeeperCase):
 
         keeper = MemoryKeeper(self.brain, self.store, flaky_history, self.clock, interval=0.02)
         self.addCleanup(keeper.stop)
-        self.talk(0, "Hello Milo.", "Hi!")
+        self.talk(0, "Hello Arty.", "Hi!")
         self.brain.queue(answer("Survived."))
         keeper.start()
         self.assertTrue(self.wait_for(lambda: self.store.episodes()))
