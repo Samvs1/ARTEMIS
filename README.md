@@ -28,7 +28,7 @@ The end goal is a physical robot on a Raspberry Pi with a screen, speaker and mi
 You need Python once, and the project folder. Nothing else.
 
 1. **Install Python.** Go to https://www.python.org/downloads/, press the big yellow button, and run the installer. On its first screen tick **"Add python.exe to PATH"**, then press "Install Now".
-2. **Get the project.** Open https://github.com/Samvs1/LIGMA, switch the branch to `main`, press the green **Code** button, then **Download ZIP**. Right-click the ZIP and choose **Extract All**.
+2. **Get the project.** Open https://github.com/Samvs1/ARTEMIS, switch the branch to `main`, press the green **Code** button, then **Download ZIP**. Right-click the ZIP and choose **Extract All**.
 3. **Try it without keys.** Open the extracted folder and double-click `start-artemis.bat`. If Windows says "Windows protected your PC", press "More info", then "Run anyway". A black window opens (leave it open) and your browser shows Arty with a chat box. Close the black window to stop Arty.
 4. **Add your keys.** In the folder, click the address bar at the top of the window, type `cmd` and press Enter. In the black window that opens, type these two lines, pressing Enter after each:
    ```
@@ -104,4 +104,6 @@ On Windows use `py` instead of `python3`.
 
 ## Status
 
-Early design stage. Software first (the simulator and the mind server), hardware after: the first hardware is a talking face on a desk (`docs/shopping-lists.md`, List A). See `docs/design-log.md` for the roadmap.
+The software runs on a normal computer: the mind, the memory, the behaviour (timers, focus buddy, good morning and good night) and the body (microphone, speech to text, voice, face). It was tried with real keys and a real headset in round 15.
+
+Still to do: pick a Fish Audio voice, train a real "Hey Arty" wake word, and everything that needs hardware. The first hardware is a talking face on a desk (`docs/shopping-lists.md`, List A), then the wheels (List B). What is done and what is left: `docs/software-plan.md`. Every decision: `docs/design-log.md`.
