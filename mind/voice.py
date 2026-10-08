@@ -12,6 +12,7 @@ import json
 import math
 import re
 import sys
+import time
 import urllib.error
 import urllib.request
 import wave
@@ -25,6 +26,10 @@ class VoiceError(Exception):
 
 class _ModelRefused(Exception):
     """Fish Audio did not accept this model name. Try the next one."""
+
+
+class _Busy(Exception):
+    """Fish Audio is busy (429), had a server error, or could not be reached. Worth one retry."""
 
 
 class FishVoice:
@@ -42,6 +47,7 @@ class FishVoice:
         self.latency = settings.fish_latency if settings.fish_latency in ("normal", "balanced") else "balanced"
         self.models = [settings.fish_model] if settings.fish_model else list(self.MODEL_NAMES)
         self.working: str | None = None
+        self.retry_pause = 0.6
 
     @property
     def label(self) -> str:
@@ -52,13 +58,26 @@ class FishVoice:
         last = ""
         for model in order:
             try:
-                audio, content_type = self._request(model, text, fmt)
+                audio, content_type = self._request_with_retry(model, text, fmt)
             except _ModelRefused as e:
                 last = str(e)
                 continue
             self.working = model
             return audio, content_type
         raise VoiceError(last or "Fish Audio did not accept any model name. Set FISH_AUDIO_MODEL in .env.")
+
+    def _request_with_retry(self, model: str, text: str, fmt: str) -> tuple[bytes, str]:
+        """One retry after a short pause when Fish Audio is busy or briefly unreachable.
+
+        A sentence that fails would otherwise be skipped or spoken in another voice."""
+        try:
+            return self._request(model, text, fmt)
+        except _Busy:
+            time.sleep(self.retry_pause)
+        try:
+            return self._request(model, text, fmt)
+        except _Busy as e:
+            raise VoiceError(str(e)) from None
 
     def _request(self, model: str, text: str, fmt: str = "mp3") -> tuple[bytes, str]:
         body = {"text": text, "format": fmt, "latency": self.latency, "normalize": True}
@@ -81,9 +100,11 @@ class FishVoice:
                 raise _ModelRefused(f"Fish Audio did not accept model '{model}' (HTTP {e.code}: {detail})") from e
             if about_voice:
                 raise VoiceError(f"Fish Audio does not accept the voice in FISH_AUDIO_VOICE_ID (HTTP {e.code}: {detail})") from e
+            if e.code == 429 or e.code >= 500:
+                raise _Busy(friendly_status("Fish Audio", e.code, detail)) from e
             raise VoiceError(friendly_status("Fish Audio", e.code, detail)) from e
         except (urllib.error.URLError, OSError) as e:
-            raise VoiceError(network_message("Fish Audio", "api.fish.audio", e)) from e
+            raise _Busy(network_message("Fish Audio", "api.fish.audio", e)) from e
         if not content_type.startswith("audio/") or len(audio) < 200:
             raise VoiceError("Fish Audio sent back something that is not audio.")
         return audio, content_type
