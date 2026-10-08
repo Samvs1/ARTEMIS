@@ -48,6 +48,7 @@ CODED_PRINTED = (0.85, 0.30, 0.02, 1)
 CODED_BOUGHT = (0.05, 0.22, 0.75, 1)
 DENSITY_PRINTED = 1.25 * 0.9                      # g/cm3, PETG/PLA with a little infill
 PARTS = []                                        # filled by build()
+STYLE = None                                      # optional shell style, see cad/milo_styles.py
 
 
 # ---------------------------------------------------------------- mesh helpers
@@ -140,6 +141,13 @@ def volume_mm3(ob):
     vol = abs(bm.calc_volume()) / (S ** 3)
     bm.free()
     return vol
+
+
+def refresh_masses():
+    """Recompute printed weights after cuts and added parts."""
+    for p in PARTS:
+        if p["kind"] == "printed":
+            p["mass"] = volume_mm3(p["ob"]) / 1000.0 * DENSITY_PRINTED
 
 
 def smooth(ob):
@@ -324,7 +332,8 @@ def build():
     def wheel(sx, name):
         xc = sx * (L + WHEEL_GAP + WHEEL_W / 2)
         tire = cyl(name, WHEEL_D, WHEEL_W, xc, AXLE_Y, AXLE_Z, "x", 3.0, 64)
-        hub = cyl("h", 44, WHEEL_W + 0.4, xc, AXLE_Y, AXLE_Z, "x", 1.0, 48)
+        boolean(tire, cyl("th", 42, WHEEL_W + 2, xc, AXLE_Y, AXLE_Z, "x", seg=48))  # recess for the hub cap
+        hub = cyl("h", 44, WHEEL_W - 3.0, xc - sx * 1.5, AXLE_Y, AXLE_Z, "x", 1.0, 48)  # leaves room for the hub cap
         return tire, hub
     wl, hl = wheel(-1, "wl")
     reg(wl, "B08", "Wheel, 65 mm rubber tyre", "bought", "rubber", 20, "drive", qty=2, size="65 dia x 18")
@@ -503,13 +512,18 @@ def setup_scene(mode, res=(1100, 1100), samples=int(os.environ.get('MILO_SAMPLES
     bg.inputs[0].default_value = (0.93, 0.94, 0.95, 1)
     bg.inputs[1].default_value = 0.55
     build()
+    if STYLE:
+        STYLE.decorate()
+        refresh_masses()
     M = materials(mode)
+    if STYLE:
+        STYLE.materials(M, mode)
     for p in PARTS:
         for poly in p["ob"].data.polygons:  # boolean cuts can leave stray slot indices behind
             poly.material_index = 0
         p["ob"].data.materials.clear()  # boolean results arrive with an empty first slot
         p["ob"].data.materials.append(M[p["mat"]])
-    face = add_face() if mode != "coded" else []
+    face = (STYLE.face() if STYLE else add_face()) if mode != "coded" else []
     return sc, face
 
 

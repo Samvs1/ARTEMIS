@@ -6,6 +6,8 @@ First 3D mock-up of the body, with every part marked as **printed** or **bought*
 
 **How it was made.** No Blender connector was available in the build session, so the model is a Python script that drives Blender itself (`cad/milo_mockup.py`, Blender 5.2 as the `bpy` module, run headless). Everything below is regenerated from that script: change a number, run it again, and the renders, the weights and the fit report follow. `cad/milo_mockup.blend` is the scene to open in Blender. See `cad/README.md`.
 
+See also `docs/shell-styles.md` for the Retro, Mint console and Cassette shell variations (round 9).
+
 ## The robot
 
 ![Milo mock-up, three quarter view](img/3d/milo-hero.png)
