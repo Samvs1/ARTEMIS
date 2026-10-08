@@ -1,0 +1,4 @@
+# What the body (the robot side) needs. Python 3.11 or newer.
+# The mind server (mind/) needs nothing beyond Python itself.
+numpy>=1.24
+sounddevice>=0.4.6

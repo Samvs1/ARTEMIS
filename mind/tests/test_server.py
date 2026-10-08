@@ -144,6 +144,19 @@ class ServerTests(unittest.TestCase):
         status, _, _ = self.request("POST", "/api/tts", {"text": "   "})
         self.assertEqual(status, 400)
 
+    def test_tts_format_defaults_to_mp3_asks_and_accepts_wav(self):
+        # the demo voice always makes WAV, and says so, whichever format was asked for
+        for body in ({"text": "Hello there."}, {"text": "Hello there.", "format": "mp3"}, {"text": "Hello there.", "format": "wav"}):
+            status, ctype, payload = self.request("POST", "/api/tts", body)
+            self.assertEqual((status, ctype), (200, "audio/wav"), body)
+            self.assertTrue(payload.startswith(b"RIFF"))
+
+    def test_tts_refuses_an_unknown_format_in_plain_words(self):
+        for fmt in ("ogg", "", 7, ["wav"], None):
+            status, _, payload = self.request("POST", "/api/tts", {"text": "Hello there.", "format": fmt})
+            self.assertEqual(status, 400, fmt)
+            self.assertIn("mp3", json.loads(payload)["error"])
+
     def test_other_websites_are_refused(self):
         status, _, _ = self.request("POST", "/api/chat", {"text": "hi"}, {"Origin": "http://evil.example"})
         self.assertEqual(status, 403)

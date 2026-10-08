@@ -1,0 +1,5 @@
+# For the 3D mock-up scripts in this folder.
+# bpy (Blender as a Python module) needs the matching Python version
+# (Blender 5.2 -> Python 3.13) and is a large download, about 400 MB.
+bpy
+pillow

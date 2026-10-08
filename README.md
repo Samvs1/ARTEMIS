@@ -56,6 +56,21 @@ python3 mind/server.py             # the real thing
 
 Then open http://127.0.0.1:8000.
 
+## Milo's body: talk without a browser (new)
+
+The body is the program that will run on the robot: it listens to the microphone, wakes on a word, turns your speech into text, asks the mind, speaks the answer and drives the face. It already runs on a normal computer with any microphone and speakers.
+
+On Windows:
+
+1. Start the mind first: double-click `start-milo.bat` (with your keys in `.env`).
+2. Make sure `.env` also has `OPENAI_API_KEY=` filled in. That key turns your speech into text.
+3. Double-click `start-body.bat`. The first time it installs two small Python packages. A browser tab shows only Milo's face.
+4. Press **Enter** in the body's window, talk, and wait. Milo answers through your speakers, and the face listens, thinks and talks along. After an answer Milo keeps listening for a few seconds, so you can just carry on.
+
+The wake word is optional: install the extras (`py -m pip install -r body\requirements-optional.txt`) and say "Hey Jarvis" for now. A real "Hey Milo" model has to be trained later. Without headphones, Milo can hear itself, so talking over Milo to interrupt is switched off unless you set `MILO_BARGE_IN=true`.
+
+On Mac or Linux: `pip install -r body/requirements.txt`, start `python3 mind/server.py`, then `python3 -m body --push-to-talk` and open http://127.0.0.1:8001/?face=1. `python3 -m body --list-devices` shows the microphones and speakers. How it works: `docs/body-design.md`.
+
 ## Editing Milo's personality
 
 Open **Milo's personality** in the page. It is plain words. Change them, then:
@@ -73,6 +88,7 @@ Your version is saved in `data/character.md` and is never overwritten by updates
 
 ```
 python3 -m unittest discover -s mind/tests -t .
+python3 -m unittest discover -s body/tests -t .
 ```
 On Windows use `py` instead of `python3`.
 

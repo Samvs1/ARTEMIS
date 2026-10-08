@@ -47,12 +47,12 @@ class FishVoice:
     def label(self) -> str:
         return "Fish Audio" + (f" ({self.working})" if self.working else "")
 
-    def synthesize(self, text: str) -> tuple[bytes, str]:
+    def synthesize(self, text: str, fmt: str = "mp3") -> tuple[bytes, str]:
         order = ([self.working] if self.working else []) + [m for m in self.models if m != self.working]
         last = ""
         for model in order:
             try:
-                audio, content_type = self._request(model, text)
+                audio, content_type = self._request(model, text, fmt)
             except _ModelRefused as e:
                 last = str(e)
                 continue
@@ -60,8 +60,8 @@ class FishVoice:
             return audio, content_type
         raise VoiceError(last or "Fish Audio did not accept any model name. Set FISH_AUDIO_MODEL in .env.")
 
-    def _request(self, model: str, text: str) -> tuple[bytes, str]:
-        body = {"text": text, "format": "mp3", "latency": self.latency, "normalize": True}
+    def _request(self, model: str, text: str, fmt: str = "mp3") -> tuple[bytes, str]:
+        body = {"text": text, "format": fmt, "latency": self.latency, "normalize": True}
         if self.voice:
             body["reference_id"] = self.voice
         req = urllib.request.Request(
@@ -73,7 +73,7 @@ class FishVoice:
         try:
             with urllib.request.urlopen(req, timeout=30) as resp:
                 audio = resp.read()
-                content_type = resp.headers.get_content_type() or "audio/mpeg"
+                content_type = resp.headers.get_content_type() or ("audio/wav" if fmt == "wav" else "audio/mpeg")
         except urllib.error.HTTPError as e:
             detail = describe_http_error(e)
             about_voice = re.search(r"reference|voice|speaker", detail, re.I) is not None
@@ -121,5 +121,5 @@ class DemoVoice:
     kind = "babble"
     label = "babble voice"
 
-    def synthesize(self, text: str) -> tuple[bytes, str]:
-        return babble_wav(text), "audio/wav"
+    def synthesize(self, text: str, fmt: str = "mp3") -> tuple[bytes, str]:
+        return babble_wav(text), "audio/wav"          # always WAV, whatever format was asked for

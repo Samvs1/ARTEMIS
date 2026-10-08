@@ -1,0 +1,12 @@
+# Optional extras for the body. Each is imported inside a function and the body
+# falls back cleanly with a log line when it is missing.
+# The mind server (mind/) needs nothing beyond Python.
+
+# Voice detection: tells speech from silence.
+webrtcvad-wheels
+
+# The wake word: listens for the phrase that wakes Milo.
+openwakeword
+
+# Speech to text without the cloud: runs the transcription on the robot itself.
+faster-whisper

@@ -12,3 +12,9 @@ __pycache__/
 
 # Your own local data: your personality, conversation history and keys
 data/
+
+# Blender backup files
+*.blend1
+
+# Claude Code personal settings
+.claude/settings.local.json

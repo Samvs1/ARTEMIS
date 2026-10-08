@@ -169,6 +169,7 @@ def fish_handler(behaviour, seen):
 
 
 MP3ISH = b"ID3" + bytes(400)
+WAVISH = b"RIFF" + bytes(400)
 
 
 def voice_for(url, **extra):
@@ -196,6 +197,22 @@ class FishTests(unittest.TestCase):
         self.assertEqual(seen[0]["auth"], "Bearer test-key")
         self.assertEqual(seen[0]["body"]["format"], "mp3")
         self.assertNotIn("reference_id", seen[0]["body"])
+
+    def test_wav_is_asked_for_and_the_model_fallback_still_works(self):
+        seen = []
+
+        def behaviour(body, headers):
+            if headers.get("model") != "s2-pro":
+                return 422, json.dumps({"status": 422, "message": "invalid model header"}).encode(), "application/json"
+            return 200, WAVISH, "audio/wav"
+
+        with FakeServer(fish_handler(behaviour, seen)) as fake:
+            voice = voice_for(fake.url)
+            audio, ctype = voice.synthesize("Hello there.", "wav")
+            self.assertEqual((ctype, len(audio)), ("audio/wav", len(WAVISH)))
+            self.assertEqual(voice.working, "s2-pro")
+            self.assertEqual([s["model"] for s in seen], ["s2.1-pro", "s2-pro"])
+            self.assertEqual({s["body"]["format"] for s in seen}, {"wav"})
 
     def test_voice_id_is_sent_when_set(self):
         seen = []
