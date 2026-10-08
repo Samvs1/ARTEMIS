@@ -330,3 +330,9 @@ The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. I
 
 - The owner asked how much memory and recognition exists. Answer: only the last 40 messages are saved and the last 12 are sent to the AI; there is no long-term memory and no recognition of people (see `docs/inspiration.md` for what is missing).
 - The owner asked for open-source projects to learn from. A reading list on memory, companion robots, voice and recognising people is in `docs/inspiration.md`. Found on the way: Piper (the planned on-device voice, row 28) was archived in October 2025 and moved to a new repository, so re-check it before relying on it. Nothing decided yet.
+
+**Round 11: software plan**
+
+- The owner asked what is left to make the software work. The plan is in `docs/software-plan.md` (Proposed): prove the real voice loop and its delay first, then a "body" program that hears and speaks without a browser (buildable on the Windows computer before any hardware), then memory and telling people apart, then behaviour, then the Pi, then the motors.
+- Small problems found: the self-started talk budget never refills; the AI is told about 6 chirps while 10 exist; the nickname window is 12 messages, not 40.
+- Five decisions are open (speech to text, memory approach, voice ID now or later, where the mind server lives, start before hardware).
