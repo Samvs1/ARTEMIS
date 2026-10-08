@@ -262,11 +262,14 @@ class Handler(BaseHTTPRequestHandler):
         text = clean_speech(str((data or {}).get("text") or ""))[:400]
         if not text:
             return self.send_json(400, {"error": "There was no text to speak."})
+        fmt = (data or {}).get("format", "mp3")
+        if fmt not in ("mp3", "wav"):
+            return self.send_json(400, {"error": 'The audio format must be "mp3" or "wav".'})
         if not self.app.tts_limit.allow(len(text)):
             return self.send_json(429, {"error": "Milo has spoken a lot this hour. Try again later."})
         started = time.monotonic()
         try:
-            audio, content_type = self.app.voice.synthesize(text)
+            audio, content_type = self.app.voice.synthesize(text, fmt)
         except VoiceError as e:
             log("voice problem: " + str(e))
             return self.send_json(502, {"error": str(e)})

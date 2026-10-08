@@ -17,15 +17,12 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from typing import Callable
 
 from body.chirps import chirp
+from body.config import log
 from body.mind_client import MindError
 from body.stt import SttError
 from body.vad import Utterances, VoiceDetector, pcm_to_wav
 
 IDLE, LISTENING, THINKING, SPEAKING = "idle", "listening", "thinking", "speaking"
-
-
-def log(tag: str, msg: str) -> None:
-    print(f"{time.strftime('%H:%M:%S')}  {tag:<7} {msg}", flush=True)
 
 
 class _Stop:
