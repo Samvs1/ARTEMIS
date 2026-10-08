@@ -4,9 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Milo Simulator</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Fredoka:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script>
+/* ?face=1 shows only Milo's face, full screen (the robot's own screen). &captions=1 also shows what Milo says.
+   The fonts are for the panels, so the face page does not wait for them (its network may be down). */
+(function () {
+  var q = new URLSearchParams(location.search), root = document.documentElement;
+  if (q.get('face') === '1') { root.classList.add('face-mode'); if (q.get('captions') === '1') root.classList.add('captions'); }
+  else document.write('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600&family=Fredoka:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">');
+})();
+</script>
 <style>
 /* Layout idea: the stage is the hero. On a phone the controls stack underneath it;
    on a wide screen they sit in a column beside it. One blue (Milo's eye colour)
@@ -158,6 +165,15 @@ details[open] > summary{margin-bottom:12px}
 
 footer{color:var(--muted);font-size:13px}
 @media (prefers-reduced-motion: reduce){ .bar i{transition:none} }
+
+/* Face mode (?face=1): the page is just Milo's screen. Everything else stays in the page but is not shown. */
+html.face-mode, html.face-mode body{height:100%;margin:0;padding:0;overflow:hidden;background:#04060c;cursor:none;user-select:none;-webkit-user-select:none}
+html.face-mode .app > header, html.face-mode .controls, html.face-mode footer, html.face-mode .readout{display:none}
+html.face-mode .stage-col::after{display:none}
+html.face-mode .stage-wrap{position:fixed;inset:0;width:100%;border:0;border-radius:0;background:#04060c}
+html.face-mode #stage{width:100%;height:100%;aspect-ratio:auto;touch-action:none;cursor:none}
+html.face-mode .subtitle{display:none}
+html.face-mode.captions .subtitle{display:block;font-size:clamp(15px,3.2vh,26px)}
 </style>
 </head>
 <body>
@@ -299,6 +315,8 @@ const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
 const rad = (deg) => deg * Math.PI / 180;
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const FACE_MODE = document.documentElement.classList.contains('face-mode');   // ?face=1: the robot's own screen
+const CAPTIONS = document.documentElement.classList.contains('captions');
 const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const MOTION = reduceMotion ? 0.35 : 1;   // scales the big body movements
 
@@ -346,6 +364,7 @@ const settings = {
   life:    store.get('life', true)
 };
 if (!SHELLS[settings.shell]) settings.shell = 'classic';
+if (FACE_MODE) Object.assign(settings, { sound: false, follow: false, life: true });   // the screen is silent; saved choices stay untouched
 
 /* ======================================================================
    3. SHAPES AND POSES
@@ -463,10 +482,10 @@ function stepSprings(h) {
    screen with a soft glow around it.
    ====================================================================== */
 class FaceRenderer {
-  constructor(scale) {
+  constructor(scale, w, h) {                     // w and h only for the full-screen face
     this.S = scale;
-    this.w = Math.max(2, Math.round(FW * scale));
-    this.h = Math.max(2, Math.round(FH * scale));
+    this.w = w || Math.max(2, Math.round(FW * scale));
+    this.h = h || Math.max(2, Math.round(FH * scale));
     this.fc = document.createElement('canvas'); this.fc.width = this.w; this.fc.height = this.h;
     this.bc = document.createElement('canvas'); this.bc.width = this.w; this.bc.height = this.h;
     this.f = this.fc.getContext('2d');
@@ -659,6 +678,7 @@ function buildRoom() {
 }
 
 function resize() {
+  if (FACE_MODE) { resizeFace(); return; }
   const cssW = canvas.clientWidth || 480;
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const pw = Math.round(cssW * dpr), ph = Math.round(cssW * dpr * H / W);
@@ -817,6 +837,23 @@ function render() {
   drawRobot(ctx, cur, M, lights);
 }
 
+// Face mode: the face alone, as big as the window allows, on the screen's own black.
+function resizeFace() {
+  const cssW = canvas.clientWidth || window.innerWidth || 800, cssH = canvas.clientHeight || window.innerHeight || 480;
+  let k = Math.min(window.devicePixelRatio || 1, 2);
+  k = Math.min(k, Math.sqrt(1.3e6 / (cssW * cssH)));                 // a big window is drawn a little softer
+  const pw = Math.max(2, Math.round(cssW * k)), ph = Math.max(2, Math.round(cssH * k));
+  if (face && canvas.width === pw && canvas.height === ph) return;
+  canvas.width = pw; canvas.height = ph;
+  face = new FaceRenderer(Math.min(pw / FW, ph / FH) * 0.92, pw, ph);
+}
+function renderFace() {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#04060c'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const breath = Math.sin(clock * (L.mood === 'sleepy' ? 1.0 : 1.7));
+  ctx.drawImage(face.render(cur, M), 0, (breath * 0.9 - 3) * face.S);   // a little high: the mouth needs more room than the brows
+}
+
 /* ======================================================================
    7. SOUND
    Soft, short chirps made in the browser. They are quiet on purpose:
@@ -825,6 +862,7 @@ function render() {
 let AC = null, master = null, lastChirp = 0;
 let analyser = null, voiceBuf = null;               // listens to the voice, so the mouth can follow it
 function audio() {
+  if (FACE_MODE) return null;                        // the face page never makes a sound
   if (!AC) {
     try {
       AC = new (window.AudioContext || window.webkitAudioContext)();
@@ -908,11 +946,30 @@ const L = {
   blinkPhase: -1, nextBlink: 2.2,
   hop: { y: 0, v: 0 }, tw: { L: 0, R: 0 }, nextTwitch: 4,
   speakUntil: 0, voiceOn: false, pulse: { type: '', start: 0, until: 0 },
-  meters: { energy: 1, boredom: 0.1, curiosity: 0.4, social: 0.15 }, budget: 5, nextAuto: 14
+  meters: { energy: 1, boredom: 0.1, curiosity: 0.4, social: 0.15 }, budget: 5, budgetDay: '', nextAuto: 14
 };
 // M holds the things that change every frame on top of the feeling.
 const M = { blink: 0, gx: 0, gy: 0, speak: 0, sparkle: 0, dots: 0, zzz: 0, wig: 0, sway: 0, bob: 0, roll: 0, nod: 0, headBob: 0, wheel: 0, t: 0 };
 let lastSway = 0;
+
+// Milo may start a conversation by itself 5 times a day. The count is kept in the browser and refills at midnight.
+const DAILY_BUDGET = 5;
+function today() {
+  const d = new Date(), two = (n) => (n < 10 ? '0' : '') + n;
+  return d.getFullYear() + '-' + two(d.getMonth() + 1) + '-' + two(d.getDate());
+}
+function refillBudget() {                          // once per calendar day
+  const day = today();
+  if (L.budgetDay === day) return;
+  L.budgetDay = day; L.budget = DAILY_BUDGET;
+  store.set('budget', { day: day, left: L.budget });
+}
+function loadBudget() {
+  const saved = store.get('budget', null);
+  if (saved && saved.day === today() && Number.isFinite(saved.left)) { L.budgetDay = saved.day; L.budget = clamp(saved.left, 0, DAILY_BUDGET); }
+  else refillBudget();
+}
+function spendBudget() { L.budget--; store.set('budget', { day: L.budgetDay, left: L.budget }); }
 
 function hop(v) { L.hop.v = -v; }
 function pulse(type, secs) { L.pulse = { type: type, start: clock, until: clock + secs }; }
@@ -1119,6 +1176,7 @@ function heyMilo() {
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;   // the browser's own speech recognition
 
 async function checkMind() {
+  if (FACE_MODE) return;                             // the face page never calls the mind
   try {
     // The mind server speaks plain http. A file on disk or a published (https) page can never reach it.
     if (location.protocol !== 'http:') throw new Error('not served by the mind server');
@@ -1624,15 +1682,16 @@ function autoLookAround() {
 }
 function autoWantsAttention() {
   L.meters.social = 0.2;
+  refillBudget();
   if (mind.online && L.budget > 0 && settings.sound && !L.privacy) {      // the real mind decides what to say
-    L.budget--;
+    spendBudget();
     log('initiative', 'wants company: waking the mind (talk budget left ' + L.budget + ' of 5)');
     askMind('', { event: 'wants_company' });
     return;
   }
   runScript(async (wait) => {
     if (L.budget > 0) {
-      L.budget--;
+      spendBudget();
       log('initiative', 'wants company: would wake the mind (talk budget left ' + L.budget + ' of 5)');
     } else {
       log('initiative', 'wants company, but the talk budget is used up: stays quiet');
@@ -1653,16 +1712,17 @@ function life(dt) {
     mt.curiosity = clamp(mt.curiosity + (Math.random() - 0.5) * 0.05 * dt, 0, 1);
   }
   const free = settings.life && !L.freeze;
-  if (free && !L.busy && !resting && clock > L.nextAuto) {
+  if (free && !FACE_MODE && !L.busy && !resting && clock > L.nextAuto) {      // the face page starts nothing by itself
     if (mt.energy < 0.2) { log('life', 'energy low: dozes off'); setMood('sleepy', { auto: true }); }
     else if (mt.boredom > 0.7) autoLookAround();
     else if (mt.social > 0.8) autoWantsAttention();
     L.nextAuto = clock + 6;
   }
-  if (free && L.mood === 'sleepy' && L.lights && !L.privacy && mt.energy > 0.95) { log('life', 'rested: wakes up'); wakeUp(); }
+  if (free && !FACE_MODE && L.mood === 'sleepy' && L.lights && !L.privacy && mt.energy > 0.95) { log('life', 'rested: wakes up'); wakeUp(); }
   if (L.holdUntil && clock > L.holdUntil && !L.busy) {   // a temporary feeling wears off
     L.holdUntil = 0;
-    if (L.mood !== 'calm' && !(L.mood === 'sleepy' && !L.lights) && L.mood !== 'privacy') setMood('calm', { sound: false });
+    if (FACE_MODE) restoreFace();
+    else if (L.mood !== 'calm' && !(L.mood === 'sleepy' && !L.lights) && L.mood !== 'privacy') setMood('calm', { sound: false });
   }
 
   // blinking
@@ -1696,8 +1756,10 @@ function life(dt) {
   L.tw.L *= Math.exp(-dt * 6); L.tw.R *= Math.exp(-dt * 6);
 
   // talking
-  const speaking = L.speakUntil > clock || L.voiceOn;
-  const sT = L.voiceOn ? clamp(0.12 + voiceLevel() * 1.1, 0, 1)                      // follow the real voice
+  const heard = FACE_MODE && clock < FS.mouthUntil;                                   // the body reports the voice's loudness
+  const speaking = L.speakUntil > clock || L.voiceOn || heard;
+  const sT = heard ? clamp(0.12 + FS.level * 1.1, 0, 1)
+           : L.voiceOn ? clamp(0.12 + voiceLevel() * 1.1, 0, 1)                      // follow the real voice
            : speaking ? 0.35 + 0.65 * Math.abs(Math.sin(clock * 11) * Math.sin(clock * 5.3 + 1)) : 0;
   M.speak += (sT - M.speak) * (1 - Math.exp(-dt * 25));
 
@@ -1720,6 +1782,7 @@ function life(dt) {
   M.headBob = breath * 0.6;
   M.wheel += (M.sway - lastSway) * 2; lastSway = M.sway;
   M.t = clock;
+  if (FACE_MODE) faceTick();
 }
 
 /* ======================================================================
@@ -1820,6 +1883,7 @@ function buildMeters() {
   });
 }
 function updatePanel() {
+  refillBudget();
   for (const k in L.meters) {
     const el = $('m-' + k); if (!el) continue;
     el.style.width = Math.round(L.meters[k] * 100) + '%';
@@ -1871,7 +1935,90 @@ function wireButtons() {
 }
 
 /* ======================================================================
-   10. START
+   10. FACE MODE
+   With ?face=1 this page is the face on the robot's screen. The body (Python)
+   tells it what to show over /events (Server-Sent Events); the life layer above
+   keeps blinking, glancing and breathing. Nothing here makes a sound, starts a
+   conversation or calls the mind. Taps go back to the body through POST /input.
+   ====================================================================== */
+const FS = { state: 'offline', linkDown: true, es: null, level: 0, mouthUntil: 0, nextHuh: 0 };
+// The look for each thing the body can be doing. "speaking" keeps whatever feeling is showing.
+const STATE_MOOD = { idle: 'calm', listening: 'curious', thinking: 'thinking', speaking: 'calm', sleeping: 'sleepy', offline: 'sleepy' };
+
+function faceState(name) {
+  if (name !== 'privacy' && !STATE_MOOD[name]) return;
+  FS.state = name;
+  if (name === 'privacy') { if (!L.privacy) setPrivacy(true); return; }
+  if (L.privacy) setPrivacy(false);
+  if (name === 'speaking') {
+    if (L.mood === 'thinking') setMood('happy', { sound: false });        // the same step the chat takes at the first words
+    else if (L.mood === 'sleepy') setMood('calm', { sound: false });
+    return;
+  }
+  setMood(STATE_MOOD[name], { sound: false });
+  if (name === 'offline') { tgt.mq = -2; tgt.mx = 6; FS.nextHuh = clock + 1.2; }   // a little confused: a lopsided frown
+}
+function restoreFace() {                           // a poke or a feeling has worn off: back to what the body is doing
+  if (FS.state !== 'privacy') faceState(FS.state);
+}
+function faceTick() {                              // offline: now and then glance aside, as if wondering where everyone went
+  if (FS.state === 'offline' && clock > FS.nextHuh && !L.privacy) {
+    window.milo.lookAt(pick([-0.8, 0.8]), 0.15, 1.1);
+    FS.nextHuh = clock + rand(4, 8);
+  }
+}
+function faceEvent(ev) {
+  if (!ev || typeof ev !== 'object') return;
+  if (ev.type === 'state') {
+    faceState(String(ev.name));
+  } else if (ev.type === 'emote') {
+    // While talking or thinking a feeling stays until the state changes. Otherwise it wears off by itself.
+    if (POSES[ev.name] && ev.name !== 'privacy') setMood(ev.name, { sound: false, hold: FS.state === 'speaking' || FS.state === 'thinking' ? 0 : 10 });
+  } else if (ev.type === 'look') {
+    applyCue(ev);
+  } else if (ev.type === 'mouth') {
+    FS.level = clamp(Number(ev.level) || 0, 0, 1);
+    FS.mouthUntil = clock + 0.4;                   // if the reports stop, the mouth closes by itself
+  } else if (ev.type === 'caption') {
+    if (CAPTIONS) { if (ev.text) showSubtitle(String(ev.text).slice(0, 300), 12000); else hideSubtitle(); }
+  }
+}
+function connectFace() {
+  if (FS.es) { try { FS.es.close(); } catch (e) { /* already closed */ } }
+  const es = new EventSource('/events');
+  FS.es = es;
+  es.onopen = () => { if (FS.linkDown) { FS.linkDown = false; faceState('idle'); } };
+  es.onmessage = (m) => {
+    FS.linkDown = false;
+    let ev = null;
+    try { ev = JSON.parse(m.data); } catch (e) { /* ignore a broken message */ }
+    faceEvent(ev);
+  };
+  es.onerror = () => {
+    if (!FS.linkDown) { FS.linkDown = true; faceState('offline'); }
+    // The browser retries a dropped link itself. After a refusal (an error reply) it gives up, so we try again.
+    if (es.readyState === EventSource.CLOSED) setTimeout(connectFace, 3000);
+  };
+}
+function sendTouch() {                             // fire and forget: the face reacts whether or not the body hears
+  try {
+    fetch('/input', { method: 'POST', headers: { 'Content-Type': 'application/json' }, keepalive: true,
+      body: JSON.stringify({ type: 'touch', where: 'face' }) }).catch(() => {});
+  } catch (e) { /* ignore */ }
+}
+function initFace() {
+  canvas.addEventListener('pointerdown', () => { sendTouch(); poke(); });
+  resize();
+  faceState('offline');                            // until the body says otherwise
+  renderFace();
+  connectFace();
+  if (window.ResizeObserver) new ResizeObserver(() => resize()).observe(canvas);
+  else window.addEventListener('resize', resize);
+  requestAnimationFrame((t) => { last = t; requestAnimationFrame(frame); });
+}
+
+/* ======================================================================
+   11. START
    ====================================================================== */
 let last = performance.now(), acc = 0, panelClock = 0;
 function frame(now) {
@@ -1879,13 +2026,15 @@ function frame(now) {
   clock += dt; acc += dt;
   while (acc >= 1 / 120) { stepSprings(1 / 120); acc -= 1 / 120; }
   life(dt);
-  render();
+  if (FACE_MODE) renderFace(); else render();
   panelClock += dt;
-  if (panelClock > 0.2) { panelClock = 0; updatePanel(); }
+  if (panelClock > 0.2 && !FACE_MODE) { panelClock = 0; updatePanel(); }
   requestAnimationFrame(frame);
 }
 
 function init() {
+  if (FACE_MODE) { initFace(); return; }
+  loadBudget();
   buildTiles(); buildShells(); buildMeters(); wireSliders(); wireButtons(); wireStage(); wireChat();
   setToggle('tLife', settings.life, 'Life layer on', 'Life layer off');
   setToggle('tFollow', settings.follow, 'Follow pointer on', 'Follow pointer off');
