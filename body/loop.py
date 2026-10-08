@@ -7,6 +7,18 @@ thread, so the microphone is never starved and an interruption can stop everythi
     idle --wake--> listening --utterance--> thinking --first sentence--> speaking --done--> listening (window) --silence--> idle
                       ^                                                       |
                       +---------------- you talk over Milo (barge-in) --------+
+
+Three more things share the same loop:
+
+* Timers and the focus block. The mind writes them into the reply stream ({"type": "timer", ...} and
+  {"type": "focus", ...}); the Scheduler keeps them and every microphone frame asks it what has ended.
+  When one has, and Milo is idle, the body starts a reply by itself (no wake word, no speech to text):
+  the event "timer_done" (detail: the label) or "focus_break" (detail: the minutes). When Milo is busy the
+  event waits until the talk is over. During a focus block the resting face is "focus" instead of "idle".
+* No mind. If the mind does not answer, the body keeps running with the "offline" face. The wake word still
+  chirps (listen, then sleepy) and every 10 seconds a background check asks the mind again; when it answers,
+  the face goes back to resting.
+* Nothing in here sleeps on the clock: pass `clock` to make time stand still or jump in tests.
 """
 from __future__ import annotations
 
@@ -24,6 +36,96 @@ from body.vad import Utterances, VoiceDetector, pcm_to_wav
 
 IDLE, LISTENING, THINKING, SPEAKING = "idle", "listening", "thinking", "speaking"
 
+MAX_TIMERS = 3
+LONGEST_SECONDS = 12 * 3600                         # no timer or focus block is longer than this
+MIND_CHECK_SECONDS = 10.0                           # how often to ask a silent mind whether it is back
+UNANSWERED_WAKE_GAP = 2.0                           # seconds before the wake word gets another sleepy chirp while offline
+# What to play when a timer or focus block ends and the mind cannot put it into words.
+EVENT_CHIMES = {"timer_done": "excited", "focus_break": "happy"}
+
+
+def span(seconds: float) -> str:
+    """Seconds in plain words for the log: '90 seconds', '10 minutes', '1 hour 30 minutes'."""
+    total = int(round(seconds))
+    hours, rest = divmod(total, 3600)
+    minutes, secs = divmod(rest, 60)
+    parts = [f"{n} {unit}{'' if n == 1 else 's'}" for n, unit in ((hours, "hour"), (minutes, "minute"), (secs, "second")) if n]
+    return " ".join(parts) or "0 seconds"
+
+
+class Scheduler:
+    """The timers and the focus block. It only ever looks at the clock it is given, so nothing here sleeps.
+
+    due() hands back what has ended since the last call, once, soonest first, as (event, detail) pairs:
+    ("timer_done", label) and ("focus_break", minutes).
+    """
+
+    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
+        self.clock = clock
+        self._lock = threading.Lock()
+        self._timers: list[tuple[float, str]] = []      # (when it ends, label), the one set first at the front
+        self._focus_end: float | None = None
+        self._focus_minutes = 0
+
+    @staticmethod
+    def _number(value, longest: float) -> float | None:
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        return min(float(value), longest) if value == value and value > 0 else None     # not NaN, not zero or less
+
+    def add_timer(self, seconds, label: str = "") -> dict | None:
+        """Start a timer. A fourth one replaces the oldest. Returns what was set (and what it replaced), or None if unusable."""
+        length = self._number(seconds, LONGEST_SECONDS)
+        if length is None:
+            return None
+        label = " ".join(str(label or "").split())[:40]
+        with self._lock:
+            replaced = self._timers.pop(0)[1] if len(self._timers) >= MAX_TIMERS else None
+            self._timers.append((self.clock() + length, label))
+        return {"seconds": length, "label": label, "replaced": replaced}
+
+    def cancel_timers(self) -> int:
+        with self._lock:
+            count, self._timers = len(self._timers), []
+        return count
+
+    def timers(self) -> list[dict]:
+        """What is running: label and seconds left, in the order they were set."""
+        now = self.clock()
+        with self._lock:
+            return [{"label": label, "left": max(0.0, end - now)} for end, label in self._timers]
+
+    def start_focus(self, minutes) -> int | None:
+        """Start (or restart) the focus block. Returns the minutes, or None if unusable."""
+        length = self._number(minutes, LONGEST_SECONDS / 60)
+        if length is None:
+            return None
+        with self._lock:
+            self._focus_minutes = max(1, int(round(length)))
+            self._focus_end = self.clock() + self._focus_minutes * 60
+            return self._focus_minutes
+
+    def stop_focus(self) -> bool:
+        """End the focus block early, without an event. True if one was running."""
+        with self._lock:
+            was, self._focus_end = self._focus_end is not None, None
+        return was
+
+    def focus_active(self) -> bool:
+        with self._lock:
+            return self._focus_end is not None
+
+    def due(self) -> list[tuple[str, str]]:
+        now = self.clock()
+        with self._lock:
+            ended: list[tuple[float, str, str]] = [(end, "timer_done", label) for end, label in self._timers if end <= now]
+            self._timers = [(end, label) for end, label in self._timers if end > now]
+            if self._focus_end is not None and self._focus_end <= now:
+                ended.append((self._focus_end, "focus_break", str(self._focus_minutes)))
+                self._focus_end = None
+        ended.sort(key=lambda item: item[0])
+        return [(event, detail) for _, event, detail in ended]
+
 
 class _Stop:
     """Marks the end of one reply in the speaker queue."""
@@ -34,7 +136,8 @@ class _Stop:
 
 class Conversation:
     def __init__(self, settings, mic, speaker, wake, stt, mind, face, *,
-                 vad: VoiceDetector | None = None, clock: Callable[[], float] = time.monotonic) -> None:
+                 vad: VoiceDetector | None = None, clock: Callable[[], float] = time.monotonic,
+                 offline: bool = False) -> None:
         self.settings = settings
         self.mic, self.speaker, self.wake = mic, speaker, wake
         self.stt, self.mind, self.face = stt, mind, face
@@ -45,6 +148,13 @@ class Conversation:
         self.state = IDLE
         self.mood = "calm"
         self.turns = 0
+        self.scheduler = Scheduler(clock)
+        self.offline = offline                          # the mind does not answer: run on without it
+        self._pending: list[tuple[str, str]] = []       # ended timers and focus blocks waiting for Milo to be idle
+        self._next_check = clock() + MIND_CHECK_SECONDS
+        self._probing = False
+        self._probe_thread: threading.Thread | None = None
+        self._last_unanswered_wake: float | None = None
         self._gen = 0                                   # bumped on every interruption; stale work checks it and stops
         self._lock = threading.RLock()
         self._sound: queue.Queue = queue.Queue()
@@ -54,10 +164,17 @@ class Conversation:
         self._speaker_thread.start()
 
     # ---------------------------------------------------------------- the microphone loop
+    def begin(self) -> None:
+        """Show the resting face and say that Milo is ready (run() does this first)."""
+        self._set_state(IDLE)
+        if self.offline:
+            log("body", "ready, but without the mind: showing the offline face and checking again every 10 seconds.")
+        else:
+            log("body", "ready. " + ("Say the wake word." if getattr(self.wake, "available", True) else "Press Enter to talk."))
+
     def run(self, stop: threading.Event | None = None) -> None:
         stop = stop or threading.Event()
-        self._set_state(IDLE)
-        log("body", "ready. " + ("Say the wake word." if getattr(self.wake, "available", True) else "Press Enter to talk."))
+        self.begin()
         for frame in self.mic.frames():
             if stop.is_set():
                 break
@@ -70,7 +187,10 @@ class Conversation:
         if state == IDLE:
             if self.wake.feed(frame):
                 log("hears", "wake word")
-                self.start_listening(chime=True)
+                if self.offline:
+                    self._wake_without_mind()
+                else:
+                    self.start_listening(chime=True)
         elif state == LISTENING:
             utt = self.listener.feed(frame)
             if utt:
@@ -85,6 +205,21 @@ class Conversation:
                 log("hears", "you talked over Milo: stopping")
                 self.interrupt()
                 self.start_listening(chime=False)
+        self.tick()                                     # after the wake word, so the person always comes first
+
+    def tick(self) -> None:
+        """Look at the clock: have a timer or the focus block ended, is it time to ask a silent mind again?
+
+        Called for every microphone frame. It never waits, so it is fine on the microphone thread."""
+        for event, detail in self.scheduler.due():
+            if event == "timer_done":
+                log("body", f"the timer '{detail}' has ended" if detail else "a timer has ended")
+            else:
+                log("body", f"the {detail}-minute focus block has ended")
+            with self._lock:
+                self._pending.append((event, detail))
+        self._start_pending()
+        self._check_mind()
 
     # ---------------------------------------------------------------- states
     def start_listening(self, chime: bool) -> None:
@@ -119,7 +254,116 @@ class Conversation:
     def _set_state(self, name: str) -> None:
         with self._lock:
             self.state = name
-        self.face.send({"type": "state", "name": name})
+            shown = self._resting_face() if name == IDLE else name
+        self.face.send({"type": "state", "name": shown})
+
+    def _resting_face(self) -> str:
+        """What the face shows while Milo waits: offline, focus or idle."""
+        if self.offline:
+            return "offline"
+        return "focus" if self.scheduler.focus_active() else "idle"
+
+    def _refresh_resting_face(self) -> None:
+        """The reason for the resting face changed (focus started or ended, the mind came back): show it if Milo is resting."""
+        with self._lock:
+            if self.state != IDLE:
+                return
+            shown = self._resting_face()
+        self.face.send({"type": "state", "name": shown})
+
+    # ---------------------------------------------------------------- timers and focus
+    def _schedule(self, ev: dict) -> None:
+        """Apply a timer or focus stage direction from the reply stream."""
+        if ev["type"] == "timer":
+            if ev.get("cancel"):
+                count = self.scheduler.cancel_timers()
+                with self._lock:                        # one that ended but was not announced yet is cancelled too
+                    waiting = len(self._pending)
+                    self._pending = [p for p in self._pending if p[0] != "timer_done"]
+                    waiting -= len(self._pending)
+                log("body", "timers cancelled" if count or waiting else "no timers to cancel")
+                return
+            started = self.scheduler.add_timer(ev.get("seconds"), ev.get("label") or "")
+            if started is None:
+                log("body", "ignored a timer without a usable length")
+                return
+            name = f" '{started['label']}'" if started["label"] else ""
+            replaced = f" (the oldest, '{started['replaced']}', is replaced)" if started["replaced"] is not None else ""
+            log("body", f"timer{name} set for {span(started['seconds'])}{replaced}")
+        else:
+            if ev.get("stop"):
+                log("body", "focus ended early" if self.scheduler.stop_focus() else "no focus block to end")
+            else:
+                minutes = self.scheduler.start_focus(ev.get("minutes"))
+                if minutes is None:
+                    log("body", "ignored a focus block without a usable length")
+                    return
+                log("body", f"focus block of {span(minutes * 60)} started")
+            self._refresh_resting_face()
+
+    def _start_pending(self) -> None:
+        """Start the reply for an ended timer or focus block, if Milo is idle. Otherwise it keeps waiting."""
+        with self._lock:
+            if not self._pending or self.state != IDLE or self.busy():
+                return
+            event, detail = self._pending.pop(0)
+            if self.offline:
+                self._play(chirp(EVENT_CHIMES[event]))      # no mind to put it into words: at least ring
+                log("body", "no mind to ask, so just a chime")
+            else:
+                self._set_state(THINKING)
+                gen = self._gen
+                self.barge.reset()
+                self._worker = threading.Thread(target=self._event_reply, args=(event, detail, gen), name="event", daemon=True)
+                self._worker.start()
+
+    # ---------------------------------------------------------------- the mind is away
+    def _go_offline(self) -> None:
+        """Show that the mind is away (once: the log only tells about the change) and start checking for it."""
+        with self._lock:
+            already, self.offline = self.offline, True
+            if not already:
+                self._next_check = self.clock() + MIND_CHECK_SECONDS
+        if not already:
+            log("body", f"offline. Milo keeps running and looks again every {int(MIND_CHECK_SECONDS)} seconds.")
+
+    def _wake_without_mind(self) -> None:
+        """The wake word while offline: the usual chirp, then a sleepy one, and no thinking."""
+        now = self.clock()
+        if self._last_unanswered_wake is not None and now - self._last_unanswered_wake < UNANSWERED_WAKE_GAP:
+            return                                      # one wake word, one chirp (a recording or a jumpy detector repeats itself)
+        self._last_unanswered_wake = now
+        log("body", "the mind is offline, so there is no answer")
+        self._play(chirp("listen"))
+        self._play(chirp("sleepy"))
+        self.face.send({"type": "state", "name": "offline"})
+        self.wake.reset()
+        self._check_mind(force=True)                    # it may be back already
+
+    def _check_mind(self, force: bool = False) -> None:
+        """While offline, ask the mind whether it is back: every 10 seconds, in the background, one check at a time."""
+        now = self.clock()
+        with self._lock:
+            if not self.offline or self._probing or (now < self._next_check and not force):
+                return
+            self._probing = True
+            self._next_check = now + MIND_CHECK_SECONDS
+            self._probe_thread = threading.Thread(target=self._probe, name="mind-check", daemon=True)
+            self._probe_thread.start()
+
+    def _probe(self) -> None:
+        try:
+            answer = self.mind.health()
+        except Exception:                               # a check must never take the body down
+            answer = None
+        with self._lock:
+            self._probing = False
+            back = bool(answer) and self.offline
+            if back:
+                self.offline = False
+        if back:
+            log("body", "the mind answers again")
+            self._refresh_resting_face()
 
     # ---------------------------------------------------------------- thinking
     def _think(self, pcm: bytes) -> None:
@@ -136,6 +380,7 @@ class Conversation:
             return gen != self._gen
 
     def _reply(self, pcm: bytes, gen: int) -> None:
+        """Something the person said: understand it, then answer."""
         try:
             text, used = self.stt.transcribe(pcm_to_wav(pcm))
         except SttError as e:
@@ -148,22 +393,35 @@ class Conversation:
             return self._back_to_listening(gen)
         log("hears", f"“{text}”  ({used})")
         self.face.send({"type": "caption", "text": text})
+        self._speak_reply(gen, text=text)
 
+    def _event_reply(self, event: str, detail: str, gen: int) -> None:
+        """Something that happened (a timer ended): Milo starts talking by itself, no wake word and no speech to text."""
+        log("body", f"telling them about it ({event}{', ' + detail if detail else ''})")
+        self._speak_reply(gen, event=event, detail=detail)
+
+    def _speak_reply(self, gen: int, text: str = "", event: str = "", detail: str = "") -> None:
+        """Ask the mind and play the answer as it streams in. Shared by spoken turns and events."""
+        ask: dict = {"state": self.body_state()}
+        if event:
+            ask["event"] = event
+        if detail:
+            ask["detail"] = detail
         started = time.monotonic()
         spoke = False
         try:
-            for ev in self.mind.chat(text, state=self.body_state()):
+            for ev in self.mind.chat(text, **ask):
                 if self._stale(gen):
                     return
                 kind = ev.get("type")
                 if kind == "error":
-                    return self._fail(gen, ev.get("message") or "the mind had a problem")
+                    return self._fail(gen, ev.get("message") or "the mind had a problem", chime=EVENT_CHIMES.get(event, ""))
                 if kind == "say":
                     if not spoke:
                         log("mind", f"first sentence after {int((time.monotonic() - started) * 1000)} ms")
                     spoke = True
                     self._sound.put(("voice", gen, self._voices.submit(self.mind.tts, ev["text"], "wav"), ev["text"]))
-                elif kind in ("emote", "look", "sound"):
+                elif kind in ("emote", "look", "sound", "timer", "focus"):
                     if kind == "emote":
                         self.mood = ev.get("name") or self.mood
                     if spoke:
@@ -171,17 +429,25 @@ class Conversation:
                     else:
                         self._cue(ev)                               # before the first words: at once
         except MindError as e:
-            return self._fail(gen, str(e))
+            return self._fail(gen, str(e), chime=EVENT_CHIMES.get(event, ""))
         if not spoke:
+            if event:
+                return self._rest(gen)
             return self._back_to_listening(gen)
         self.turns += 1
         self._sound.put(_Stop(gen))
 
-    def _fail(self, gen: int, why: str) -> None:
+    def _fail(self, gen: int, why: str, chime: str = "") -> None:
+        """The mind or the voice failed: say nothing, show the offline face, chirp sleepy and go back to resting.
+
+        `chime` is played first when the reply was a timer or focus block ending, so that it is still noticed."""
         if self._stale(gen):
             return
         log("body", f"problem: {why}")
+        self._go_offline()
         self.face.send({"type": "state", "name": "offline"})
+        if chime:
+            self._play(chirp(chime))
         self._play(chirp("sleepy"))
         with self._lock:
             self.state = IDLE
@@ -191,12 +457,20 @@ class Conversation:
         if not self._stale(gen):
             self.start_listening(chime=False)
 
+    def _rest(self, gen: int) -> None:
+        if not self._stale(gen):
+            self._set_state(IDLE)
+            self.wake.reset()
+
     def body_state(self) -> dict:
         return {"mood": self.mood, "lights": True, "local_time": time.strftime("%A %d %B %Y, %H:%M")}
 
     def _cue(self, ev: dict) -> None:
-        if ev["type"] == "sound":
+        kind = ev["type"]
+        if kind == "sound":
             self._play(chirp(ev.get("name") or ""))
+        elif kind in ("timer", "focus"):
+            self._schedule(ev)
         else:
             self.face.send(ev)
 
@@ -230,8 +504,11 @@ class Conversation:
                 try:
                     wav = payload.result() if isinstance(payload, Future) else payload
                 except MindError as e:
-                    self._fail(gen, f"no voice: {e}")
+                    with self._lock:
+                        self._gen += 1                  # the rest of this reply is dropped, but not the chirp that follows
+                        gen = self._gen
                     self._clear_sound()
+                    self._fail(gen, f"no voice: {e}")
                     continue
                 if self._stale(gen):
                     continue

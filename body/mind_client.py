@@ -113,17 +113,21 @@ class MindClient:
         finally:
             conn.close()
 
-    def chat(self, text: str = "", event: str = "", state: dict | None = None) -> Iterator[dict]:
-        """Stream the mind's events (emote, look, sound, say, error, done), each as soon as its line arrives.
+    def chat(self, text: str = "", event: str = "", state: dict | None = None, detail: str = "") -> Iterator[dict]:
+        """Stream the mind's events (emote, look, sound, timer, focus, say, error, done), each as soon as its line arrives.
 
-        The request is registered right away, so cancel() works even before the first event is read.
+        `event` (with an optional `detail`, such as a timer's label) asks for a reply to something that happened
+        instead of something the person said. The request is registered right away, so cancel() works even
+        before the first event is read.
         """
         conn = self._connect(CONNECT_TIMEOUT)
         stream = _Stream(conn)
         with self._lock:
             self._stream = stream
-        payload = json.dumps({"text": text, "event": event, "state": state or {}}).encode("utf-8")
-        return self._events(stream, payload)
+        body: dict = {"text": text, "event": event, "state": state or {}}
+        if detail:
+            body["detail"] = detail
+        return self._events(stream, json.dumps(body).encode("utf-8"))
 
     def _events(self, stream: _Stream, payload: bytes) -> Iterator[dict]:
         conn = stream.conn
