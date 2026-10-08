@@ -36,7 +36,7 @@ def parse_env_text(text: str) -> dict[str, str]:
     return values
 
 
-OLD_PREFIX, PREFIX = "MILO_", "ARTEMIS_"     # the robot was called Milo until round 15
+OLD_PREFIX, PREFIX = "MILO_", "ARTEMIS_"     # the robot was called Milo until round 16
 
 
 def with_old_names(env):

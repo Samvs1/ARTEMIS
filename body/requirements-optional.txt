@@ -5,7 +5,7 @@
 # Voice detection: tells speech from silence.
 webrtcvad-wheels
 
-# The wake word: listens for the phrase that wakes Artemis.
+# The wake word: listens for the phrase that wakes Arty.
 openwakeword
 
 # Speech to text without the cloud: runs the transcription on the robot itself.

@@ -38,7 +38,7 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 10 | Stability | Rear skid, balance-ready | Stable at rest and when unpowered. Place weight and wheels so a self-balancing mode can be added later. | Decided (R3) |
 | 11 | Extra body language | Ears or antennae (two servos) and a mood glow (LED) | Arms or a lift are deferred (v2 at the earliest). Parked in R7: not part of the first prototype or the first body (row 37). | Decided (R3), parked (R7) |
 | 12 | Design log | Keep it in the repo | Committed to the working branch after each round. | Decided (R3) |
-| 13 | Name and wake word | Artemis, Arty for short; wake word "Hey Arty" | Chosen by the owner in R15 (row 51). The wake word still needs its own trained model; "Hey Jarvis" stands in until then. | Decided (owner, R15) |
+| 13 | Name and wake word | Artemis, Arty for short; wake word "Hey Arty" | Chosen by the owner in R16 (row 51). The wake word still needs its own trained model; "Hey Jarvis" stands in until then. | Decided (owner, R16) |
 | 14 | Size | About 190 x 160 x 135 mm, as in the concept | Tight for a Pi 5, a 3.5" screen and a battery; verify with a CAD mock-up before committing. | Assumed |
 | 15 | Conversation flow | Wake word plus an open window | Say "Hey Arty" once; the conversation stays open until a few seconds of silence or "thanks, Arty". You can interrupt Arty mid-sentence. Look-to-talk (answering without the wake word when you face Arty) is a possible later add-on. | Decided (R4) |
 | 16 | Voice feel | Warm and playful | Mid-pitch, friendly, quick to smile, with a mischievous edge. English; no specific accent chosen yet. | Decided (R4) |
@@ -76,7 +76,7 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 48 | Body program design | Three programs: mind server (exists), body (hears, speaks, drives the face), face page in kiosk mode fed by the body | `docs/body-design.md`. | Decided (R12) |
 | 49 | Memory design | Facts, episodes and a nightly dream with a diary, per person, in plain files on the Pi | `docs/memory-design.md`. Ideas from Mem0 (add, update or retire facts after a talk), Generative Agents (recall by recency, importance and relevance; nightly reflection), Graphiti (outdate, do not delete) and CharMemory (readable files); no new dependencies. | Decided (R14) |
 | 50 | Timers and focus buddy | Stage directions `[timer:…]` and `[focus:…]`, run by the page or the body; Arty announces the end | `docs/behaviour-design.md`. Good morning and good night from the lights switch, within the daily budget. | Decided (R14) |
-| 51 | The robot's name | Artemis, Arty for short (it was called Milo until R15) | Everything was renamed: the character, the voice prompts, the page, the docs, the launcher (`start-artemis.bat`), the 3D files and the settings (`ARTEMIS_…`; old `MILO_…` names in `.env` still work). The concept render (`docs/img/artemis-concept-v0.webp`) still shows the old name in its picture. | Decided (owner, R15) |
+| 51 | The robot's name | Artemis, Arty for short (it was called Milo until R16) | Everything was renamed: the character, the voice prompts, the page, the docs, the launcher (`start-artemis.bat`), the 3D files and the settings (`ARTEMIS_…`; old `MILO_…` names in `.env` still work). The concept render (`docs/img/artemis-concept-v0.webp`) still shows the old name in its picture. | Decided (owner, R16) |
 
 ## 3. Architecture principle: two brains
 
@@ -368,7 +368,25 @@ The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. I
 - Fixed on the way: `check-keys.bat` crashed when a Fish Audio key was set (a mistake from round 13); a short internet outage no longer makes the keeper give up on a talk.
 - Behaviour tried with the real DeepSeek mind: asked for a tea timer it wrote `[timer:8m tea]` and said "Eight minutes for the tea, coming right up!"; the timer_done event gave "Your tea is ready!"; asked for help focusing it started a 25-minute focus block and at the break suggested a stretch and water; "cancel everything" cancelled the timers. Phases 2 and 3 of `docs/software-plan.md` are done; phases 4 and 5 wait for the hardware.
 
-**Round 15: a new name**
+**Round 15: first real voice run on the owner's computer**
+
+- The owner asked to continue with the first real voice run (software plan, Phase 0 and 1): Arty's body on the owner's Windows computer with a real microphone and speaker, DeepSeek, Fish Audio and OpenAI speech to text, push to talk (no wake word installed).
+- Microphone and speaker: the HyperX headset. Windows' defaults (a game controller's mic and the TV) were the wrong ones, so `ARTEMIS_INPUT_DEVICE` and `ARTEMIS_OUTPUT_DEVICE` are needed on that computer (README).
+- Speech to text was right 4 times out of 4. No crashes. The voice changed between sentences because `FISH_AUDIO_VOICE_ID` is still not set. **The owner needs to pick a voice at fish.audio.**
+- **Delay from end of speech to Arty's first word: 2.7 to 3.6 s, median about 3.2 s, against the target of about 1 s.** The "thinking" chirp plays after 0.7 s, so something is heard quickly. Where the time goes, per turn (ms):
+
+  | Said | Total | Silence wait | Speech to text | Mind, first sentence | Voice |
+  |---|---|---|---|---|---|
+  | "Hello." | 3602 | 699 | 1657 | 809 | 435 |
+  | "Second turn." | 2706 | 699 | 491 | 734 | 779 |
+  | "Testing, one, two, three." | 3344 | 699 | 929 | 784 | 930 |
+  | "How many more turns do you want me to do?" | 2996 | 699 | 611 | 777 | 907 |
+
+  Speech to text (the whole recording is uploaded after you stop) and the voice (the whole first sentence as WAV, not streamed) are about 60% of it. Ideas, not tried yet: streaming speech to text, streaming the voice, a shorter first sentence, and a shorter silence wait (about 450 ms instead of 700).
+- Fixed: on Windows, interrupting Arty (cancel, or talking over it) waited until the mind had finished its whole answer; the body now stops at once. The body said "Say the wake word" when only Enter works; it now says "Press Enter to talk". A memory test needed symlinks, which Windows only allows in Developer Mode; it is skipped there now. Each spoken turn now logs a `timing` line with the numbers above.
+- The owner gave Arty a new personality on their computer (a relaxed, dry friend; kept in `data/character.md`, not in the project). Two things in the code still sounded chirpy, so the timer, focus-break and good-morning events now ask for Arty's own style instead of "cheerful" and "warm", and the "thinking" chirp after each sentence can be switched off with `ARTEMIS_THINKING_CHIRP=false`.
+
+**Round 16: a new name**
 
 - The owner renamed the project and the robot: **Artemis, Arty for short** (rows 13 and 51). Arty is the everyday name in the page, the docs and the wake word ("Hey Arty"); Artemis is the full name, used in titles and when Arty introduces itself ("I'm Artemis, Arty for short!").
 - Nothing the owner already set up breaks: old `MILO_…` settings in `.env` are still read, the page keeps its saved look and settings, and a personality saved under the old name is updated once (the old version stays in its history).

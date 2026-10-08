@@ -2,12 +2,12 @@
 
 What is left to make Arty work as software, in the order I would do it. Status: **Proposed**. Nothing here is built yet.
 
-## Status (round 14)
+## Status (round 15)
 
 | Phase | State |
 |---|---|
-| 0. Prove the basics | Done. Real DeepSeek run (first words in under a second); housekeeping, CI. The voice half still needs the owner's keys on their computer. |
-| 1. The body program | Done (`docs/body-design.md`). Not yet tried with a real microphone and speaker. |
+| 0. Prove the basics | Done. First real voice run on the owner's computer (R15): it works, but end of speech to first word is about 3.2 s against the 1 s target; speech to text and the voice are most of it. A Fish Audio voice ID is still to be picked. |
+| 1. The body program | Done (`docs/body-design.md`). Tried with a real headset on Windows (R15), push to talk; the wake word is not installed there yet. |
 | 2. Memory and people | Done for one person (`docs/memory-design.md`); tried live with DeepSeek. Voice ID left out by decision (row 45). |
 | 3. Behaviour | Done (`docs/behaviour-design.md`): timers, focus buddy, good morning and good night, meters kept across a reload, a body that survives without its mind. Tried live with DeepSeek. Waits for a light sensor: good morning and good night on the robot. |
 | 4. On the Pi | Waits for List A. |

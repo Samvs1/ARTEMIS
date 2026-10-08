@@ -34,6 +34,7 @@ class BodySettings:
     output_device: str = ""                       # ARTEMIS_OUTPUT_DEVICE
     barge_in: bool = False                        # ARTEMIS_BARGE_IN: talk over Arty to interrupt (needs echo cancelling)
     window_seconds: float = 6.0                   # ARTEMIS_WINDOW_SECONDS: keep listening after Arty speaks
+    thinking_chirp: bool = True                   # ARTEMIS_THINKING_CHIRP: a chirp when Arty has heard you and starts thinking
 
 
 _TRUE = ("1", "true", "yes", "on")
@@ -103,4 +104,5 @@ def load_settings(env: dict | None = None) -> BodySettings:
         output_device=_text(env, "ARTEMIS_OUTPUT_DEVICE", d.output_device),
         barge_in=_flag(env, "ARTEMIS_BARGE_IN", d.barge_in),
         window_seconds=_number(env, "ARTEMIS_WINDOW_SECONDS", d.window_seconds, float, 0.0, 600.0),
+        thinking_chirp=_flag(env, "ARTEMIS_THINKING_CHIRP", d.thinking_chirp),
     )

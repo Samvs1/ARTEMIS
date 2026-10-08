@@ -156,6 +156,7 @@ class Conversation:
         self._probe_thread: threading.Thread | None = None
         self._last_unanswered_wake: float | None = None
         self._gen = 0                                   # bumped on every interruption; stale work checks it and stops
+        self._timing: dict[int, dict[str, float]] = {}  # per spoken turn: when speech ended, was cut, understood, answered
         self._lock = threading.RLock()
         self._sound: queue.Queue = queue.Queue()
         self._voices = ThreadPoolExecutor(max_workers=2, thread_name_prefix="voice")
@@ -170,7 +171,8 @@ class Conversation:
         if self.offline:
             log("body", "ready, but without the mind: showing the offline face and checking again every 10 seconds.")
         else:
-            log("body", "ready. " + ("Say the wake word." if getattr(self.wake, "available", True) else "Press Enter to talk."))
+            log("body", "ready. " + ("Press Enter to talk." if getattr(self.wake, "push_to_talk", False) or not getattr(self.wake, "available", True)
+                                  else "Say the wake word."))
 
     def run(self, stop: threading.Event | None = None) -> None:
         stop = stop or threading.Event()
@@ -371,9 +373,29 @@ class Conversation:
             self._set_state(THINKING)
             gen = self._gen
             self.barge.reset()
-        self._play(chirp("thinking"))
+            closed = time.monotonic()
+            self._timing = {gen: {"end": closed - self.listener.end_silence_ms / 1000, "closed": closed}}
+        if self.settings.thinking_chirp:
+            self._play(chirp("thinking"))
         self._worker = threading.Thread(target=self._reply, args=(pcm, gen), name="reply", daemon=True)
         self._worker.start()
+
+    def _mark(self, gen: int, step: str) -> None:
+        with self._lock:
+            if gen in self._timing:
+                self._timing[gen][step] = time.monotonic()
+
+    def _log_timing(self, gen: int) -> None:
+        """Once per spoken turn, as its first words play: where the time from end of speech went."""
+        with self._lock:
+            t = self._timing.pop(gen, None)
+        if not t or "stt" not in t or "say" not in t:
+            return
+        now = time.monotonic()
+        ms = lambda a, b: int(round((b - a) * 1000))
+        log("timing", f"end of speech -> first voice {ms(t['end'], now)} ms (silence wait {ms(t['end'], t['closed'])}, "
+                      f"speech to text {ms(t['closed'], t['stt'])}, mind first sentence {ms(t['stt'], t['say'])}, "
+                      f"voice {ms(t['say'], now)})")
 
     def _stale(self, gen: int) -> bool:
         with self._lock:
@@ -386,6 +408,7 @@ class Conversation:
         except SttError as e:
             return self._fail(gen, f"could not understand the audio: {e}")
         text = text.strip()
+        self._mark(gen, "stt")
         if self._stale(gen):
             return
         if not text:
@@ -419,6 +442,7 @@ class Conversation:
                 if kind == "say":
                     if not spoke:
                         log("mind", f"first sentence after {int((time.monotonic() - started) * 1000)} ms")
+                        self._mark(gen, "say")
                     spoke = True
                     self._sound.put(("voice", gen, self._voices.submit(self.mind.tts, ev["text"], "wav"), ev["text"]))
                 elif kind in ("emote", "look", "sound", "timer", "focus"):
@@ -514,6 +538,7 @@ class Conversation:
                     continue
                 if self.state != SPEAKING:
                     self._set_state(SPEAKING)
+                self._log_timing(gen)
                 self.speaker.play(wav, on_level=lambda lv: self.face.send({"type": "mouth", "level": round(lv, 3)}))
 
     def close(self) -> None:
