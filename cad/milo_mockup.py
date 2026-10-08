@@ -507,6 +507,7 @@ def setup_scene(mode, res=(1100, 1100), samples=int(os.environ.get('MILO_SAMPLES
     for p in PARTS:
         for poly in p["ob"].data.polygons:  # boolean cuts can leave stray slot indices behind
             poly.material_index = 0
+        p["ob"].data.materials.clear()  # boolean results arrive with an empty first slot
         p["ob"].data.materials.append(M[p["mat"]])
     face = add_face() if mode != "coded" else []
     return sc, face
@@ -680,7 +681,9 @@ def run(view):
         render(out)
         col = (200, 90, 10) if view == "plate" else (30, 90, 200)
         label_image(out, [(i, o, col) for i, o, _ in items])
-    bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "milo_mockup.blend")) if view == "hero" else None
+    if view == "hero":
+        bpy.context.preferences.filepaths.save_version = 0  # no .blend1 backup files
+        bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "milo_mockup.blend"))
     print("wrote", out)
 
 
