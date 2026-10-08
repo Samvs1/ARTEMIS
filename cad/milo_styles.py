@@ -316,7 +316,7 @@ def compare_sheet(names=None):
     except Exception:
         ft, fs = ImageFont.load_default(size=30), ImageFont.load_default(size=19)
     for ci, n in enumerate(names):
-        dr.text((ci * col_w + 18, 12), STYLES[n].title, fill=(30, 30, 30), font=ft)
+        dr.text((ci * col_w + 18, 12), STYLES[n].title.split(" (")[0], fill=(30, 30, 30), font=ft)
         for ri, vname in enumerate(views):
             im = Image.open(os.path.join(OUT_DIR, f"{n}-{vname}.png")).convert("RGB")
             im.thumbnail((col_w, row_h))
