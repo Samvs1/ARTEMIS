@@ -56,7 +56,15 @@ python3 mind/server.py             # the real thing
 
 Then open http://127.0.0.1:8000.
 
-## Milo's body: talk without a browser (new)
+## Milo's memory (new)
+
+Milo now remembers you between conversations. After each talk (once you have been quiet for about ten minutes), the mind reads the conversation back and writes down short, dated facts ("They have a grey cat called Pixel") and a one-line note about the talk. When something changes ("Lotte comes next weekend instead"), the old fact is marked outdated and the new one replaces it. Every night between 2 and 6 in the morning (or the next time the mind starts, if the computer was off) Milo "dreams": it tidies its facts, writes a short diary entry, and picks one thing to ask you about the next day.
+
+You can see and change all of it in the page, under **What Milo remembers**: edit a fact, pin it (pinned facts are always on Milo's mind and the AI never changes them), forget it, tell Milo something to remember, read the last talks and the diary, or **Forget everything about me**. The buttons **Note the last talk now** and **Dream now** are there for trying things out.
+
+Memory only works with the real mind (a DeepSeek key). It stays on your computer, in `data/memory/owner/` (plain files you can open). Only the facts picked for a reply are sent to DeepSeek along with your message. How it works: `docs/memory-design.md`.
+
+## Milo's body: talk without a browser
 
 The body is the program that will run on the robot: it listens to the microphone, wakes on a word, turns your speech into text, asks the mind, speaks the answer and drives the face. It already runs on a normal computer with any microphone and speakers.
 
