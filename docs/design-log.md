@@ -65,6 +65,7 @@ Reference points mentioned so far: Anki Vector and Cozmo, EMO, Jibo (stationary 
 | 37 | Hardware scope for now | Basics first: a talking face on a desk (Pi, screen, microphone array, speaker) | Ears or antennae, the mood glow, the camera, the neck tilt and the dock are parked until the basics work. The simulator keeps drawing the ears and glow as design exploration. Supersedes row 11 for now. | Decided (R7) |
 | 38 | Shopping lists | Two lists in `docs/shopping-lists.md`: List A "Desk Milo" (first prototype, buy now) and List B "Milo" (final robot, draft, do not buy yet) | List B reuses all of List A. Prices are from listings read in early October 2026 and must be checked on the day of ordering. | Decided (R7) |
 | 39 | Desk rig parts | Pi 5 (4 GB), Waveshare 4 inch DSI touch display, reSpeaker XVF3800 USB mic array, a small powered speaker | The mic array gives echo cancellation, so Milo can be interrupted. The owner took all four recommendations (DSI screen now, XVF3800 array, 4 GB) and shops from the Netherlands or Belgium. Nothing is ordered yet. | Decided (R7) |
+| 40 | 3D mock-up of the body | A first Blender model with every part marked printed or bought, in `docs/3d-mockups.md` and `cad/` | The assumed 190 x 160 x 135 mm body holds the parts, with tight spots (row 14). Axle forward of centre for balance; Pi in the body; fixed head. Bought-part sizes are assumed until checked. | Proposed (R8) |
 
 ## 3. Architecture principle: two brains
 
@@ -312,3 +313,8 @@ The full lists, with prices, shops and notes, are in `docs/shopping-lists.md`. I
 - Research found that the memory shortage has pushed the Pi 5 up (4 GB about 117 to 140 euro), which is why the first list is kept to the parts that prove the basics. The desk rig parts are in row 39 and the lists are in `docs/shopping-lists.md`.
 - Answers: buy the 4 inch DSI display now, use the XVF3800 mic array, take the Pi 5 with 4 GB, shop from the Netherlands or Belgium.
 - The owner then paused the hardware research ("too much detailed research") to test the software first. Nothing is ordered. Shop picks for the Netherlands and Belgium are in `docs/shopping-lists.md`; prices must be checked on the day of ordering.
+
+**Round 8: 3D mock-up**
+
+- The owner asked for 3D mock-up designs of the robot, covering the printed and the bought parts, using the Blender connector. No Blender connector was available in the session, so the model was built with Blender's Python module instead (`cad/milo_mockup.py`). Results, part lists and findings are in `docs/3d-mockups.md` (row 40, Proposed).
+- Main findings: the assumed size works but is tight (motor to cells 3.5 mm, mic array to head roof 0.2 mm); the axle has to sit forward of the middle or Milo tips onto its nose; the display cable should be 20 cm; the battery layout, cooling and port access are open.

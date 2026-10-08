@@ -1,0 +1,19 @@
+# cad/: Milo 3D mock-up
+
+`milo_mockup.py` builds the Milo body in Blender from plain numbers (millimetres) and renders it. The results and what they mean are in `docs/3d-mockups.md`.
+
+The script uses Blender as a Python module, so no Blender window or install is needed.
+
+```
+python3 -m venv .venv
+.venv/bin/pip install bpy pillow
+.venv/bin/python cad/milo_mockup.py            # every render, plus cad/milo_mockup.blend
+.venv/bin/python cad/milo_mockup.py exploded   # one view: hero, views, exploded, coded, section, plate, bought
+.venv/bin/python cad/milo_mockup.py report     # only the fit and balance report (a few seconds)
+```
+
+`bpy` is a large download (about 400 MB) and needs Python 3.13 for the version used here (Blender 5.2). Renders go to `docs/img/3d/`. They use the CPU and take a minute or two each; set `MILO_SAMPLES=12` for quick drafts.
+
+To change the design, edit the numbers at the top of the file (body size, wheel, head, axle position) or the part definitions in `build()`. Every part is registered as printed (`P..`) or bought (`B..`), which is what feeds the colours, the weights and the labels.
+
+To open the scene in Blender, use `cad/milo_mockup.blend` (it is written by the "hero" render).
